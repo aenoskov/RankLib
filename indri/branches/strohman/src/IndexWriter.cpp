@@ -470,6 +470,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
 
       for( int i=0; i<documentData->positions.size(); i++ ) {
         stream << (documentData->positions[i] - lastPosition);
+        lastPosition = documentData->positions[i];
         positions++;
       }
 

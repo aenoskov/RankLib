@@ -301,11 +301,11 @@ bool HTMLParser:: normalizeURL(char *s) {
         memcpy( normurl + scheme_len, "://", 3 );
         memcpy( normurl + scheme_len + 3, netloc, netloc_len+1 );
       } else {
-        memcpy( normurl, scheme, scheme_len );
-        memcpy( normurl + scheme_len, "://", 3 );
-        memcpy( normurl + scheme_len + 3, netloc, netloc_len );
-        normurl[scheme_len + 3 + netloc_len] = '/';
-        memcpy( normurl + scheme_len + 3 + netloc_len + 1, path, path_len+1 );
+        strcpy( normurl, scheme );
+        strcat( normurl, "://" );
+        strcat( normurl, netloc );
+        strcat( normurl, "/" );
+        strcat( normurl, path );
         dotCleanStart = scheme_len + 3 + netloc_len + 1;
       }
     }
