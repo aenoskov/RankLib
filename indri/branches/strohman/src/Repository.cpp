@@ -468,10 +468,15 @@ void Repository::addDocument( ParsedDocument* document ) {
   _countDocumentAdd();
 
   // TODO: make this better
-  if( state->back()->documentCount() >= 500 ) {
+  if( state->back()->documentCount() >= 12500 ) {
+    bool mrg = state->size() > 10;
+
     // drop our reference to the current state
     state = 0;
     write();
+
+    if( mrg )
+      merge();
   }
 }
 
@@ -507,18 +512,31 @@ void Repository::addMemoryIndex() {
 // Make a new state object, swap in the new index for the old one
 //
 
-void Repository::_swapState( indri::index::Index* oldIndex, indri::index::Index* newIndex ) {
+void Repository::_swapState( std::vector<indri::index::Index*>& oldIndexes, indri::index::Index* newIndex ) {
   ScopedLock lock( _stateLock );
 
   index_state oldState = _active;
   _active = new index_vector;
 
-  for( int i=0; i<oldState->size(); i++ ) {
-    if( (*oldState)[i] == oldIndex ) {
-      _active->push_back( newIndex );
-    } else {
-      _active->push_back( (*oldState)[i] );
-    }
+  int i;
+  // copy all states up to oldIndexes
+  for( i=0; i<oldState->size() && (*oldState)[i] != oldIndexes[0]; i++ ) {
+    _active->push_back( (*oldState)[i] );
+  }
+
+  int firstMatch = i;
+
+  // verify (in debug builds) that all the indexes match up like they should
+  for( ; i<oldState->size() && (i-firstMatch) < oldIndexes.size(); i++ ) {
+    assert( (*oldState)[i] == oldIndexes[i-firstMatch] );
+  }
+
+  // add the new index
+  _active->push_back( newIndex );
+
+  // copy all trailing indexes
+  for( ; i<oldState->size(); i++ ) {
+    _active->push_back( (*oldState)[i] );
   }
 
   _states.push_back( _active );
@@ -544,24 +562,42 @@ void Repository::_removeStates( std::vector<index_state>& toRemove ) {
 }
 
 //
-// _statesContaining
+// _stateContains
 //
-// Find all states that contain this particular index
+// Returns true if the state contains any one of the given indexes
 //
 
-std::vector<Repository::index_state> Repository::_statesContaining( indri::index::Index* index ) {
+bool Repository::_stateContains( index_state& state, std::vector<indri::index::Index*>& indexes ) {
+  // for every index in this state
+  for( int j=0; j<state->size(); j++ ) {
+    // does it match one of our indexes?
+    for( int k=0; k<indexes.size(); k++ ) {
+      if( (*state)[j] == indexes[k] ) {
+        return true;
+      }
+    }
+  }
+
+  // no match
+  return false;
+}
+
+//
+// _statesContaining
+//
+// Find all states that contain any of these indexes
+//
+
+std::vector<Repository::index_state> Repository::_statesContaining( std::vector<indri::index::Index*>& indexes ) {
   ScopedLock lock( _stateLock );
   std::vector<index_state> result;
 
+  // for every current state
   for( int i=0; i<_states.size(); i++ ) {
     index_state& state = _states[i];
 
-    for( int j=0; j<state->size(); j++ ) {
-      if( (*state)[j] == index ) {
-        result.push_back( state );
-        break;
-      }
-    }
+    if( _stateContains( state, indexes ) )
+      result.push_back( state );
   }
   
   return result;
@@ -606,6 +642,10 @@ void Repository::write() {
   // grab a copy of the current state
   index_state state = indexes();
 
+  // if the current index is empty, don't need to write it
+  if( state->size() && state->back()->documentCount() == 0 )
+    return;
+
   // make a new MemoryIndex, cutting off the old one from updates
   addMemoryIndex();
 
@@ -613,32 +653,48 @@ void Repository::write() {
   if( state->size() == 0 )
     return;
 
-  // use our copy of the old state to find the index we need to write to disk
-  indri::index::Index* index = state->back();
+  // write out the last index
+  index_state lastState = new std::vector<indri::index::Index*>;
+  lastState->push_back( state->back() );
+  state = 0;
 
-  // write the index out to disk
+  _merge( lastState );
+}
+
+//
+// _merge
+//
+// Merge the specified indexes together.
+//
+
+void Repository::_merge( index_state& state ) {
+  // make a copy of the indexes in our state
+  std::vector<indri::index::Index*> indexes = *(state.get());
+
+  // get an index count
   std::stringstream indexNumber;
   indexNumber << _indexCount;
   _indexCount++;
 
+  // make a path, write the index
   std::string indexPath = Path::combine( _path, "index" );
   std::string newIndexPath = Path::combine( indexPath, indexNumber.str() );
   indri::index::IndexWriter writer;
-  writer.write( *index, newIndexPath );
+  writer.write( indexes, newIndexPath );
 
   // open the index we just wrote
   indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
   diskIndex->open( indexPath, indexNumber.str() );
 
   // make a new state, replacing the old index for the new one
-  _swapState( index, diskIndex );
+  _swapState( indexes, diskIndex );
 
   // drop our reference to the old state
   state = 0;
 
   // need a list of all states that contain the memoryIndex we just wrote
   // we want to wait here until the refcounts all drop to 1
-  std::vector<index_state> containing = _statesContaining( index );
+  std::vector<index_state> containing = _statesContaining( indexes );
 
   while( 1 ) {
     bool referencesExist = false;
@@ -656,8 +712,59 @@ void Repository::write() {
 
   // okay, now nobody is using the state, so we can get rid of those states
   // and the index we wrote
-  delete index;
+  for( int i=0; i<indexes.size(); i++ ) {
+    indri::index::DiskIndex* diskIndex = dynamic_cast<indri::index::DiskIndex*>(indexes[i]);
+    std::string path;
+
+    // trap the path, if this is a diskIndex
+    if( diskIndex ) {
+      path = diskIndex->path();
+      std::string root = Path::combine( _path, "index" );
+      path = Path::combine( root, path );
+    }
+
+    // delete the index object
+    indexes[i]->close();
+    delete indexes[i];
+
+    // if it was a disk index, remove the data
+    if( diskIndex ) {
+      Path::remove( path );
+    }
+  }
+
+  // remove all containing states
   _removeStates( containing );
+}
+
+//
+// merge
+//
+// Merge all known indexes together
+//
+
+void Repository::merge() {
+  // grab a copy of the current state
+  index_state state = indexes();
+  index_state mergers = state;
+
+  if( state->size() && state->back()->documentCount() == 0 ) {
+    // if the current index is empty, don't need to add a new one; write the others
+    mergers = new index_vector;
+    mergers->assign( state->begin(), state->end() - 1 );
+  } else {
+    // current index isn't empty, so add a new one and write the old ones
+    addMemoryIndex();
+  }
+
+  // no need to merge when there's only one index (or none)
+  if( state->size() <= 1 )
+    return;
+
+  state = 0;
+
+  // merge all the indexes together
+  _merge( mergers );
 }
 
 //

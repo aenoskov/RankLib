@@ -8,6 +8,8 @@
 #ifndef INDRI_TERMLISTFILEITERATOR_HPP
 #define INDRI_TERMLISTFILEITERATOR_HPP
 
+#include "indri/TermList.hpp"
+
 namespace indri {
   namespace index {
     class TermListFileIterator {

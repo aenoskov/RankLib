@@ -34,7 +34,7 @@ namespace indri {
 
     public:
       DiskDocListFileIterator( File& docListFile, int fieldCount );
-      ~DiskDocListFileIterator() {};
+      ~DiskDocListFileIterator();
       
       bool finished() const;
       void startIteration();

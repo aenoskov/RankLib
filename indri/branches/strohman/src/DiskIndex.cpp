@@ -13,6 +13,11 @@
 #include "indri/Path.hpp"
 #include "indri/Parameters.hpp"
 #include "indri/DiskDocumentDataIterator.hpp"
+#include "indri/CombinedVocabularyIterator.hpp"
+
+#include "indri/DiskFrequentVocabularyIterator.hpp"
+#include "indri/DiskKeyfileVocabularyIterator.hpp"
+#include "indri/DiskTermListFileIterator.hpp"
 
 void indri::index::DiskIndex::_readManifest( const std::string& path ) {
   Parameters manifest;
@@ -23,6 +28,7 @@ void indri::index::DiskIndex::_readManifest( const std::string& path ) {
   _corpusStatistics.totalDocuments = (int) corpus["total-documents"];
   _corpusStatistics.totalTerms = (INT64) corpus["total-terms"];
   _corpusStatistics.uniqueTerms = (int) corpus["unique-terms"];
+  _infrequentTermBase = (int) corpus["frequent-terms"];
   _documentBase = (int) corpus["document-base"];
 
   if( manifest.exists("fields") ) {
@@ -52,6 +58,7 @@ void indri::index::DiskIndex::open( const std::string& base, const std::string& 
   std::string infrequentStringPath = Path::combine( path, "infrequentString" );
   std::string frequentIDPath = Path::combine( path, "frequentID" );
   std::string infrequentIDPath = Path::combine( path, "infrequentID" );
+  std::string frequentTermsDataPath = Path::combine( path, "frequentTerms" );
   std::string documentLengthsPath = Path::combine( path, "documentLengths" );
   std::string documentStatisticsPath = Path::combine( path, "documentStatistics" );
   std::string invertedFilePath = Path::combine( path, "invertedFile" );
@@ -65,6 +72,7 @@ void indri::index::DiskIndex::open( const std::string& base, const std::string& 
 
   _frequentIdToTerm.openRead( frequentIDPath );
   _infrequentIdToTerm.openRead( infrequentIDPath );
+  _frequentTermsData.openRead( frequentTermsDataPath );
 
   _documentLengths.openRead( documentLengthsPath );
   _documentStatistics.openRead( documentStatisticsPath );
@@ -83,6 +91,8 @@ void indri::index::DiskIndex::close() {
 
   _frequentIdToTerm.close();
   _infrequentIdToTerm.close();
+
+  _frequentTermsData.close();
 
   _documentLengths.close();
   _documentStatistics.close();
@@ -406,9 +416,19 @@ indri::index::DocExtentListIterator* indri::index::DiskIndex::fieldListIterator(
 //
 
 const indri::index::TermList* indri::index::DiskIndex::termList( int documentID ) {
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+  indri::index::DocumentData documentData;
+
+  // read the appropriate offset information from the disk document statistics file
+  _documentStatistics.read( &documentData, (documentID-1)*sizeof(DocumentData), sizeof(DocumentData) );
+  
+  TermList* termList = new TermList;
+  char* buffer = new char[documentData.byteLength];
+
+  _directFile.read( buffer, documentData.offset, documentData.byteLength );
+  termList->read( buffer, documentData.byteLength );
+
+  delete buffer;
+  return termList;
 }
 
 //
@@ -416,9 +436,7 @@ const indri::index::TermList* indri::index::DiskIndex::termList( int documentID 
 //
 
 indri::index::TermListFileIterator* indri::index::DiskIndex::termListFileIterator() {
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+  return new indri::index::DiskTermListFileIterator( _directFile );
 }
 
 //
@@ -426,9 +444,9 @@ indri::index::TermListFileIterator* indri::index::DiskIndex::termListFileIterato
 //
 
 indri::index::VocabularyIterator* indri::index::DiskIndex::vocabularyIterator() {
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+  return new indri::index::CombinedVocabularyIterator( frequentVocabularyIterator(),
+                                                       infrequentVocabularyIterator(),
+                                                       _infrequentTermBase );
 }
 
 //
@@ -436,9 +454,7 @@ indri::index::VocabularyIterator* indri::index::DiskIndex::vocabularyIterator() 
 //
 
 indri::index::VocabularyIterator* indri::index::DiskIndex::frequentVocabularyIterator() {
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+  return new indri::index::DiskFrequentVocabularyIterator( _frequentTermsData, _fieldData.size() );
 }
 
 //
@@ -446,9 +462,7 @@ indri::index::VocabularyIterator* indri::index::DiskIndex::frequentVocabularyIte
 //
 
 indri::index::VocabularyIterator* indri::index::DiskIndex::infrequentVocabularyIterator() {
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+  return new indri::index::DiskKeyfileVocabularyIterator( _infrequentTermBase, _infrequentIdToTerm, _lock, _fieldData.size() );
 }
 
 //
@@ -456,5 +470,5 @@ indri::index::VocabularyIterator* indri::index::DiskIndex::infrequentVocabularyI
 //
 
 indri::index::DocumentDataIterator* indri::index::DiskIndex::documentDataIterator() {
-  return new DiskDocumentDataIterator( _documentStatistics );
+  return new indri::index::DiskDocumentDataIterator( _documentStatistics );
 }

@@ -33,13 +33,16 @@ namespace indri {
       void startIteration() {
         _alphabetical.clear();
         std::copy( _termData.begin(), _termData.end(), std::back_inserter( _alphabetical ) );
-        assert( _alphabetical.size() );
-        
         std::sort( _alphabetical.begin(), _alphabetical.end(), MemoryIndex::term_entry::term_less() );
         _currentTerm = _alphabetical.begin();
-        _iterator.reset( (*_currentTerm)->list );
-        _data.termData = (*_currentTerm)->termData;
-        _data.iterator = &_iterator;
+        _data.termData = 0;
+        _data.iterator = 0;
+
+        if( !finished() ) {
+          _iterator.reset( (*_currentTerm)->list );
+          _data.termData = (*_currentTerm)->termData;
+          _data.iterator = &_iterator;
+        }
       }
       
       bool finished() const {

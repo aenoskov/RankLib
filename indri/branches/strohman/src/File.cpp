@@ -17,6 +17,31 @@
 #include "lemur/Exception.hpp"
 #include "indri/ScopedLock.hpp"
 
+//
+// File constructor
+//
+
+File::File() :
+#ifdef WIN32
+  _handle(INVALID_HANDLE_VALUE)
+#else
+  _handle(-1)
+#endif
+{
+}
+
+//
+// File destructor
+//
+
+File::~File() {
+  close();
+}
+
+//
+// create
+// 
+
 bool File::create( const std::string& filename ) {
 #ifdef WIN32
   _handle = ::CreateFile( filename.c_str(),
@@ -64,7 +89,7 @@ bool File::open( const std::string& filename ) {
   
   if( _handle < 0 )
     return false;
-  
+
   return true;
 #endif
 }
@@ -81,7 +106,7 @@ bool File::openRead( const std::string& filename ) {
   
   if( _handle == INVALID_HANDLE_VALUE )
     return false;
-  
+
   return true;
 #else 
 #ifdef __APPLE__
@@ -169,11 +194,15 @@ size_t File::write( const void* buffer, UINT64 position, size_t length ) {
 
 void File::close() {
 #ifdef WIN32
-  ::CloseHandle( _handle );
-  _handle = INVALID_HANDLE_VALUE;
+  if( _handle != INVALID_HANDLE_VALUE ) {
+    ::CloseHandle( _handle );
+    _handle = INVALID_HANDLE_VALUE;
+  }
 #else
-  ::close( _handle );
-  _handle = -1;
+  if( _handle >= 0 ) {
+    ::close( _handle );
+    _handle = -1;
+  }
 #endif
 }
 

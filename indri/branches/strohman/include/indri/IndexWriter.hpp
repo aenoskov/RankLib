@@ -31,11 +31,11 @@
 struct WriterIndexContext {
   struct less {
   private:
-    indri::index::DocListFileIterator::iterator_less _iterator_less;
+    indri::index::DocListFileIterator::iterator_greater _iterator_greater;
   
   public:
     bool operator () ( const WriterIndexContext*& one, const WriterIndexContext*& two ) const {
-      return _iterator_less( one->iterator, two->iterator );
+      return _iterator_greater( one->iterator, two->iterator );
     }
   };
 
@@ -76,16 +76,10 @@ namespace indri {
   namespace index {
     class IndexWriter {
     private:
-      struct top_term_entry {
-        struct greater {
-          bool operator () ( top_term_entry& one, top_term_entry& two ) {
-            return one.termData->corpus.totalCount > two.termData->corpus.totalCount;
-          }
-        };
-
-        indri::index::TermData* termData;
-        UINT64 startOffset;
-        UINT64 endOffset;
+      struct disktermdata_greater {
+        bool operator () ( const DiskTermData* one, const DiskTermData* two ) const {
+          return one->termData->corpus.totalCount > two->termData->corpus.totalCount;
+        }
       };
 
       struct keyfile_pair {
@@ -95,6 +89,7 @@ namespace indri {
 
       keyfile_pair _infrequentTerms;
       keyfile_pair _frequentTerms;
+      File _frequentTermsData;
 
       File _documentStatistics;
       File _documentLengths;
@@ -104,7 +99,7 @@ namespace indri {
 
       SequentialWriteBuffer* _invertedOutput;
 
-      greedy_vector<top_term_entry> _topTerms;
+      greedy_vector<indri::index::DiskTermData*> _topTerms;
       Buffer _termDataBuffer;
 
       int _documentBase;
@@ -123,17 +118,20 @@ namespace indri {
       void _fetchMatchingInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData );
       void _writeInvertedLists( std::vector<WriterIndexContext*>& contexts );
-      void _storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::TermData* termData, INT64 startOffset, INT64 endOffset, int termID );
-      void _storeFrequentTerms( const std::string& filename );
+      void _storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
+      void _storeFrequentTerms();
       void _addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset );
       void _storeMatchInformation( greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
 
       int _lookupTermID( Keyfile& keyfile, const char* term );
-      void _writeDirectLists( std::vector<WriterIndexContext*>& contexts, File& output );
-      void _writeDirectLists( WriterIndexContext* context, SequentialWriteBuffer* output );
 
       void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes );
-      void _writeDocumentStatistics( std::vector<WriterIndexContext*>& contexts );
+      
+      void _writeDirectLists( std::vector<WriterIndexContext*>& contexts );
+      void _writeDirectLists( WriterIndexContext* context,
+                              SequentialWriteBuffer* directOutput,
+                              SequentialWriteBuffer* lengthsOutput,
+                              SequentialWriteBuffer* dataOutput );
 
       indri::index::TermTranslator* _buildTermTranslator( Keyfile& newInfrequentTerms,
                                                           Keyfile& newFrequentTerms,
@@ -150,6 +148,7 @@ namespace indri {
     public:
       IndexWriter();
       void write( indri::index::Index& index, const std::string& fileName );
+      void write( std::vector<indri::index::Index*>& indexes, const std::string& fileName );
     };
   }
 }
