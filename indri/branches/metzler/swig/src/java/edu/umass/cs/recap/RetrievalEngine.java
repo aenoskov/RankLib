@@ -43,16 +43,51 @@ public class RetrievalEngine {
 	
 	// StyledDocument's font size
 	private int docFontSize;
+
+	// names of servers and indexes currently open
+	Vector servers = null;
+	Vector indexes = null;
 	
 	// create a new Indri Retrieval Engine 
 	public RetrievalEngine( QueryEnvironment indri ) {
 		this.indri = indri;
 		this.cache = new RecapCache();
 		this.docFontSize = 12;
+		
+		this.servers = new Vector();
+		this.indexes = new Vector();
+	}
+	
+	// opens a remote index
+	public void addServer( String server ) {
+		try { indri.addServer( server ); }
+		catch( Exception e ) { return; }
+		servers.add( server );
+	}
+	
+	// opens a local index
+	public void addIndex( String index ) {
+		try { indri.addIndex( index ); }
+		catch( Exception e ) { return; }
+		indexes.add( index );
+	}
+
+	// checks to make sure we can run queries against this QueryEnvironment
+	// by ensuring at least one index or server is open
+	public boolean isQueryable() {
+		if( ( indexes == null || indexes.size() == 0 ) && 
+			( servers == null || servers.size() == 0 ) ) {
+				return false;
+		}
+		return true;
 	}
 	
 	// runs a query with the given parameters
 	public Pair runQuery( String query, int numResults ) {
+		// make sure there's at least one server or index open
+		if( !isQueryable() )
+			return null;
+
 		Vector allScores = new Vector();		
 					
 		System.err.println( "Running query: " + query );
@@ -74,6 +109,10 @@ public class RetrievalEngine {
 	
 	// runs a query with the given parameters
 	public Vector runQuery( String query, String queryOp, String queryExtent, int numResults ) {
+		// make sure there's at least one server or index open
+		if( !isQueryable() )
+			return null;
+
 		Vector queries = null;
 		Vector allScores = new Vector();
 		

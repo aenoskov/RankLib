@@ -18,7 +18,7 @@ import javax.swing.JPanel;
  * @author Don Metzler
  *
  */
-public class MainPane extends JPanel implements ActionListener, MainPaneUpdater {
+public class MainPane extends JPanel implements ActionListener {
 
 	private RetrievalEngine retEngine = null;
 	private MainMenuBar menu = null;
@@ -35,17 +35,12 @@ public class MainPane extends JPanel implements ActionListener, MainPaneUpdater 
 		menu.addActionListeners( this );
 		
 		setLayout( new BorderLayout() );
-		infoPane = new InfoPane( retEngine, screenSize, this );
+		infoPane = new InfoPane( retEngine, screenSize ); //, this );
 		infoPane.setPreferredSize( screenSize );
 
 		add( infoPane );
 	}
 	
-	public void update( DocInfo doc ) {
-		infoPane.displayDoc( doc );
-		infoPane.setDividerLocation( 0.8 );
-	}
-
 	public void actionPerformed(ActionEvent e) {
 		JMenuItem item = (JMenuItem)e.getSource();
 		String label = item.getLabel();
@@ -75,8 +70,37 @@ public class MainPane extends JPanel implements ActionListener, MainPaneUpdater 
 				    JOptionPane.INFORMATION_MESSAGE,
 				    new ImageIcon("edu/umass/cs/recap/images/recap.png"));		
 		}
+		else if( label.equals( "Add server...") ) {
+			String server = showInputDialog( "Name of server to add:" );
+			try {
+				retEngine.addServer( server );
+			}
+			catch( Exception f ) {
+				showErrorDialog( "Error adding server!" );
+			}
+		}
+		else if( label.equals( "Add index..." ) ) {
+			String index = showInputDialog( "Location of index to add:" );
+			try {
+				retEngine.addIndex( index );
+			}
+			catch( Exception f ) {
+				showErrorDialog( "Error while opening index!" );
+			}
+		}
+		else if( label.equals( "Exit" ) ) {
+			System.exit( 0 );
+		}
 		// update these values each time a menu event occurs for simplicity
 		infoPane.setNumExploreResults( menu.getNumExploreResults() );
 		infoPane.setNumAnalyzeResults( menu.getNumAnalyzeResults() );
 	}	
+	
+	protected String showInputDialog( String msg ) {
+		return JOptionPane.showInputDialog( msg );
+	}
+	
+	protected void showErrorDialog( String msg ) {
+		JOptionPane.showMessageDialog( this, msg, "Error", JOptionPane.ERROR_MESSAGE );
+	}
 }

@@ -11,29 +11,36 @@ import java.util.StringTokenizer;
 public class SentenceTokenizer extends StringTokenizer {
 
 	// term delimiters
-	private static final String delims = " \b\t\n\f\r\'\"\\~`@#$%^&*()-=_+{}|[]:;,/<>";
-
-	// sentence we're segmenting
-	private String sentence = null;
+	protected static final String delims = " \b\t\n\f\r\'\"\\~`@#$%^&*()-=_+{}|[]:;,/<>";
 
 	// context
-	private String prevTerm = null;
-	private String curTerm = null;
-	private String nextTerm = null;
+	protected String prevTerm = null;
+	protected String curTerm = null;
+	protected String nextTerm = null;
+	
+	// whether or not we're on the first token or not
+	protected boolean firstToken = true;
 	
 	public SentenceTokenizer( String s ) {
 		super( s, delims );
-		s = sentence;
-		if( hasMoreTokens() )
-			curTerm = nextToken();
-		else
-			curTerm = "";
+		firstToken = true;
 	}
 	
 	// returns the next *sentence*
 	public String nextSentence() {
 		String ret = new String("");
 		boolean foundSentence = false;
+
+		// this ensures that hasMoreTokens() returns true
+		// if the sentence we're tokenizing only contains a
+		// single term
+		if( firstToken ) {
+			if( hasMoreTokens() )
+				curTerm = nextToken();
+			else
+				curTerm = "";
+			firstToken = false;
+		}
 		
 		while( hasMoreTokens() ) {
 			ret += curTerm + " ";
