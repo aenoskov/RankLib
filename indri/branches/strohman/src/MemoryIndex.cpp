@@ -10,14 +10,207 @@
 
 #include "indri/MemoryIndexDocListFileIterator.hpp"
 #include "indri/MemoryIndexVocabularyIterator.hpp"
+#include "indri/MemoryIndexTermListFileIterator.hpp"
 
 #include "indri/FieldStatistics.hpp"
 #include "indri/ScopedLock.hpp"
 
 #include "lemur/Keyfile.hpp"
 #include "indri/greedy_vector"
+#include "indri/delete_range.hpp"
 
 const int ONE_MEGABYTE = 1024*1024;
+
+//----------------------------
+// Constructors
+//----------------------------
+
+indri::index::MemoryIndex::MemoryIndex() {
+  _baseDocumentID = 0;
+  _termListsBaseOffset = 0;
+}
+
+indri::index::MemoryIndex::MemoryIndex( int docBase ) {
+  _baseDocumentID = docBase;
+  _termListsBaseOffset = 0;
+}
+
+indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields ) {
+  _baseDocumentID = docBase;
+  _termListsBaseOffset = 0;
+
+
+      HashTable<const char*, int> _fieldLookup;
+      std::vector<FieldStatistics> _fieldData;
+      std::vector<indri::index::DocExtentListMemoryBuilder*> _fieldLists;
+
+
+  for( size_t i=0; i<fields.size(); i++ ) {
+    int fieldID = i+1;
+
+    _fieldData.push_back( FieldStatistics( fields[i].name, fields[i].numeric, 0, 0 ) );
+    _fieldLists.push_back( new DocExtentListMemoryBuilder( fields[i].numeric ) );
+    _fieldLookup.insert( _fieldData.back().name.c_str(), fieldID );
+  }
+}
+
+//----------------------------
+// Destructors
+//----------------------------
+
+indri::index::MemoryIndex::~MemoryIndex() {
+  // delete term lists
+  std::list<Buffer*>::iterator bufferIter;
+  for( bufferIter = _termLists.begin(); bufferIter != _termLists.end(); bufferIter++ ) {
+    delete *bufferIter; 
+  }
+
+  // delete field lists
+  delete_vector_contents<DocExtentListMemoryBuilder*>( _fieldLists );
+
+  // delete term entries
+  std::vector<term_entry*>::iterator entryIter;
+  for( entryIter = _idToTerm.begin(); entryIter != _idToTerm.end(); entryIter++ ) {
+    termdata_delete( (*entryIter)->termData, _fieldData.size() );
+    free( *entryIter );
+  }
+}
+
+// ---------------------------
+// Corpus statistics accessors
+// ---------------------------
+
+//
+// documentBase
+//
+
+int indri::index::MemoryIndex::documentBase() {
+  return _baseDocumentID;
+}
+
+//
+// term
+//
+
+int indri::index::MemoryIndex::term( const char* term ) {
+  term_entry** entry = _stringToTerm.find( term );
+
+  if( entry )
+    return (*entry)->termID;
+
+  return 0;
+}
+
+//
+// term
+//
+
+int indri::index::MemoryIndex::term( const std::string& term ) {
+  term_entry** entry = _stringToTerm.find( term.c_str() );
+
+  if( entry )
+    return (*entry)->termID;
+
+  return 0;
+}
+
+//
+// term
+//
+
+std::string indri::index::MemoryIndex::term( int termID ) {
+  if( termID <= 0 || termID >= _idToTerm.size() )
+    return std::string();
+
+  term_entry* entry = _idToTerm[ termID ];
+  return entry->term;
+}
+
+//
+// fieldDocumentCount
+//
+
+UINT64 indri::index::MemoryIndex::fieldDocumentCount( const std::string& field, const std::string& term ) {
+  term_entry** entry = _stringToTerm.find( term.c_str() );
+  int id = _fieldID( field );
+
+  if( !entry || id == 0 )
+    return 0;
+
+  return (*entry)->termData->fields[id].documentCount;
+}
+
+//
+// fieldDocumentCount
+//
+
+UINT64 indri::index::MemoryIndex::fieldDocumentCount( const std::string& field ) {
+  int id = _fieldID( field );
+
+  if( id == 0 )
+    return 0;
+
+  return _fieldData[id].documentCount;
+}
+
+//
+// fieldTermCount
+//
+
+UINT64 indri::index::MemoryIndex::fieldTermCount( const std::string& field ) {
+  int id = _fieldID( field );
+
+  if( id == 0 )
+    return 0;
+
+  return _fieldData[id].totalCount;
+}
+
+//
+// fieldTermCount
+//
+
+UINT64 indri::index::MemoryIndex::fieldTermCount( const std::string& field, const std::string& term ) {
+  term_entry** entry = _stringToTerm.find( term.c_str() );
+  int id = _fieldID( field );
+
+  if( !entry || id == 0 )
+    return 0;
+
+  return (*entry)->termData->fields[id].totalCount;
+}
+
+//
+// termCount
+//
+
+UINT64 indri::index::MemoryIndex::termCount() {
+  return _corpusStatistics.totalTerms;
+}
+
+//
+// termCount
+//
+
+UINT64 indri::index::MemoryIndex::termCount( const std::string& term ) {
+  return _corpusStatistics.totalTerms;
+}
+
+//
+// uniqueTermCount
+//
+
+UINT64 indri::index::MemoryIndex::uniqueTermCount() {
+  return _corpusStatistics.uniqueTerms;
+}
+
+//
+// documentCount
+//
+
+UINT64 indri::index::MemoryIndex::documentCount() {
+  return _corpusStatistics.totalDocuments;
+}
 
 //
 // _fieldID
@@ -60,20 +253,20 @@ void indri::index::MemoryIndex::_writeFieldExtents( int documentID, greedy_vecto
 void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byteLength, int documentID, int documentLength, indri::index::TermList& locatedTerms ) {
   Buffer* addBuffer = 0;
   
-  if( !_documentVectors.size() || _documentVectors.back()->size() - _documentVectors.back()->position() < documentLength ) {
+  if( !_termLists.size() || _termLists.back()->size() - _termLists.back()->position() < documentLength ) {
     // we need a new Buffer
-    if( !_documentVectors.size() )
-      _documentVectorBaseOffset = 0;
+    if( !_termLists.size() )
+      _termListsBaseOffset = 0;
     else
-      _documentVectorBaseOffset += _documentVectors.back()->position();
+      _termListsBaseOffset += _termLists.back()->position();
 
     addBuffer = new Buffer(ONE_MEGABYTE);
-    _documentVectors.push_back( addBuffer );
+    _termLists.push_back( addBuffer );
   }
   
-  offset = _documentVectorBaseOffset + addBuffer->position();
+  offset = _termListsBaseOffset + addBuffer->position();
   _termList.write( *addBuffer );
-  byteLength = addBuffer->position() + _documentVectorBaseOffset - offset;
+  byteLength = addBuffer->position() + _termListsBaseOffset - offset;
 }
 
 //
@@ -139,7 +332,7 @@ void indri::index::MemoryIndex::_removeClosedTags( greedy_vector<indri::index::F
 //
 
 indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( const char* term ) {
-  term_entry** entry = _stringToTerm.find( const_cast<char*>(term) );
+  term_entry** entry = _stringToTerm.find( term );
 
   // if we've seen it, return it
   if( entry )
@@ -160,7 +353,7 @@ indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( c
   new (newEntry) term_entry;
   
   // store in [termString->termData] cache
-  entry = _stringToTerm.insert( const_cast<char*>(newEntry->term) );
+  entry = _stringToTerm.insert( newEntry->term );
   *entry = newEntry;
 
   // store termData structure in the  [termID->termData] cache
@@ -283,6 +476,69 @@ indri::index::DocListIterator* indri::index::MemoryIndex::docListIterator( const
   
   return (*entry)->list.getIterator();
 }  
+
+//
+// fieldListIterator
+//
+
+indri::index::DocExtentListIterator* indri::index::MemoryIndex::fieldListIterator( int fieldID ) {
+  if( fieldID <= 0 || fieldID >= _fieldData.size() )
+    return 0;
+  
+  DocExtentListMemoryBuilder* builder = _fieldLists[fieldID-1];
+  return new DocExtentListMemoryBuilderIterator( builder );
+}
+
+//
+// fieldListIterator
+//
+
+indri::index::DocExtentListIterator* indri::index::MemoryIndex::fieldListIterator( const std::string& field ) {
+  int fieldID = _fieldID( field );
+  if( fieldID <= 0 || fieldID >= _fieldData.size() )
+    return 0;
+  
+  DocExtentListMemoryBuilder* builder = _fieldLists[fieldID-1];
+  return new DocExtentListMemoryBuilderIterator( builder );
+}
+
+//
+// termList
+//
+
+const indri::index::TermList* indri::index::MemoryIndex::termList( int documentID ) {
+  int documentIndex = documentID - documentBase();
+  if( documentIndex < 0 || documentIndex >= _documentData.size() )
+    return 0;
+
+  const DocumentData& data = _documentData[documentIndex];
+  UINT64 documentOffset = data.offset;
+  Buffer* documentBuffer = 0;
+  std::list<Buffer*>::const_iterator iter;
+
+  for( iter = _termLists.begin(); iter != _termLists.end(); ++iter ) {
+    if( documentOffset < (*iter)->position() ) {
+      documentBuffer = (*iter);
+      break;
+    }
+
+    documentOffset -= (*iter)->position();
+  }
+
+  assert( documentBuffer );
+  TermList* list = new TermList();
+
+  list->read( documentBuffer->front() + documentOffset, data.byteLength );
+  return list;
+}
+
+//
+// termListFileIterator
+//
+
+indri::index::TermListFileIterator* indri::index::MemoryIndex::termListFileIterator() {
+  return new MemoryIndexTermListFileIterator( _termLists, _documentData );
+}
 
 //
 // docListFileIterator

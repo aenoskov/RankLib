@@ -61,13 +61,44 @@ namespace indri {
   namespace index {
     class DocListFileIterator {
     public:
+      struct DocListData {
+        DocListIterator* iterator;
+        TermData* termData;
+      };
+
+      struct iterator_less {
+        bool operator() ( const DocListFileIterator*& one, const DocListFileIterator*& two ) const {
+          assert( !one->finished() && !two->finished() );
+          
+          DocListData* oneData = one->currentEntry();
+          DocListData* twoData = two->currentEntry();
+
+          const char* oneTerm = oneData->termData->term;
+          const char* twoTerm = twoData->termData->term;
+
+          int result = strcmp( oneTerm, twoTerm );
+
+          // if terms don't match, we're done
+          if( result < 0 )
+            return true;
+          if( result > 0 )
+            return false;
+
+          // terms match, so go by document
+          int oneDocument = oneData->iterator->currentEntry()->document;
+          int twoDocument = twoData->iterator->currentEntry()->document;
+
+          return oneDocument < twoDocument;
+        }
+      };
+
       virtual ~DocListFileIterator() {};
       
       virtual bool finished() const = 0;
       virtual void startIteration() = 0;
 
       virtual bool nextEntry() = 0;
-      virtual DocListIterator* currentEntry() = 0;
+      virtual DocListData* currentEntry() = 0;
     };
   }
 }

@@ -61,6 +61,17 @@ const int GROW_TIMES = 12;
 const size_t PLENTY_OF_SPACE = 15; // docID, count, position: 5 bytes each
 
 //
+// DocListMemoryBuilder constructor
+//
+
+indri::index::DocListMemoryBuilder::DocListMemoryBuilder() :
+  _list(0),
+  _listBegin(0),
+  _listEnd(0)
+{
+}
+
+//
 // _grow
 // 
 
@@ -245,4 +256,12 @@ int indri::index::DocListMemoryBuilder::documentFrequency() const {
 
 int indri::index::DocListMemoryBuilder::termFrequency() const {
   return _termFrequency;
+}
+
+//
+// getIterator
+//
+
+indri::index::DocListMemoryBuilderIterator* indri::index::DocListMemoryBuilder::getIterator() {
+  return new DocListMemoryBuilderIterator( *this );
 }

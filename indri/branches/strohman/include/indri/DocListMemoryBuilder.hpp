@@ -73,9 +73,10 @@ namespace indri {
 
     public:
       DocListMemoryBuilderIterator();
+      DocListMemoryBuilderIterator( const class DocListMemoryBuilder& builder );
 
       void reset( const class DocListMemoryBuilder& builder );
-      void reset( const greedy_vector< std::pair<char*,char*>, 4 >& lists );
+      void reset( const greedy_vector< std::pair<char*, char*>, 4 >& lists );
 
       void startIteration();
       bool finished();

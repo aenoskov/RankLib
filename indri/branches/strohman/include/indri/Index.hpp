@@ -11,6 +11,7 @@
 #include <string>
 
 #include "indri/DocListIterator.hpp"
+#include "indri/DocExtentListIterator.hpp"
 #include "indri/DocListFileIterator.hpp"
 #include "indri/FieldListIterator.hpp"
 #include "indri/VocabularyIterator.hpp"
@@ -33,33 +34,36 @@ namespace indri {
       // Counts
       //
       
-      virtual int term( const std::string& term );
-      virtual std::string term( int termID );
+      virtual int documentBase() = 0;
+
+      virtual int term( const char* term ) = 0;
+      virtual int term( const std::string& term ) = 0;
+      virtual std::string term( int termID ) = 0;
             
-      virtual UINT64 documentCount();
-      virtual UINT64 uniqueTermCount();
+      virtual UINT64 documentCount() = 0;
+      virtual UINT64 uniqueTermCount() = 0;
 
-      virtual UINT64 termCount( const std::string& term );
-      virtual UINT64 termCount();
+      virtual UINT64 termCount( const std::string& term ) = 0;
+      virtual UINT64 termCount() = 0;
 
-      virtual UINT64 fieldTermCount( const std::string& field );
-      virtual UINT64 fieldTermCount( const std::string& field, const std::string& term );
+      virtual UINT64 fieldTermCount( const std::string& field ) = 0;
+      virtual UINT64 fieldTermCount( const std::string& field, const std::string& term ) = 0;
 
-      virtual UINT64 fieldDocumentCount( const std::string& field );
-      virtual UINT64 fieldDocumentCount( const std::string& field, const std::string& term );
+      virtual UINT64 fieldDocumentCount( const std::string& field ) = 0;
+      virtual UINT64 fieldDocumentCount( const std::string& field, const std::string& term ) = 0;
 
       //
       // Lists
       //
       
-      indri::index::DocListIterator* docListIterator( int termID );
-      indri::index::DocListIterator* docListIterator( const std::string& term );
-      indri::index::DocListFileIterator* docListFileIterator();
-      indri::index::FieldListIterator* fieldListIterator( int fieldID );
-      indri::index::FieldListIterator* fieldListIterator( const std::string& field );
-      indri::index::TermList* termList( int documentID );
-      indri::index::TermListFileIterator* termListsIterator();
-      indri::index::VocabularyIterator* vocabularyIterator();
+      virtual DocListIterator* docListIterator( int termID ) = 0;
+      virtual DocListIterator* docListIterator( const std::string& term ) = 0;
+      virtual DocListFileIterator* docListFileIterator() = 0;
+      virtual DocExtentListIterator* fieldListIterator( int fieldID ) = 0;
+      virtual DocExtentListIterator* fieldListIterator( const std::string& field ) = 0;
+      virtual const TermList* termList( int documentID ) = 0;
+      virtual TermListFileIterator* termListFileIterator() = 0;
+      virtual VocabularyIterator* vocabularyIterator() = 0;
     };
   }
 }

@@ -13,6 +13,8 @@
 #include "FieldExtent.hpp"
 #include "lemur/RVLCompress.hpp"
 #include "indri/Buffer.hpp"
+#include "indri/RVLCompressStream.hpp"
+#include "indri/RVLDecompressStream.hpp"
 
 namespace indri {
   namespace index {

@@ -115,7 +115,13 @@
 				RelativePath=".\DocExtentListMemoryBuilder.cpp">
 			</File>
 			<File
+				RelativePath=".\DocExtentListMemoryBuilderIterator.cpp">
+			</File>
+			<File
 				RelativePath=".\DocListMemoryBuilder.cpp">
+			</File>
+			<File
+				RelativePath=".\DocListMemoryBuilderIterator.cpp">
 			</File>
 			<File
 				RelativePath=".\DocumentIteratorFactory.cpp">
@@ -151,6 +157,9 @@
 				RelativePath=".\IndexEnvironment.cpp">
 			</File>
 			<File
+				RelativePath=".\IndexWriter.cpp">
+			</File>
+			<File
 				RelativePath=".\IndriTimer.cpp">
 			</File>
 			<File
@@ -161,6 +170,9 @@
 			</File>
 			<File
 				RelativePath=".\MemoryIndex.cpp">
+			</File>
+			<File
+				RelativePath=".\MemoryIndexTermListFileIterator.cpp">
 			</File>
 			<File
 				RelativePath=".\NormalizationTransformation.cpp">
@@ -238,9 +250,6 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\BeliefNode.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\BooleanAndNode.cpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\Buffer.hpp">
@@ -427,6 +436,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\IndexEnvironment.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\IndexWriter.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\indri-platform.h">
