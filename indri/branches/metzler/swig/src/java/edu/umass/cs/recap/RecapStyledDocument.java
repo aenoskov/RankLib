@@ -1,8 +1,10 @@
 package edu.umass.cs.recap;
 import java.awt.Color;
 import java.util.Collections;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
+import javax.swing.ImageIcon;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -50,6 +52,8 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		this.defaultStyle = defaultStyle;
 
 		initStyles();
+
+		annotateNamedEntities();
 		
 		// initialize match vectors
 		sentenceMatches = new Vector();
@@ -106,7 +110,7 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	
 	// applies a style to the given segment of text
 	protected void applyStyle( String style, int begin, int end ) {
-		try { replace( begin, end - begin, getText(begin, end-begin), getStyle( style) );	}
+		try { replace( begin, end - begin, getText(begin, end-begin), getStyle( style ) );	}
 		catch(Exception e) { /* do nothing */ }							
 	}
 	
@@ -126,6 +130,41 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 				( m.begin >= begin && m.end <= end ) ||
 				( m.begin <= end && m.end >= end ) )
 				applyStyle( "annotation"+m.type, m.begin, m.end );
+		}
+	}
+	
+	// goes through the text and applies the styles to the named entities
+	private void annotateNamedEntities() {
+		String tok0 = null;
+		String tok1 = null;
+		int pos0 = 0;
+		int pos1 = 0;
+		String text = null;
+		try { text = getText( 0, this.getLength() ); }
+		catch( Exception e ) { /* do nothing */ }
+		StringTokenizer tok = new StringTokenizer( text, "<>", true );
+		try {
+			tok0 = tok.nextToken().toLowerCase();
+			pos0 = 0;
+			tok1 = tok.nextToken().toLowerCase();
+			pos1 = tok0.length();
+		}
+		catch( Exception e ) { return; }
+		while( tok.hasMoreTokens() ) {
+			String token = tok.nextToken().toLowerCase();
+			if( token.equals(">") && tok0.equals("<") ) {
+				Style s = null;
+				if( tok1.charAt( 0 ) == '/' )
+					s = getStyle( "ne:" + tok1.substring( 1 ) );
+				else
+					s = getStyle( "ne:" + tok1 );
+				if( s != null )
+					applyStyle( s.getName(), pos0, pos1 + tok1.length() + 1 );
+			}
+			tok0 = tok1;
+			pos0 = pos1;
+			tok1 = token;
+			pos1 = pos1 + tok0.length();
 		}
 	}
 	
@@ -151,6 +190,43 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		StyleConstants.setBackground( s, Color.LIGHT_GRAY );
 		StyleConstants.setForeground( s, Color.BLACK );
 		//StyleConstants.setBold( s, true );
+	
+		// TODO: do this a bit more elegantly
+		// named entity styles
+		s = addStyle( "ne:person", defaultStyle );
+		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
+		StyleConstants.setForeground( s, Color.WHITE);
+		StyleConstants.setFontSize( s, 1 );
+
+		s = addStyle( "ne:organization", defaultStyle );
+		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
+		StyleConstants.setForeground( s, Color.WHITE);
+		StyleConstants.setFontSize( s, 1 );
+
+		s = addStyle( "ne:location", defaultStyle );
+		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
+		StyleConstants.setForeground( s, Color.WHITE);
+		StyleConstants.setFontSize( s, 1 );
+
+		s = addStyle( "ne:money", defaultStyle );
+		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
+		StyleConstants.setForeground( s, Color.WHITE);
+		StyleConstants.setFontSize( s, 1 );
+
+		s = addStyle( "ne:date", defaultStyle );
+		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
+		StyleConstants.setForeground( s, Color.WHITE);
+		StyleConstants.setFontSize( s, 1 );
+
+		s = addStyle( "ne:time", defaultStyle );
+		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
+		StyleConstants.setForeground( s, Color.WHITE);
+		StyleConstants.setFontSize( s, 1 );
+
+		s = addStyle( "ne:percent", defaultStyle );
+		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
+		StyleConstants.setForeground( s, Color.WHITE);
+		StyleConstants.setFontSize( s, 1 );
 	}
 	
 	// makes a copy of this object, with no formatting

@@ -37,6 +37,11 @@ public class TimelinePanel extends JPanel {
 	private final int MONTH_TICK_SIZE = 10;
 	private final int MIN_SIZE = 3;
 	private final int MAX_SIZE = 8;
+
+	private boolean sourcesCombined = false;
+	
+	private boolean monthTicksVisible = true;
+	private boolean yearTicksVisible = true;
 	
 	// Vector of ScoredDocInfo objects to display
 	private Vector results = null;
@@ -78,12 +83,14 @@ public class TimelinePanel extends JPanel {
 
 	// popup menu associated with timeline
 	private JPopupMenu popup = null;
+	private JMenuItem sourcePopupItem = null;
+	private JMenuItem monthTicksPopupItem = null;
+	private JMenuItem yearTicksPopupItem = null;
 	private JMenuItem resetPopupItem = null;
 	
 	// hashmap of 'sources' contained in results
 	private HashMap sources = null;
 	private ArrayList sourceNames = null;
-	private boolean showSourcePaths = true;
 	
 	public TimelinePanel () {
 		ovals = new Vector();
@@ -107,7 +114,15 @@ public class TimelinePanel extends JPanel {
 		
 		// set up popup menu
 		popup = new JPopupMenu();
-		resetPopupItem = new JMenuItem("Reset");
+		sourcePopupItem = new JMenuItem( "Combine sources" );
+		monthTicksPopupItem = new JMenuItem( "Hide month ticks" );
+		yearTicksPopupItem = new JMenuItem( "Hide year ticks" );
+		resetPopupItem = new JMenuItem( "Reset" );
+		popup.add( sourcePopupItem );
+		popup.add( new JPopupMenu.Separator() );
+		popup.add( monthTicksPopupItem );
+		popup.add( yearTicksPopupItem );
+		popup.add( new JPopupMenu.Separator() );
 		popup.add( resetPopupItem );
 		
 		// set tool tip text
@@ -209,6 +224,7 @@ public class TimelinePanel extends JPanel {
 		maxScore = Double.NEGATIVE_INFINITY;
 
 		sources.clear();
+		sourceNames.clear();
 		int sourceNum = 0;
 		
 		int minDays = Integer.MAX_VALUE;
@@ -233,7 +249,7 @@ public class TimelinePanel extends JPanel {
 			if( info.score < minScore )
 				minScore = info.score;
 			
-			String source = info.docName.substring( 0, 2 );
+			String source = info.docName.toUpperCase().substring( 0, 2 );
 			Object o = sources.get( source );
 			if( o == null ) {
 				sourceNames.add( source );
@@ -258,22 +274,18 @@ public class TimelinePanel extends JPanel {
 		int midY = (int)(1.0*height/2.0);
 	
 		int sourceOffset = 0;
-		
-		// draw main horizontal axis
-		//g.drawLine( HORIZONTAL_INSET, midY,
-		//		    width-HORIZONTAL_INSET, midY);
-		
+				
 		// width that each type of segment takes up
 		int numMonths = 12 * ( maxYear - minYear ) - minMonth + maxMonth;
 		double monthWidth = ( width - 2.0*HORIZONTAL_INSET ) / ( 1.0*numMonths );
 		double dayWidth = monthWidth / 31.0 ;
 
 		// draw tickmarks for every year / month
-		if( !showSourcePaths )
-			drawTickedLine( g, width, midY, numMonths, monthWidth, false, null );
+		if( sourcesCombined )
+			drawTickedLine( g, width, midY, numMonths, monthWidth, true, null );
 		else {
 			for( int i = 0; i < sources.size(); i++ )
-				drawTickedLine( g, width, midY + i*2*MAX_SIZE, numMonths, monthWidth, i == 0, (String)sourceNames.get( i ) );
+				drawTickedLine( g, width, midY + i*YEAR_TICK_SIZE - YEAR_TICK_SIZE, numMonths, monthWidth, i == 0, (String)sourceNames.get( i ) );
 		}
 		
 		// draw documents on axis
@@ -294,10 +306,10 @@ public class TimelinePanel extends JPanel {
 				size = (int)Math.ceil( m*info.score + b );
 			}			
 
-			// if we're showing the source paths then we must compute the source offset
-			if( showSourcePaths ) {
-				int sourceNum = ((Integer)sources.get( info.docName.substring( 0, 2 ) )).intValue();
-				sourceOffset = sourceNum*MAX_SIZE*2;
+			// if we're showing the sources then we must compute the source offset
+			if( !sourcesCombined ) {
+				int sourceNum = ((Integer)sources.get( info.docName.toUpperCase().substring( 0, 2 ) )).intValue();
+				sourceOffset = sourceNum*YEAR_TICK_SIZE - YEAR_TICK_SIZE;
 			}
 			
 			// add oval for this document
@@ -330,13 +342,15 @@ public class TimelinePanel extends JPanel {
 		if( startDragPoint != null && endDragPoint != null ) {
 			g.setColor( new Color( 0.0f, 0.0f, 1.0f, 0.50f ) );
 			int w = endDragPoint.x - startDragPoint.x;
+			int sz = sourcesCombined ? 0 : sources.size() - 1;
+			int offset = sourcesCombined ? 0 : -YEAR_TICK_SIZE;
 			if( w < 0 ) {
-				g.fillRect( endDragPoint.x, midY-YEAR_TICK_SIZE, -w, 2*YEAR_TICK_SIZE );
+				g.fillRect( endDragPoint.x, midY-YEAR_TICK_SIZE+offset, -w, (2 + sz)*YEAR_TICK_SIZE );
 				dragStartMonth = (int)Math.floor( ( endDragPoint.x - HORIZONTAL_INSET ) / monthWidth );
 				dragEndMonth = (int)Math.ceil( ( startDragPoint.x - HORIZONTAL_INSET ) / monthWidth );
 			}
 			else {
-				g.fillRect( startDragPoint.x, midY-YEAR_TICK_SIZE, w, 2*YEAR_TICK_SIZE );
+				g.fillRect( startDragPoint.x, midY-YEAR_TICK_SIZE+offset, w, (2 + sz)*YEAR_TICK_SIZE );
 				dragStartMonth = (int)Math.floor( ( startDragPoint.x - HORIZONTAL_INSET ) / monthWidth );
 				dragEndMonth = (int)Math.ceil( ( endDragPoint.x - HORIZONTAL_INSET ) / monthWidth );
 			}
@@ -366,19 +380,22 @@ public class TimelinePanel extends JPanel {
 			g.setColor( Color.black );
 			int xPos = HORIZONTAL_INSET + (int)( curMonth*monthWidth ); 
 			if( ( minMonth + curMonth - 1 ) % 12 == 0 ) {
-				g.drawLine( xPos, midY-YEAR_TICK_SIZE, xPos, midY+YEAR_TICK_SIZE );
+				if( yearTicksVisible )
+					g.drawLine( xPos, midY-YEAR_TICK_SIZE, xPos, midY+YEAR_TICK_SIZE );
 				if( drawDates ) {
 					g.setColor( Color.blue );
 					g.drawString(""+curYear, xPos-15, midY-YEAR_TICK_SIZE);
 				}
 				curYear++;
 			}
-			else
-				g.drawLine( xPos, midY-MONTH_TICK_SIZE, xPos, midY+MONTH_TICK_SIZE );
+			else {
+				if( monthTicksVisible )
+					g.drawLine( xPos, midY-MONTH_TICK_SIZE, xPos, midY+MONTH_TICK_SIZE );
+			}
 		}
 		if( sourceName != null ) {
 			g.setColor( Color.blue );
-			g.drawString( sourceName, 0, midY );
+			g.drawString( sourceName, 0, midY + 5 );
 		}
 	}
 	
@@ -444,13 +461,45 @@ public class TimelinePanel extends JPanel {
 		init();
 		repaint();
 	}
-		
+	
+	// sets the visibility of the month tick marks
+	public void setMonthTicksVisible( boolean b ) {
+		if( b )
+			monthTicksPopupItem.setText( "Hide month ticks" );
+		else	
+			monthTicksPopupItem.setText( "Show month ticks" );
+		monthTicksVisible = b;
+		repaint();
+	}
+	
+	// sets the visibility of the year tick marks
+	public void setYearTicksVisible( boolean b ) {
+		if( b )
+			yearTicksPopupItem.setText( "Hide year ticks" );
+		else
+			yearTicksPopupItem.setText( "Show year ticks" );
+		yearTicksVisible = b;
+		repaint();
+	}
+
+	public void	setSourcesCombined( boolean b ) {
+		if( b )
+			sourcePopupItem.setText( "Separate sources" );
+		else
+			sourcePopupItem.setText( "Combine sources" );
+		sourcesCombined = b;
+		repaint();
+	}
+	
 	// register EventListeners for this class
 	public void addListeners( EventListener listener ) {
 		previousDocButton.addActionListener( (ActionListener)listener );
 		nextDocButton.addActionListener( (ActionListener)listener );
 		analyzeButton.addActionListener( (ActionListener)listener );
-		
+
+		sourcePopupItem.addActionListener( (ActionListener)listener );
+		monthTicksPopupItem.addActionListener( (ActionListener)listener );
+		yearTicksPopupItem.addActionListener( (ActionListener)listener );
 		resetPopupItem.addActionListener( (ActionListener)listener );
 		
 		addMouseListener( (MouseListener)listener );
