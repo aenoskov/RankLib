@@ -29,6 +29,7 @@
 #include "indri/ReadersWritersLock.hpp"
 #include "indri/ReaderLockable.hpp"
 #include "indri/WriterLockable.hpp"
+#include "indri/RegionAllocator.hpp"
 
 namespace indri {
   namespace index {
@@ -41,6 +42,11 @@ namespace indri {
             return strcmp( one->term, two->term ) < 0;
           }
         };
+
+        term_entry( class RegionAllocator* allocator ) :
+          list(allocator)
+        {
+        }
     
         char* term;
         int termID;
@@ -49,6 +55,8 @@ namespace indri {
       };
       
     private:
+      RegionAllocator _allocator;
+
       ReadersWritersLock _lock;
       ReaderLockable _readLock;
       WriterLockable _writeLock;

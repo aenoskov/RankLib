@@ -829,6 +829,9 @@
 				RelativePath="..\include\indri\ref_ptr.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\RegionAllocator.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\Repository.hpp">
 			</File>
 			<File

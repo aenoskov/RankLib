@@ -56,6 +56,7 @@
 #define LEMUR_HASHTABLE_HPP
 
 #include <utility>
+#include "indri/RegionAllocator.hpp"
 
 //
 // GenericHash<_Key>
@@ -228,6 +229,7 @@ public:
   typedef class HashTableIterator<_Key, _Value, _Comparator> iterator;
 
 private:
+  RegionAllocator* _allocator;
   bucket_type* _table;
   hash_type _hash;
   compare_type _compare;
@@ -235,13 +237,45 @@ private:
   iterator _end;
   size_t _count;
 
+  void _deleteBucket( bucket_type* b ) {
+    if( !_allocator )
+      delete b;
+  }
+
+  bucket_type* _newBucket( const _Key& k, bucket_type* p ) {
+    bucket_type* b = 0;
+
+    if( _allocator ) {
+      b = (bucket_type*) _allocator->allocate( sizeof bucket_type );
+      new(b) bucket_type( k, p );
+    } else {
+      b = new bucket_type( k, p );
+    }
+
+    return b;
+  }
+
+  bucket_type* _newBucket( const _Key& k, const _Value& v, bucket_type* p ) {
+    bucket_type* b = 0;
+
+    if( _allocator ) {
+      b = (bucket_type*) _allocator->allocate( sizeof bucket_type );
+      new(b) bucket_type( k, v, p );
+    } else {
+      b = new bucket_type( k, v, p );
+    }
+
+    return b;
+  }
+
   bucket_type* _parentBucket( const _Key& k ) const {
     size_t index = _hash(k) % _buckets;
     return &_table[index];
   }
 
 public:
-  HashTable( size_t size = 16384 ) {
+  HashTable( size_t size = 16384, RegionAllocator* allocator = 0 ) {
+    _allocator = allocator;
     _buckets = size / sizeof(bucket_type);
     _table = reinterpret_cast<bucket_type*>(new char[_buckets * sizeof(bucket_type)]);
     _count = 0;
@@ -283,7 +317,7 @@ public:
       new(bucket) bucket_type( k, 0 );
       return &bucket->value;
     } else {
-      bucket_type* newBucket = new bucket_type( k, bucket->next );
+      bucket_type* newBucket = _newBucket( k, bucket->next );
       bucket->next = newBucket;
       return &newBucket->value;
     }
@@ -297,7 +331,7 @@ public:
       new(bucket) bucket_type( k, v, 0 );
       return &bucket->value;
     } else {
-      bucket_type* newBucket = new bucket_type( k, v, bucket->next );
+      bucket_type* newBucket = _newBucket( k, v, bucket->next );
       bucket->next = newBucket;
       return &newBucket->value;
     }
@@ -312,7 +346,7 @@ public:
           bucket_type* nextBucket = bucket->next;
           bucket->~bucket_type();
           new(bucket) bucket_type( nextBucket->key, nextBucket->value, nextBucket->next );
-          delete nextBucket;
+          _deleteBucket( nextBucket );
         } else {
           bucket->~bucket_type();
         }
@@ -325,7 +359,7 @@ public:
           if( _compare( k, bucket->key ) == 0 ) {
             _count--;
             parent->next = bucket->next;
-            delete bucket;
+            _deleteBucket( bucket );
             break;
           }
           parent = bucket;
@@ -345,7 +379,7 @@ public:
 
         while( current ) {
           next = current->next;
-          delete current;
+          _deleteBucket( current );
           current = next;
         }
       }

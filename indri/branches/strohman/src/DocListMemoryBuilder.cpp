@@ -64,7 +64,7 @@ const size_t PLENTY_OF_SPACE = 15; // docID, count, position: 5 bytes each
 // DocListMemoryBuilder constructor
 //
 
-indri::index::DocListMemoryBuilder::DocListMemoryBuilder() :
+indri::index::DocListMemoryBuilder::DocListMemoryBuilder( RegionAllocator* allocator ) :
   _list(0),
   _listBegin(0),
   _listEnd(0),
@@ -74,18 +74,16 @@ indri::index::DocListMemoryBuilder::DocListMemoryBuilder() :
   _lastDocument(0),
   _lastTermFrequency(0),
   _termFrequency(0),
-  _documentFrequency(0)
+  _documentFrequency(0),
+  _allocator(allocator)
 {
 }
 
 //
-// DocListMemoryBuilder constructor
+// DocListMemoryBuilder destructor
 //
 
 indri::index::DocListMemoryBuilder::~DocListMemoryBuilder() {
-  for( int i=0; i<_lists.size(); i++ ) {
-    delete[] _lists[i].base;
-  }
 }
 
 //
@@ -113,7 +111,7 @@ void indri::index::DocListMemoryBuilder::_grow() {
   unsigned int iterations = std::min<unsigned int>( GROW_TIMES, int(_lists.size()) );
   size_t newSize = (MIN_SIZE << iterations) - 8; // subtract 8 here to give the heap some room for accounting
 
-  _list = new char[ newSize ];
+  _list = (char*) _allocator->allocate( newSize );
   _listBegin = _list;
   _listEnd = _list + newSize;
 

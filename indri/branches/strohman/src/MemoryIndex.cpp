@@ -29,7 +29,7 @@ const int ONE_MEGABYTE = 1024*1024;
 indri::index::MemoryIndex::MemoryIndex() :
   _readLock(_lock),
   _writeLock(_lock),
-  _stringToTerm( ONE_MEGABYTE )
+  _stringToTerm( ONE_MEGABYTE, &_allocator )
 {
   _baseDocumentID = 0;
   _termListsBaseOffset = 0;
@@ -38,7 +38,7 @@ indri::index::MemoryIndex::MemoryIndex() :
 indri::index::MemoryIndex::MemoryIndex( int docBase ) :
   _readLock(_lock),
   _writeLock(_lock),
-  _stringToTerm( ONE_MEGABYTE )
+  _stringToTerm( ONE_MEGABYTE, &_allocator )
 {
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
@@ -47,7 +47,7 @@ indri::index::MemoryIndex::MemoryIndex( int docBase ) :
 indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields ) :
   _readLock(_lock),
   _writeLock(_lock),
-  _stringToTerm( ONE_MEGABYTE )
+  _stringToTerm( ONE_MEGABYTE, &_allocator )
 {
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
@@ -407,15 +407,16 @@ indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( c
   int termID = _corpusStatistics.uniqueTerms;
   
   // create a term data structure
-  TermData* termData = termdata_create( _fieldData.size() );
+  TermData* termData = termdata_construct( _allocator.allocate( termdata_size( _fieldData.size() ) ),
+                                           _fieldData.size() );
   
   term_entry* newEntry = 0;
   int termLength = strlen(term);
   
-  newEntry = (term_entry*) malloc( termLength+1 + sizeof(term_entry) );
+  newEntry = (term_entry*) _allocator.allocate( termLength+1 + sizeof(term_entry) );
   newEntry->term = (char*) newEntry + sizeof(term_entry);
   strcpy( newEntry->term, term );
-  new (newEntry) term_entry;
+  new (newEntry) term_entry( &_allocator );
   
   // store in [termString->termData] cache
   entry = _stringToTerm.insert( newEntry->term );
@@ -438,9 +439,8 @@ indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( c
 void indri::index::MemoryIndex::_destroyTerms() {
   for( unsigned int i=0; i<_idToTerm.size(); i++ ) {
     term_entry* entry = _idToTerm[i];
-    termdata_delete( entry->termData, _fieldData.size() );
+    termdata_destruct( entry->termData, _fieldData.size() );
     entry->~term_entry();
-    free( entry );
   }
 }
 
