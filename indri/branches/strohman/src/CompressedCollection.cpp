@@ -313,7 +313,7 @@ CompressedCollection::CompressedCollection() {
   _stream->next_out = 0;
   _stream->avail_out = 0;
 
-  deflateInit( _stream, Z_DEFAULT_COMPRESSION );
+  deflateInit( _stream, Z_BEST_SPEED );
 
   _strings = string_set_create();
 }
