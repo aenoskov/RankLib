@@ -1,10 +1,11 @@
 package edu.umass.cs.recap;
-import java.awt.Choice;
 import java.awt.GridLayout;
 
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -16,8 +17,6 @@ import javax.swing.JTextField;
 /**
  * @author Don Metzler
  *
- * TODO To change the template for this generated type comment go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 public class QueryPanel extends JPanel {
 
@@ -26,64 +25,41 @@ public class QueryPanel extends JPanel {
 	private JTextArea queryTextArea = null;
 	private JButton runQueryButton = null;
 	private JButton clearQueryButton = null;
-	private Choice numResultsChoice = null;
-	private Choice simMeasureChoice = null;
-	private Choice combineMethodChoice = null;
-	private Choice fieldChoice = null;
+	private JRadioButton exploreButton = null;
+	private JRadioButton analyzeButton = null;
 	
 	private JTextField startDate = null;
 	private JTextField endDate = null;
 	private JButton updateTimelineButton = null;
 	
-	public QueryPanel( String [] fields ) {
+	public QueryPanel() {
 		queryLabel = new JLabel( "Query:" );
 		queryScrollPane = new JScrollPane();
 		runQueryButton = new JButton( "Run query" );
 		clearQueryButton = new JButton( "Clear query" );
 		queryTextArea = new JTextArea( 5, 40 );
 		queryTextArea.setLineWrap( true );
-
-		numResultsChoice = new Choice();
-		numResultsChoice.add("5");
-		numResultsChoice.add("25");
-		numResultsChoice.add("50");
-		numResultsChoice.add("100");
-		
-		simMeasureChoice = new Choice();
-		simMeasureChoice.add("overlap"); 
-		simMeasureChoice.add("identsim");
-		simMeasureChoice.add("tf.idf"); 
-		simMeasureChoice.add("ql");
-		simMeasureChoice.add("mt0"); 
-
-		combineMethodChoice = new Choice();
-		combineMethodChoice.add("none");
-		combineMethodChoice.add("prob");
-		combineMethodChoice.add("sequence");
-
-		fieldChoice = new Choice();
-		fieldChoice.add( "document" ); // document retrieval
-		for( int i = 0; i < fields.length; i++ )
-			fieldChoice.add( fields[i] );
 		
 		startDate = new JTextField("1/1980");
 		endDate = new JTextField("12/2010");
 		updateTimelineButton = new JButton( "Update timeline");
 		
+		// "explore" & "analyze" radio button group
+		ButtonGroup group = new ButtonGroup();
+		exploreButton = new JRadioButton( "Explore" );
+		exploreButton.setSelected( true );
+		analyzeButton = new JRadioButton( "Analyze" );
+		group.add( exploreButton );
+		group.add( analyzeButton );
+		
 		// subpanel
 		JPanel subPanel = new JPanel();
-		subPanel.setLayout( new GridLayout( 5,3 ) );
-		subPanel.add( new JLabel( "Similarity:" ) );
-		subPanel.add( simMeasureChoice );
+		subPanel.setLayout( new GridLayout( 3, 3) );
+		subPanel.add( exploreButton );
 		subPanel.add( new JLabel( "Timeline start: ") );
-		subPanel.add( new JLabel( "Combiner:" ) );
-		subPanel.add( combineMethodChoice );
 		subPanel.add( startDate );
-		subPanel.add( new JLabel( "Results:" ) );
-		subPanel.add( numResultsChoice );
+		subPanel.add( analyzeButton );
 		subPanel.add( new JLabel( "Timeline end: ") );
-		subPanel.add( new JLabel( "Field:" ) );
-		subPanel.add( fieldChoice );
 		subPanel.add( endDate );
 		subPanel.add( runQueryButton );
 		subPanel.add( clearQueryButton );
@@ -113,39 +89,10 @@ public class QueryPanel extends JPanel {
 		return clearQueryButton;
 	}
 
-	public Choice getNumResultsChoice() {
-		return numResultsChoice;
-	}
-
 	public JButton getUpdateTimelineButton() {
 		return updateTimelineButton;
 	}
-	
-	public String getSimMeasure() {
-		String choice = simMeasureChoice.getSelectedItem();
-		if( choice.equals( "overlap" ) )
-			return "#identsim0";
-		else if( choice.equals( "identsim" ) )
-			return "#identsim1";
-		else if( choice.equals( "tf.idf") )
-			return "#identsim10";
-		else if( choice.equals( "mt0" ) )
-			return "#identsim50";
-		return "#combine";
-	}
-	
-	public String getExtent() {
-		return fieldChoice.getSelectedItem();
-	}
-	
-	public String getCombiner() {
-		return combineMethodChoice.getSelectedItem();
-	}
-	
-	public int getNumResults() {
-		return Integer.parseInt( numResultsChoice.getSelectedItem() );
-	}
-
+			
 	public String getTimelineStartDate() {
 		return startDate.getText();
 	}
@@ -160,5 +107,13 @@ public class QueryPanel extends JPanel {
 	
 	public void setTimelineEndDate( String end ) {
 		endDate.setText( end );
+	}
+	
+	public String getMode() {
+		if( exploreButton.isSelected() )
+			return "explore";
+		else if( analyzeButton.isSelected() )
+			return "analyze";
+		return null; // if, somehow, neither radio button is selected
 	}
 }

@@ -15,6 +15,6 @@ package edu.umass.cs.recap;
 public interface MainPaneUpdater {
 
 	public void update( DocInfo doc );
-	public void setSelectedDoc( DocInfo doc );
+	//public void setSelectedDoc( DocInfo doc );
 	
 }

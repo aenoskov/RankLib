@@ -1,4 +1,5 @@
 package edu.umass.cs.recap;
+import java.awt.Dimension;
 import java.util.Vector;
 
 import javax.swing.JScrollPane;
@@ -26,14 +27,16 @@ public class DocViewPane extends JSplitPane {
 	private JTextPane docTextPane = null;
 	private JScrollPane docPane = null;
 	
-	public DocViewPane( RetrievalEngine retEngine ) {
+	public DocViewPane( RetrievalEngine retEngine, Dimension screenSize ) {
 		super( JSplitPane.HORIZONTAL_SPLIT );
 		this.retEngine = retEngine;
 
-		docTextPane = new JTextPane();
+		docTextPane = new JTextPane();		
 		matchPane = new JTabbedPane( JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT );
 		docPane = new JScrollPane();
 		docPane.getViewport().setView( docTextPane );
+		docPane.setPreferredSize( new Dimension( (int)(0.5 * screenSize.width ),
+				                                 (int)(0.65 * screenSize.height ) ) );
 
 		setLeftComponent( docPane );
 		setRightComponent( matchPane );
@@ -43,7 +46,7 @@ public class DocViewPane extends JSplitPane {
 		DefaultStyledDocument doc = retEngine.getDocument( info );
 		docTextPane.setDocument( doc );
 		
-		this.setDividerLocation( 0.5 );
+		setDividerLocation( 0.5 );
 	}
 
 	public void addMatches( Vector docs ) {		
@@ -60,7 +63,7 @@ public class DocViewPane extends JSplitPane {
 		JScrollPane scrollPane = new QuickFindScrollPane( doc.getMatches(), doc.getByteLength() );
 		JTextPane textPane = new JTextPane();
 		textPane.setDocument( doc );
-		//textPane.setEditable( false );
+		textPane.setEditable( false );
 		scrollPane.getViewport().setView( textPane );
 		matchPane.addTab( info.docName, scrollPane );
 	}
