@@ -8,6 +8,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
 import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.Document;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 
@@ -33,13 +34,15 @@ public class DocViewPane extends JSplitPane {
 	private JScrollPane docPane = null;
 	
 	private HashMap curExploreResults = null;
+	private Vector curAnalyzeResults = null;
 	
 	public DocViewPane( RetrievalEngine retEngine, Dimension screenSize ) {
 		super( JSplitPane.HORIZONTAL_SPLIT );
 		this.retEngine = retEngine;
 		this.curExploreResults = new HashMap();
+		this.curAnalyzeResults = new Vector();
 
-		docTextPane = new JTextPane();		
+		docTextPane = new JTextPane();
 		matchPane = new JTabbedPane( JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT );
 		docPane = new JScrollPane();
 		docPane.getViewport().setView( docTextPane );
@@ -48,6 +51,10 @@ public class DocViewPane extends JSplitPane {
 		setRightComponent( matchPane );
 		
 		setResizeWeight( 0.5 );
+	}
+	
+	public void displayDoc( Document doc ) {
+		docTextPane.setDocument( doc );
 	}
 	
 	public void displayDoc( DocInfo info ) {
@@ -59,20 +66,31 @@ public class DocViewPane extends JSplitPane {
 		docTextPane.setDocument( (DefaultStyledDocument)curExploreResults.get( new Integer( docID ) ) );
 	}
 
-	public void addMatches( Vector docs ) {		
+	public void setAnalyzeResults( Vector docs ) {
+		curAnalyzeResults.clear();
 		for( int i = 0; i < docs.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)docs.elementAt(i);
-			addNewTab( (ScoredDocInfo)docs.elementAt(i) );
+			addNewTab( info );
 		}		
+	}
+	
+	public void setViewableAnalyzeResults( boolean [] b ) {
+		for( int i = 0; i < b.length; i++ ) {
+			if( b[i] )
+				matchPane.setEnabledAt( i, true );
+			else
+				matchPane.setEnabledAt( i, false );
+		}
 	}
 	
 	// TODO: clean this up a bit
 	private void addNewTab( ScoredDocInfo info ) {
-		RecapStyledDocument doc = retEngine.getMarkedDocument( info );
-		JScrollPane scrollPane = new QuickFindScrollPane( doc.getMatches(), doc.getByteLength() );
+		RecapStyledDocument doc = retEngine.getMarkedDocument( info );		
+		curAnalyzeResults.add( doc );
+		JScrollPane scrollPane = new QuickFindScrollPane( doc.getViewableSentenceMatches(), doc.getLength() );
 		JTextPane textPane = new JTextPane();
 		textPane.setDocument( doc );
-		textPane.setEditable( false );
+		textPane.setEditable( false );		
 		scrollPane.getViewport().setView( textPane );
 		matchPane.addTab( info.docName, scrollPane );
 	}
@@ -149,12 +167,22 @@ public class DocViewPane extends JSplitPane {
 		return snippet + "...<br>";
 	}
 	
+	public Vector getCurAnalyzeResults() {
+		return curAnalyzeResults;
+	}
+	
 	public JTabbedPane getMatchPane() {
 		return matchPane;
 	}
 
 	public JTextPane getResultPane() {
-		return (JTextPane)((JScrollPane)matchPane.getSelectedComponent()).getViewport().getView();		
+		if( matchPane != null && matchPane.getSelectedComponent() != null )
+			return (JTextPane)((JScrollPane)matchPane.getSelectedComponent()).getViewport().getView();
+		return null;
+	}
+
+	public QuickFindScrollPane getQuickFindScrollPane() {
+		return (QuickFindScrollPane)matchPane.getSelectedComponent();		
 	}
 	
 	public JTextPane getDocTextPane() {

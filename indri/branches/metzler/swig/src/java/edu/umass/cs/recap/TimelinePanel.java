@@ -49,28 +49,47 @@ public class TimelinePanel extends JPanel {
 	private int maxDate = 1;
 	private int maxMonth = 1;
 	
-	private double maxScore = Double.MIN_VALUE;
+	private double minScore = Double.POSITIVE_INFINITY;
+	private double maxScore = Double.NEGATIVE_INFINITY;
 	
-	// previous and next buttons
+	// previous, next and analyze buttons
 	private JButton previousDocButton = null;
 	private JButton nextDocButton = null;
-	
+	private JButton analyzeButton = null;
+
+	// which documents are actually viewable
+	// if this variable is null then all documents are viewable
+	private boolean [] viewable = null;
+		
 	public TimelinePanel () {
 		ovals = new Vector();
 		
 		ImageIcon nextButtonIcon = new ImageIcon("edu/umass/cs/recap/images/next.gif");
 		ImageIcon previousButtonIcon = new ImageIcon("edu/umass/cs/recap/images/previous.gif");
+		ImageIcon analyzeButtonIcon = new ImageIcon("edu/umass/cs/recap/images/magnify.jpg");
 		previousDocButton = new JButton( previousButtonIcon );		
 		previousDocButton.setMargin( new Insets(0,0,0,0) );
+		previousDocButton.setName("tlPrev");
 		nextDocButton = new JButton( nextButtonIcon );
 		nextDocButton.setMargin( new Insets(0,0,0,0) );
+		nextDocButton.setName("tlNext");
+		analyzeButton = new JButton( analyzeButtonIcon );
+		analyzeButton.setMargin( new Insets(0,0,0,0) );
+		analyzeButton.setSize( 10,10 );
+		analyzeButton.setName("tlAnalyze");
 		add( previousDocButton );
+		add( analyzeButton );
 		add( nextDocButton );
 	}
 		
 	public void setResults( Vector res ) {
+		this.viewable = null;
 		this.results = res;
 		init();
+	}
+
+	public void setViewableResults( boolean [] b ) {
+		this.viewable = b;
 	}
 	
 	public void setCurrent( String docName ) {
@@ -84,15 +103,26 @@ public class TimelinePanel extends JPanel {
 			}
 		}
 	}
+
+	public ScoredDocInfo getCurrentDoc() {
+		return currentInfo;
+	}
 	
 	public ScoredDocInfo getNextDoc() {
 		int best = Integer.MAX_VALUE;
-		ScoredDocInfo bestInfo = currentInfo;
+		ScoredDocInfo bestInfo = null;
+		if( currentInfo == null )
+			return null;
 		int curDays = dateToInt( currentInfo.year, currentInfo.month, currentInfo.date );
 		for( int i = 0; i < results.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
+			if( info.docID == currentInfo.docID || ( viewable != null && !viewable[i] ) )
+				continue;
 			int tmpDays = dateToInt( info.year, info.month, info.date );
-			if( tmpDays - curDays > 0 && tmpDays - curDays < best ) {
+			
+			if( ( tmpDays >= curDays ) && 
+				( tmpDays != curDays || info.docID > currentInfo.docID ) &&
+			    ( tmpDays - curDays < best || ( tmpDays - curDays == best && info.docID < bestInfo.docID ) ) ) {
 				best = tmpDays - curDays;
 				bestInfo = info;
 			}
@@ -103,12 +133,18 @@ public class TimelinePanel extends JPanel {
 
 	public ScoredDocInfo getPreviousDoc() {
 		int best = Integer.MAX_VALUE;
-		ScoredDocInfo bestInfo = currentInfo;
+		ScoredDocInfo bestInfo = null;
+		if( currentInfo == null ) 
+			return null;
 		int curDays = dateToInt( currentInfo.year, currentInfo.month, currentInfo.date );
 		for( int i = 0; i < results.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
+			if( info.docID == currentInfo.docID || ( viewable != null && !viewable[i] ) )
+				continue;
 			int tmpDays = dateToInt( info.year, info.month, info.date );
-			if( curDays - tmpDays > 0 && curDays - tmpDays < best ) {
+			if( ( curDays >= tmpDays ) && 
+				( tmpDays != curDays || info.docID < currentInfo.docID ) &&
+			    ( curDays - tmpDays < best || ( curDays - tmpDays == best && info.docID > bestInfo.docID ) ) ) {
 				best = curDays - tmpDays;
 				bestInfo = info;
 			}
@@ -131,7 +167,8 @@ public class TimelinePanel extends JPanel {
 		maxDate = 0;
 		maxMonth = 0;
 		
-		maxScore = -100000.0;
+		minScore = Double.POSITIVE_INFINITY;
+		maxScore = Double.NEGATIVE_INFINITY;
 		
 		int minDays = Integer.MAX_VALUE;
 		int maxDays = Integer.MIN_VALUE;
@@ -152,6 +189,8 @@ public class TimelinePanel extends JPanel {
 			}
 			if( info.score > maxScore )
 				maxScore = info.score;
+			if( info.score < minScore )
+				minScore = info.score;
 		}
 		
 		maxMonth++;
@@ -179,22 +218,34 @@ public class TimelinePanel extends JPanel {
 		double dayWidth = monthWidth / 31.0 ;
 		
 		// draw documents on axis
-		for( int i = 0; i < results.size(); i++ ) {
+		for( int i = 0; i < results.size(); i++ ) {			
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
 			
 			// find where we should put this document
 			int monthOffset = 12 * ( info.year - minYear ) - minMonth + info.month;
 			int xPos = HORIZONTAL_INSET + (int)( monthOffset*monthWidth ) + (int)( (info.date - 1)*dayWidth );
 		
-			int size = MIN_SIZE + (int)(( MAX_SIZE - MIN_SIZE )* ( Math.exp( info.score ) / Math.exp( maxScore ) ) );
+			//int size = MIN_SIZE + (int)(( MAX_SIZE - MIN_SIZE )* ( Math.exp( info.score ) / Math.exp( maxScore ) ) );
+			int size = MAX_SIZE;
+
+			// ensure that size(minScore) = MIN_SIZE and size(maxScore) = MAX_SIZE
+			if( maxScore != minScore ) {
+				double b = ( maxScore*MIN_SIZE - minScore*MAX_SIZE ) / ( maxScore - minScore );
+				double m = ( MAX_SIZE - MIN_SIZE ) / ( maxScore - minScore );
+				size = (int)Math.ceil( m*info.score + b );
+			}			
 
 			// add oval for this document
 			ovals.add( new Ellipse2D.Double( xPos-size, midY-size, 2*size, 2*size ) );
 
+			// make sure this document is viewable
+			if( viewable != null && !viewable[i] )
+				continue;
+
 			// make sure we're actually on the screen
 			if( xPos < HORIZONTAL_INSET || xPos > width - HORIZONTAL_INSET )
 				continue;
-
+			
 			if( info == currentInfo ) {
 				// TODO: make this into a "drawDoc" function
 				g.setColor( new Color( 0.0f, 1.0f, 0.0f, 1.0f ) );
@@ -259,13 +310,6 @@ public class TimelinePanel extends JPanel {
 	public void addActionListeners( ActionListener listener ) {
 		previousDocButton.addActionListener( listener );
 		nextDocButton.addActionListener( listener );
-	}
-	
-	public JButton getPreviousDocButton() {
-		return previousDocButton;
-	}
-	
-	public JButton getNextDocButton() {
-		return nextDocButton;
-	}
+		analyzeButton.addActionListener( listener );
+	}	
 }

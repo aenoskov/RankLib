@@ -4,7 +4,6 @@
  */
 package edu.umass.cs.recap;
 
-import java.awt.Color;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -12,7 +11,6 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
@@ -236,8 +234,34 @@ public class RetrievalEngine {
 			HashMap results = new HashMap();
 			// collect results into a form we can use for scoring
 			ScoredExtentResult [] queryScores = (ScoredExtentResult [])scores.elementAt( queryNum );
+
+			
+			
+			// find the max and min score for this query
+			double minScore = Double.POSITIVE_INFINITY;
+			double maxScore = Double.NEGATIVE_INFINITY;
+			for( int i = 0; i < queryScores.length; i++ ) {
+				if( queryScores[i].score > maxScore )
+					maxScore = queryScores[i].score;
+				if( queryScores[i].score < minScore )
+					minScore = queryScores[i].score;
+			}
+			
+			
+			
 			for( int i = 0; i < queryScores.length; i++ ) {
 				ScoredExtentResult r = (ScoredExtentResult)queryScores[i];
+
+				
+				
+				// normalize scores between 0 and 1 to allow thresholding
+				if( maxScore - minScore != 0.0 )
+					r.score = ( r.score - minScore ) / ( maxScore - minScore );
+				else
+					r.score = 1.0;
+				
+				
+				
 				//System.out.println( r.score );
 				Integer docNum = new Integer( r.document );
 				Vector v = (Vector)results.get( docNum );
@@ -274,7 +298,7 @@ public class RetrievalEngine {
 		
 		return ret;
 	}
-	
+
 	// scores a single document by probabilistically combining
 	// scores
 	private double getDocScoreProb( Integer i, HashMap results, String metadata ) {
@@ -372,35 +396,27 @@ public class RetrievalEngine {
 		}
 	}
 	
-	public DefaultStyledDocument getDocument( DocInfo info ) {
-		DefaultStyledDocument doc = new DefaultStyledDocument();
-
+	public RecapStyledDocument getDocument( DocInfo info ) {
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 		StyleConstants.setFontSize( defaultStyle, docFontSize );
 
 		ParsedDocument theDoc = getParsedDocument( info.getDocNum() );
-		
-		try { doc.insertString( 0, theDoc.text , defaultStyle ); }
-		catch( Exception e ) { /* do nothing */ }
-				
+		RecapStyledDocument doc = new RecapStyledDocument( theDoc.text, defaultStyle );
+						
 		return doc;
 	}
 
 	// returns a RecapStyledDocument for a given ScoredDocInfo record
-	public DefaultStyledDocument getAnnotatedDocument( int docID, QueryAnnotation annotation ) {
-		DefaultStyledDocument doc = new DefaultStyledDocument();
-		
+	public RecapStyledDocument getAnnotatedDocument( int docID, QueryAnnotation annotation ) {
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 		StyleConstants.setFontSize( defaultStyle, docFontSize );
 		
-		initializeHighlighting( doc, defaultStyle );
-		
 		ParsedDocument theDoc = getParsedDocument( docID );
+		
+		RecapStyledDocument doc = new RecapStyledDocument( theDoc.text, defaultStyle );
+				
+		//initializeHighlighting( doc, defaultStyle );		
         
-		// insert document text into RecapStyledDocument
-		try { doc.insertString( 0, theDoc.text , defaultStyle ); }
-		catch( Exception e ) { /* do nothing */ }
-
 		QueryAnnotationNode root = annotation.getQueryTree();
 		Map matches = annotation.getAnnotations();
 		
@@ -409,7 +425,7 @@ public class RetrievalEngine {
 		return doc;
 	}
 
-	private int annotationHelper( int docID, DefaultStyledDocument doc,
+	private int annotationHelper( int docID, RecapStyledDocument doc,
 								   ParsedDocument theDoc, QueryAnnotationNode root,
 								   Map matches, int highlightNum ) {
 		// process root
@@ -422,17 +438,11 @@ public class RetrievalEngine {
 					int extentBegin = theDoc.positions[extents[i].begin].begin;
 					int extentEnd = theDoc.positions[extents[i].end - 1].end;
 					
-					try {
-						doc.replace( extentBegin, extentEnd - extentBegin,
-							     	 doc.getText(extentBegin, extentEnd-extentBegin),
-									 doc.getStyle("highlight"+highlightNum) );						
-					}
-					catch(Exception e) {  }					
+					doc.addAnnotationMatch( extentBegin, extentEnd, highlightNum );					
 				}
 				highlightNum = ( highlightNum + 1 ) % 5;
 			}			
 		}
-		//System.out.println( root.type + " " + root.name + " "  + root.queryText );
 		
 		// process children
 		QueryAnnotationNode [] children = root.children;
@@ -447,39 +457,21 @@ public class RetrievalEngine {
 
 	
 //	 returns a RecapStyledDocument for a given ScoredDocInfo record
-	public RecapStyledDocument getMarkedDocument( ScoredDocInfo info ) {
-		RecapStyledDocument doc = new RecapStyledDocument();
-		
+	public RecapStyledDocument getMarkedDocument( ScoredDocInfo info ) {		
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 		StyleConstants.setFontSize( defaultStyle, docFontSize );
-		
-		Style s = doc.addStyle( "match", defaultStyle );
-		StyleConstants.setForeground( s, Color.blue );
-		StyleConstants.setItalic( s, true );
-				
-		ParsedDocument theDoc = getParsedDocument( info.docID );
-        
-		// insert document text into RecapStyledDocument
-		try { doc.insertString( 0, theDoc.text , defaultStyle ); }
-		catch( Exception e ) { /* do nothing */ }
 
+		ParsedDocument theDoc = getParsedDocument( info.docID );
+		RecapStyledDocument doc = new RecapStyledDocument( theDoc.text, defaultStyle );
+		
 		for( int i = 0; i < info.extents.size(); i++ ) {
 			ScoredExtentResult extent = (ScoredExtentResult)info.extents.elementAt( i );
 			int extentBegin = theDoc.positions[extent.begin].begin;
 			int extentEnd = theDoc.positions[extent.end - 1].end;
 
-			doc.addMatch( extentBegin, extentEnd );
-			
-			try {
-				doc.replace( extentBegin, extentEnd - extentBegin,
-					     	 doc.getText(extentBegin, extentEnd-extentBegin),
-							 doc.getStyle("match") );
-			}
-			catch(Exception e) { /* do nothing */ }
+			doc.addSentenceMatch( extentBegin, extentEnd, extent.score );			
 		}
-		
-		doc.setByteLength( theDoc.text.length() );
-		
+				
 		return doc;
 	}
 	
@@ -575,18 +567,5 @@ public class RetrievalEngine {
 	
 	public void decreaseDocFontSize() {
 		docFontSize -= 2;
-	}
-	
-	private void initializeHighlighting( DefaultStyledDocument doc, Style defaultStyle ) {
-		String [] highlightNames = new String [] { "highlight0", "highlight1", "highlight2",
-			                           			   "highlight3", "highlight4" };
-		Color [] colorNames = new Color [] { Color.GREEN, Color.CYAN, Color.RED,
-				                             Color.MAGENTA, Color.ORANGE };  
-		
-		for(int i = 0; i < highlightNames.length; i++ ) {
-			Style s = doc.addStyle( highlightNames[i], defaultStyle );
-			StyleConstants.setBackground( s, colorNames[i] );
-			StyleConstants.setBold( s, true );
-		}		
-	}
+	}	
 }
