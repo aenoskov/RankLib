@@ -20,6 +20,7 @@
 #include "indri/greedy_vector"
 #include "indri/delete_range.hpp"
 
+const int HASH_TABLE_SIZE = 10*1024*1024;
 const int ONE_MEGABYTE = 1024*1024;
 
 //----------------------------
