@@ -1,0 +1,31 @@
+/*==========================================================================
+ * Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
+ *
+ * Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+ * is subject to the terms of the software license set forth in the LICENSE
+ * file included with this software, and also available at
+ * http://www.lemurproject.org/license.html
+ *
+ *==========================================================================
+*/
+
+
+//
+// InferenceNetworkNode
+//
+// 26 January 2004 - tds
+//
+
+#ifndef INDRI_INFERENCENETWORKNODE_HPP
+#define INDRI_INFERENCENETWORKNODE_HPP
+
+#include <string>
+
+class InferenceNetworkNode {
+public:
+  virtual ~InferenceNetworkNode() {}
+  virtual int nextCandidateDocument() = 0;
+  virtual const std::string& getName() const = 0;
+};
+
+#endif // INDRI_INFERENCENETWORKNODE_HPP
