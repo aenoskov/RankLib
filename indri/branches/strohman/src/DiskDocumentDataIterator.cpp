@@ -33,8 +33,12 @@ indri::index::DiskDocumentDataIterator::~DiskDocumentDataIterator() {
 void indri::index::DiskDocumentDataIterator::startIteration() {
   _fileSize = _documentDataFile.size();
   _readBuffer->seek( 0 );
-  _readBuffer->read( &_documentData, sizeof(DocumentData) );
-  _finished = false;
+  if( _fileSize ) {
+    _readBuffer->read( &_documentData, sizeof(DocumentData) );
+    _finished = false;
+  } else {
+    _finished = true;
+  }
 }
 
 //
