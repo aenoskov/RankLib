@@ -64,6 +64,7 @@
 #include "indri/Parameters.hpp"
 #include "indri/StemmerFactory.hpp"
 #include "indri/NormalizationTransformation.hpp"
+#include "indri/SentenceSegmenterTransformation.hpp"
 #include <string>
 
 void Repository::_buildFields() {
@@ -97,6 +98,12 @@ void Repository::_buildChain() {
     if( _fields[i].parserName == "NumericFieldAnnotator" ) {
       _transformations.push_back( new NumericFieldAnnotator( _fields[i].name ) );
     }
+  }
+
+  if( _parameters.exists("segmenter.name") ) {
+	  std::string segmenterName = std::string( _parameters["segmenter.name"] );
+	  if( segmenterName.length() > 0 )
+		  _transformations.push_back( new SentenceSegmenterTransformation() );
   }
 
   if( _parameters.exists("stopper.word") ) {
