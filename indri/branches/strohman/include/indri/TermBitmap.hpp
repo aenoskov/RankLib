@@ -61,7 +61,7 @@ namespace indri {
 
       Buffer* _findBuffer( int from ) {
         assert( from >= 0 );
-
+        
         int left = 0;
         int right = _maps.size()-1;
 
@@ -84,8 +84,9 @@ namespace indri {
 
         int rightFront = *(INT32*) _maps[right]->front();
 
-        if( from < rightFront )
+        if( from < rightFront ) {
           return _maps[left];
+        }
 
         return _maps[right];
       }
@@ -210,36 +211,6 @@ namespace indri {
         bits += i;
         assert( (fromBase + found - 1) == from );
         return toBase + bits;
-      }
-
-
-      void _printChunk( char* spot ) {
-        int fromBase = *(INT32*)spot;
-        int toBase = *(INT32*)(spot+4);
-        spot += 8;
-        int found = 0;
-    
-        for( int i=0; i<24; i++ ) {
-          for( int j=0; j<8; j++ ) {
-            if( spot[i] & (1<<j) ) {
-              std::cout << (fromBase + found) << " " << (toBase + i*8 + j) << std::endl;
-              found++;
-            }
-          }
-        }
-      }
-
-      void print() {
-        return; 
-
-        for( int i=0; i<_maps.size(); i++ ) {
-          Buffer* b = _maps[i];
-          int chunkStart = 0;
-
-          for( ; chunkStart < b->position(); chunkStart += 32 ) {
-            _printChunk( b->front() + chunkStart );
-          }
-        }
       }
     };
   }

@@ -58,12 +58,14 @@ UINT64 RepositoryMaintenanceThread::work() {
       Repository::index_state state = _repository.indexes();
       indri::index::MemoryIndex* index = dynamic_cast<indri::index::MemoryIndex*>(state->back());
 
-      if( _memory < index->memorySize() ) {
-        _requests.push( WRITE );
-      }
+      if( index ) {
+        if( _memory < index->memorySize() ) {
+          _requests.push( WRITE );
+        }
 
-      if( state->size() > 2 ) {
-        _requests.push( MERGE );
+        if( state->size() > 2 ) {
+          _requests.push( MERGE );
+        }
       }
     }
 

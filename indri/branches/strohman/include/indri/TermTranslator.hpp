@@ -42,6 +42,11 @@ namespace indri {
         _frequentMap(frequentMap),
         _wasInfrequentMap(wasInfrequentMap)
       {
+        assert( _currentFrequentCount >= 0 );
+        assert( _previousFrequentCount >= 0 );
+        assert( _previousTermCount >= 0 );
+        assert( _currentTermCount >= 0 );
+
         _previousFrequentCount = previousFrequentCount;
         _currentFrequentCount = currentFrequentCount;
         _previousTermCount = previousTermCount;
@@ -60,7 +65,7 @@ namespace indri {
           result = (*_frequentMap)[termID];
         } else {
           // term may have become frequent, so check the wasInfrequentMap
-          value = (*_wasInfrequentMap).find( termID );
+          value = (*_wasInfrequentMap).find( termID - _previousFrequentCount - 1 );
 
           if( value ) {
             result = *value;

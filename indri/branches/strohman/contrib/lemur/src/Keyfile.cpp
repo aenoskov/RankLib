@@ -9,6 +9,7 @@
 extern "C" {
   #include "keyref.h"
   #include "keyerr.h"
+  #include "keyconst.h"
 }
 
 #include <cassert>
@@ -21,7 +22,7 @@ extern "C" {
 #include "lemur-compat.hpp"
 
 void Keyfile::_buildHandle( int cacheSize ) {
-int blocks = lemur_compat::max( (cacheSize - min_fcb_lc) / buffer_lc, 0 );
+  int blocks = lemur_compat::max( (cacheSize - min_fcb_lc) / buffer_lc, 0 );
   _handleSize = min_fcb_lc + blocks * buffer_lc;
   _handle = new char[ _handleSize ];
   memset( _handle, 0x00, _handleSize );
