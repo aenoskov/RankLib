@@ -235,32 +235,24 @@ public class RetrievalEngine {
 			// collect results into a form we can use for scoring
 			ScoredExtentResult [] queryScores = (ScoredExtentResult [])scores.elementAt( queryNum );
 
-			
-			
 			// find the max and min score for this query
 			double minScore = Double.POSITIVE_INFINITY;
 			double maxScore = Double.NEGATIVE_INFINITY;
 			for( int i = 0; i < queryScores.length; i++ ) {
 				if( queryScores[i].score > maxScore )
 					maxScore = queryScores[i].score;
-				if( queryScores[i].score < minScore )
+				if( queryScores[i].score < minScore && queryScores[i].score > EPSILON )
 					minScore = queryScores[i].score;
 			}
-			
-			
 			
 			for( int i = 0; i < queryScores.length; i++ ) {
 				ScoredExtentResult r = (ScoredExtentResult)queryScores[i];
 
-				
-				
 				// normalize scores between 0 and 1 to allow thresholding
 				if( maxScore - minScore != 0.0 )
 					r.score = ( r.score - minScore ) / ( maxScore - minScore );
 				else
 					r.score = 1.0;
-				
-				
 				
 				//System.out.println( r.score );
 				Integer docNum = new Integer( r.document );
@@ -396,11 +388,11 @@ public class RetrievalEngine {
 		}
 	}
 	
-	public RecapStyledDocument getDocument( DocInfo info ) {
+	public RecapStyledDocument getDocument( ScoredDocInfo info ) {
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 		StyleConstants.setFontSize( defaultStyle, docFontSize );
 
-		ParsedDocument theDoc = getParsedDocument( info.getDocNum() );
+		ParsedDocument theDoc = getParsedDocument( info.docID );
 		RecapStyledDocument doc = new RecapStyledDocument( theDoc.text, defaultStyle );
 						
 		return doc;
@@ -456,7 +448,7 @@ public class RetrievalEngine {
 	}
 
 	
-//	 returns a RecapStyledDocument for a given ScoredDocInfo record
+	// returns a RecapStyledDocument for a given ScoredDocInfo record
 	public RecapStyledDocument getMarkedDocument( ScoredDocInfo info ) {		
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 		StyleConstants.setFontSize( defaultStyle, docFontSize );
@@ -533,34 +525,8 @@ public class RetrievalEngine {
 		cache.put( missingIDs, tmpNames, tmpDates, tmpDocs );
 	}
 
-	
-	// returns a list of indexed fields
-	public String [] getFieldList() {
-		return indri.fieldList();
-	}
-	
-	// returns a list of all the document IDs
-	// for the documents indexed within the given
-	// query environment
-	public Vector getDocIDs() {
-		Vector ret = new Vector();
-
-		// TODO: make this work for collections
-		//       with numDocs > MAX_INT
-		int numDocs = (int)indri.documentCount();
 		
-		int [] ids = new int[ numDocs ];
-		for( int i = 0; i < numDocs; i++ )
-			ids[i] = i+1;
-		
-		String [] docIDs = indri.documentMetadata( ids, "docno" );
-		
-		for( int i = 0; i < numDocs; i++ )
-			ret.add( new DocInfo( docIDs[i], i+1 ) );
-		
-		return ret;
-	}
-	
+	// TODO: move increaseDocFontSize() and decreaseDocFontSize() out of this class
 	public void increaseDocFontSize() {
 		docFontSize += 2;
 	}

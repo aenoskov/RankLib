@@ -5,7 +5,9 @@ import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Shape;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseListener;
 import java.awt.geom.Ellipse2D;
+import java.util.EventListener;
 import java.util.Vector;
 
 import javax.swing.ImageIcon;
@@ -80,6 +82,11 @@ public class TimelinePanel extends JPanel {
 		add( previousDocButton );
 		add( analyzeButton );
 		add( nextDocButton );
+		
+		// set tool tip text
+		previousDocButton.setToolTipText( "Move to previous document");
+		analyzeButton.setToolTipText( "Analyze current document");
+		nextDocButton.setToolTipText( "Move to next document");
 	}
 		
 	public void setResults( Vector res ) {
@@ -198,6 +205,7 @@ public class TimelinePanel extends JPanel {
 	
 	// actually draw the timeline
 	protected void paintComponent(Graphics g) {
+		super.paintComponent( g );
 		if( results == null )
 			return;
 
@@ -307,9 +315,13 @@ public class TimelinePanel extends JPanel {
 		maxYear = year;
 	}
 	
-	public void addActionListeners( ActionListener listener ) {
-		previousDocButton.addActionListener( listener );
-		nextDocButton.addActionListener( listener );
-		analyzeButton.addActionListener( listener );
-	}	
+	// register EventListeners for this class
+	public void addListeners( EventListener listener ) {
+		previousDocButton.addActionListener( (ActionListener)listener );
+		nextDocButton.addActionListener( (ActionListener)listener );
+		analyzeButton.addActionListener( (ActionListener)listener );
+		
+		addMouseListener( (MouseListener)listener );
+	}
+
 }

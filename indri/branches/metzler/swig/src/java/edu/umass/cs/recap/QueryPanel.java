@@ -1,4 +1,5 @@
 package edu.umass.cs.recap;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionListener;
 import java.util.EventListener;
@@ -61,7 +62,7 @@ public class QueryPanel extends JPanel {
 		
 		// subpanel
 		JPanel subPanel = new JPanel();
-		subPanel.setLayout( new GridLayout( 3, 3) );
+		subPanel.setLayout( new GridLayout( 3, 3 ) );
 		subPanel.add( exploreButton );
 		subPanel.add( new JLabel( "Timeline start: ") );
 		subPanel.add( startDate );
@@ -72,16 +73,15 @@ public class QueryPanel extends JPanel {
 		subPanel.add( clearQueryButton );
 		subPanel.add( updateTimelineButton );
 		
-		queryScrollPane.getViewport().setView( queryTextArea );
-		
 		// slider
-		slider = new JSlider( JSlider.HORIZONTAL, 0, 100, 0 );
+		slider = new JSlider( JSlider.VERTICAL, 0, 100, 0 );
 		
 		Hashtable labelTable = new Hashtable();
 		labelTable.put( new Integer( 0 ), new JLabel("All") );
 		labelTable.put( new Integer( 50 ), new JLabel("Partial") );
 		labelTable.put( new Integer( 100 ), new JLabel("Exact") );
 		slider.setLabelTable( labelTable );
+		slider.setPreferredSize( new Dimension( 75, 125 ) );
 		
 		//slider.setMajorTickSpacing(10);
 		//slider.setMinorTickSpacing(1);
@@ -89,9 +89,18 @@ public class QueryPanel extends JPanel {
 		slider.setPaintLabels(true);
 		slider.setVisible( true );
 		
+		queryScrollPane.getViewport().setView( queryTextArea );
+
+		// set tool tip text
+		exploreButton.setToolTipText( "Use this mode to run arbitrary Indri structured queries" );
+		analyzeButton.setToolTipText( "Use this mode to do sentence-level reuse analysis" );
+		startDate.setToolTipText( "Start date in MM/YYYY format");
+		endDate.setToolTipText( "End date in MM/YYYY format");
+		queryTextArea.setToolTipText("Enter your query here");
+		slider.setToolTipText( "Set the sentence similarity threshold");
+		
 		add( queryLabel );
 		add( queryScrollPane );
-		//add( runQueryButton );
 		add( subPanel );
 		add( slider );
 	}

@@ -91,6 +91,14 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		highlight = new Match( begin, end );
 		applyStyle( "highlight", begin, end );
 	}
+
+	protected void setSentenceMatches( Vector matches ) {
+		viewableSentenceMatches = matches;
+	}
+
+	protected void setViewableSentenceMatches( Vector matches ) {
+		viewableSentenceMatches = matches;
+	}
 	
 	public Vector getViewableSentenceMatches() {
 		return viewableSentenceMatches;
@@ -153,12 +161,15 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		}
 		catch( Exception e ) { /* do nothing */ }
 
+		clone.setSentenceMatches( sentenceMatches );
+		clone.setViewableSentenceMatches( viewableSentenceMatches );
+		
 		// copy sentence matches
-		for( int i = 0; i < sentenceMatches.size(); i++ ) {
-			Match m = (Match)sentenceMatches.elementAt( i );
-			clone.addSentenceMatch( m.begin, m.end, m.type );
+		for( int i = 0; i < viewableSentenceMatches.size(); i++ ) {
+			Match m = (Match)viewableSentenceMatches.elementAt( i );
+			clone.applyStyle( "sentmatch", m.begin, m.end );
 		}
-
+		
 		// copy annotation matches
 		for( int i = 0; i < annotationMatches.size(); i++ ) {
 			Match m = (Match)annotationMatches.elementAt( i );

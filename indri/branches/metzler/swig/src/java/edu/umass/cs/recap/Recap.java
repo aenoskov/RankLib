@@ -17,10 +17,8 @@ import edu.umass.cs.indri.QueryEnvironment;
  */
 public class Recap extends JFrame {
 	
-	private final String VERSION = "0.5";
-	
-	private MainPane mainPane = null;
-	
+	private static final String VERSION = "0.5";
+		
 	public Recap() {
 		setTitle( "RECAP v" + VERSION );
 		setIconImage( (new ImageIcon("edu/umass/cs/recap/images/recap-small.png")).getImage() );
@@ -77,9 +75,13 @@ public class Recap extends JFrame {
 			setJMenuBar( mainMenuBar );
 			
 			// setup and display the application window
-			mainPane = new MainPane( retEngine, mainMenuBar, screenSize );			
-			setContentPane( mainPane );
-
+			//mainPane = new MainPane( retEngine, mainMenuBar, screenSize );			
+			InfoPane infoPane = new InfoPane( retEngine, mainMenuBar, screenSize );
+			setContentPane( infoPane );
+			
+			// register action listener for the menu
+			mainMenuBar.addActionListeners( infoPane );
+			
 			setSize( getMaximumSize() );						
 			setVisible( true );
 		}
