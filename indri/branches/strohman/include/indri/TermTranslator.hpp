@@ -24,6 +24,10 @@ namespace indri {
       HashTable<int, int>* _wasInfrequentMap;
 
     public:
+      ~TermTranslator() {
+        delete _frequentMap;
+      }
+
       TermTranslator( int previousFrequentCount,
                       int currentFrequentCount,
                       std::vector<int>* frequentMap,
