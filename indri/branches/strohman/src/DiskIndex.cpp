@@ -37,7 +37,7 @@ void indri::index::DiskIndex::_readManifest( const std::string& path ) {
     if( fields.exists("field") ) {
       Parameters field = fields["field"];
 
-      for( int i=0; i<fields.size(); i++ ) {
+      for( int i=0; i<field.size(); i++ ) {
         bool numeric = field[i].get( "isNumeric", false );
         int documentCount = field[i].get("total-documents", 0 );
         INT64 totalCount = field[i].get("total-terms", INT64(0) );

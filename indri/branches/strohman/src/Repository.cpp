@@ -691,9 +691,6 @@ void Repository::_trim() {
     // compute the average number of documents in the indexes we've seen so far
     documentCount = (*state)[position]->documentCount();
 
-    std::cout << "index at " << position << ": "
-              << documentCount << " " << lastDocumentCount << std::endl;
- 
     // break if we find an index more than 50% larger than the last one 
     if( documentCount > lastDocumentCount*1.5 && 
         documentCount > firstDocumentCount*4 )
@@ -704,7 +701,6 @@ void Repository::_trim() {
 
     lastDocumentCount = documentCount;
   }
-  std::cout << "trimming at " << position << std::endl;
 
   // make sure position is greater than or equal to 0
   position = lemur_compat::max<int>( position, 0 );
@@ -1047,7 +1043,6 @@ void Repository::_setThrashing( bool flag ) {
   _thrashing = flag;
   
   if( _thrashing ) {
-    std::cout << "TTTTTTTTTTTT thrash bit set   " << IndriTimer::currentTime() << std::endl;
     _lastThrashTime = IndriTimer::currentTime();
   }
 }

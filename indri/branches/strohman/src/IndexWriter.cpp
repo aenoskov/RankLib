@@ -63,8 +63,10 @@ void IndexWriter::_writeSkip( SequentialWriteBuffer* buffer, int document, int l
 void IndexWriter::_writeBatch( SequentialWriteBuffer* buffer, int document, int length, Buffer& data ) {
   assert( length < 100*1000*1000 );
   _writeSkip( buffer, document, length );
-  buffer->write( data.front(), data.position() );
-  data.clear();
+  if( data.position() != 0 ) {
+    buffer->write( data.front(), data.position() );
+    data.clear();
+  }
 }
 
 //
@@ -308,6 +310,9 @@ void IndexWriter::_writeFieldList( const std::string& fileName, int fieldIndex, 
   const int minimumSkip = 1<<12; //4k
   int lastDocument = 0;
 
+  int documents = 0;
+  int terms = 0;
+
   for( int i=0; i<iterators.size(); i++ ) {
     DocExtentListIterator* iterator = iterators[i];
 
@@ -317,7 +322,7 @@ void IndexWriter::_writeFieldList( const std::string& fileName, int fieldIndex, 
     iterator->startIteration();
     RVLCompressStream stream( dataBuffer );
 
-    while( iterator->currentEntry() ) {
+    while( !iterator->finished() ) {
       DocExtentListIterator::DocumentExtentData* entry = iterator->currentEntry();
 
       if( dataBuffer.position() > minimumSkip ) {
@@ -326,7 +331,6 @@ void IndexWriter::_writeFieldList( const std::string& fileName, int fieldIndex, 
       }
 
       assert( entry->document > lastDocument || lastDocument == 0 );
-      int terms = 0;
 
       // add document difference
       stream << ( entry->document - lastDocument );
@@ -354,15 +358,17 @@ void IndexWriter::_writeFieldList( const std::string& fileName, int fieldIndex, 
           stream << entry->numbers[j];
       }
 
-      assert( _fieldData.size() > fieldIndex );
-      _fieldData[fieldIndex].documentCount++;
-      _fieldData[fieldIndex].totalCount += terms;
 
       iterator->nextEntry();
+      documents++;
     }
 
     delete iterator;
   }
+
+  assert( _fieldData.size() > fieldIndex );
+  _fieldData[fieldIndex].documentCount = documents;
+  _fieldData[fieldIndex].totalCount = terms;
 
   _writeBatch( &output, -1, dataBuffer.position(), dataBuffer );
   output.flush();
