@@ -530,8 +530,8 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     indri::index::TermData* termData = entry->termData;
     term_entry* old = entry;
 
-    termData->maxDocumentLength = lemur_compat::max( termData->maxDocumentLength, words.size() );
-    termData->minDocumentLength = lemur_compat::min( termData->minDocumentLength, words.size() );
+    termData->maxDocumentLength = lemur_compat::max<int>( termData->maxDocumentLength, words.size() );
+    termData->minDocumentLength = lemur_compat::min<int>( termData->minDocumentLength, words.size() );
     termData->corpus.documentCount++;
 
     entry->list.endDocument();
