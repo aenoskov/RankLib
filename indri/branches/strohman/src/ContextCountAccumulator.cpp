@@ -62,7 +62,9 @@
 ContextCountAccumulator::ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context ) :
   _name(name),
   _matches(matches),
-  _context(context)
+  _context(context),
+  _occurrences(0),
+  _contextSize(0)
 {
 }
 
