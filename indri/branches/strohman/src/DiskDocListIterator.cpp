@@ -214,8 +214,6 @@ void indri::index::DiskDocListIterator::_readSkip() {
   _file->read( &skipLength, sizeof(int) );
 
   assert( _skipDocument > -2 );
-  assert( _skipDocument < 100*1000 );
-  assert( skipLength < 10*1000*1000 );
   assert( skipLength >= 0 );
 
   _list = static_cast<const char*>(_file->read( skipLength ));
