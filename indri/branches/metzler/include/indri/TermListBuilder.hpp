@@ -23,7 +23,6 @@
 #include "indri/Buffer.hpp"
 #include "lemur/RVLCompress.hpp"
 #include "indri/RVLDecompressStream.hpp"
-#include "indri/FieldExtent.hpp"
 #include "indri/greedy_vector"
 
 namespace indri {
