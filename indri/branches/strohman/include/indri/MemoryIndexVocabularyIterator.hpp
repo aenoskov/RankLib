@@ -48,6 +48,10 @@ namespace indri {
         if( _iterator == _alphabetical.end() )
           return false;
       }
+      
+      bool finished() {
+        return _iterator == _alphabetical.end();
+      }
     };
   }
 }

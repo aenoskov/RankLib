@@ -69,17 +69,17 @@ namespace indri {
       virtual ~DocListIterator() {};
 
       // get the iterator ready to return data; call this before calling currentEntry or nextEntry
-      virtual void startIteration();
+      virtual void startIteration() = 0;
 
       // move to the next document in the list; return false if there are no more valid documents
-      virtual bool nextEntry();
+      virtual bool nextEntry() = 0;
 
       // find the first document that contains this term that has an id >= documentID.
       // returns false if no such document exists.
-      virtual bool nextEntry( int documentID );
+      virtual bool nextEntry( int documentID ) = 0;
 
       // return the current document entry if we're not finished, null otherwise.
-      virtual DocumentData* currentEntry();
+      virtual DocumentData* currentEntry() = 0;
     };
   }
 }

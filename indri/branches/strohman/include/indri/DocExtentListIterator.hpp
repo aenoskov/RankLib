@@ -21,10 +21,12 @@ namespace indri {
         greedy_vector<INT64> numbers;
       };
 
-      void startIteration();
-      bool nextEntry();
-      bool nextEntry( int documentID );
-      DocumentExtentData* currentEntry();
+      virtual ~DocExtentListIterator() {};
+      
+      virtual void startIteration() = 0;
+      virtual bool nextEntry() = 0;
+      virtual bool nextEntry( int documentID ) = 0;
+      virtual DocumentExtentData* currentEntry() = 0;
     };
   }
 }

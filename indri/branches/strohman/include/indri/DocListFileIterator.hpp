@@ -61,13 +61,13 @@ namespace indri {
   namespace index {
     class DocListFileIterator {
     public:
-      virtual ~DocListFileIterator();
+      virtual ~DocListFileIterator() {};
       
-      virtual bool finished() const;
-      virtual void startIteration();
+      virtual bool finished() const = 0;
+      virtual void startIteration() = 0;
 
-      virtual bool nextEntry();
-      virtual DocListIterator* currentEntry();
+      virtual bool nextEntry() = 0;
+      virtual DocListIterator* currentEntry() = 0;
     };
   }
 }

@@ -39,6 +39,10 @@ namespace indri {
         _iterator.reset( (*_currentTerm)->list );
       }
       
+      bool finished() const {
+        return _currentTerm == _alphabetical.end();
+      }
+      
       DocListIterator* currentEntry() { 
         return &_iterator;
       }
