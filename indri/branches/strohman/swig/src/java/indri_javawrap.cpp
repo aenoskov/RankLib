@@ -2946,11 +2946,12 @@ JNIEXPORT jint JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addStr
         jsize arrayLength = jenv->GetArrayLength( entryArray );
         arg4 = &mdin4;
         
-        jclass stringClazz = jenv->FindClass("edu/java/lang/String");
+        jclass stringClazz = jenv->FindClass("java/lang/String");
         
         for( unsigned int i=0; i<arrayLength; i++ ) {
             jobject mapEntry = jenv->GetObjectArrayElement( entryArray, i );
             jclass mapEntryClazz = jenv->GetObjectClass( mapEntry );
+
             jmethodID mapEntryGetKeyMethod = jenv->GetMethodID( mapEntryClazz, "getKey", "()Ljava/lang/Object;" );
             jmethodID mapEntryGetValueMethod = jenv->GetMethodID( mapEntryClazz, "getValue", "()Ljava/lang/Object;" );
             
