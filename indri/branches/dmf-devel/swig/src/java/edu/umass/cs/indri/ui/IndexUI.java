@@ -87,11 +87,10 @@ public class IndexUI extends JPanel implements ActionListener,
     private void initGUI() {	
 	// starting with a JPanel using BorderLayout
 	// indexing tab to use GridBagLayout
-	//	indriIcon = createImageIcon(iconFile);
 	// reuse for each labeled component.
 	JLabel label;
 	// set up icon images
-	indriIcon = null;
+	indriIcon = createImageIcon(iconFile);
 	ImageIcon icon = null;  // no icon on tabs
 	// initialize help
 	makeHelp();
@@ -495,7 +494,7 @@ public class IndexUI extends JPanel implements ActionListener,
 	helpFrame = new JFrame("Indri Index Builder Help");
 	help.setPreferredSize(new Dimension(650, 400));
 	help.setEditable(false);
-	help.addHyperlinkListener(new DocLinkListener());
+	help.addHyperlinkListener(new DocLinkListener(indriIcon.getImage()));
 	JScrollPane scroller =
 	    new JScrollPane(help, 
 			    JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
@@ -508,7 +507,7 @@ public class IndexUI extends JPanel implements ActionListener,
 
 	helpFrame.getContentPane().add(scroller, BorderLayout.CENTER);
 	helpFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-	//	helpFrame.setIconImage(createImageIcon(iconFile).getImage());
+	helpFrame.setIconImage(indriIcon.getImage());
 	helpFrame.pack();
     }
 	
