@@ -12,6 +12,7 @@
 #include "indri/DiskDocListFileIterator.hpp"
 #include "indri/Path.hpp"
 #include "indri/Parameters.hpp"
+#include "indri/DiskDocumentDataIterator.hpp"
 
 void indri::index::DiskIndex::_readManifest( const std::string& path ) {
   Parameters manifest;
@@ -450,3 +451,10 @@ indri::index::VocabularyIterator* indri::index::DiskIndex::infrequentVocabularyI
   return 0;
 }
 
+//
+// documentDataIterator
+//
+
+indri::index::DocumentDataIterator* indri::index::DiskIndex::documentDataIterator() {
+  return new DiskDocumentDataIterator( _documentStatistics );
+}

@@ -143,6 +143,12 @@
 				RelativePath=".\DiskDocListIterator.cpp">
 			</File>
 			<File
+				RelativePath=".\DiskDocumentDataIterator.cpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\DiskDocumentDataIterator.hpp">
+			</File>
+			<File
 				RelativePath=".\DiskFrequentVocabularyIterator.cpp">
 			</File>
 			<File
@@ -243,6 +249,9 @@
 			</File>
 			<File
 				RelativePath=".\LocalQueryServer.cpp">
+			</File>
+			<File
+				RelativePath=".\MemoryDocumentDataIterator.cpp">
 			</File>
 			<File
 				RelativePath=".\MemoryIndex.cpp">
@@ -514,6 +523,9 @@
 				RelativePath="..\include\indri\DocumentData.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\DocumentDataIterator.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\DocumentIterator.hpp">
 			</File>
 			<File
@@ -665,6 +677,12 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\MaxNode.hpp">
+			</File>
+			<File
+				RelativePath=".\indri\MemoryDocumentDataIterator.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\MemoryIndex.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\MetadataPair.hpp">

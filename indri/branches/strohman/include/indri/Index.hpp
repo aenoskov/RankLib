@@ -17,6 +17,7 @@
 #include "indri/VocabularyIterator.hpp"
 #include "indri/TermList.hpp"
 #include "indri/TermListFileIterator.hpp"
+#include "indri/DocumentDataIterator.hpp"
 
 namespace indri {
   namespace index {
@@ -77,6 +78,7 @@ namespace indri {
       virtual DocExtentListIterator* fieldListIterator( const std::string& field ) = 0;
       virtual const TermList* termList( int documentID ) = 0;
       virtual TermListFileIterator* termListFileIterator() = 0;
+      virtual DocumentDataIterator* documentDataIterator() = 0;
 
       // Vocabulary
       virtual VocabularyIterator* frequentVocabularyIterator() = 0;

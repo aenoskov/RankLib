@@ -133,6 +133,7 @@ namespace indri {
       void _writeDirectLists( WriterIndexContext* context, SequentialWriteBuffer* output );
 
       void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes );
+      void _writeDocumentStatistics( std::vector<WriterIndexContext*>& contexts );
 
       indri::index::TermTranslator* _buildTermTranslator( Keyfile& newInfrequentTerms,
                                                           Keyfile& newFrequentTerms,

@@ -44,16 +44,16 @@ namespace indri {
       }
       
       bool nextEntry() {
-        if( _iterator == _termData.end() )
+        if( finished() )
           return false;
         
         _iterator++;
-        _diskTermData.termID++;
-        _diskTermData.termData = (*_iterator)->termData;
-        
-        if( _iterator == _termData.end() )
+
+        if( finished() )
           return false;
 
+        _diskTermData.termID++;
+        _diskTermData.termData = (*_iterator)->termData;
         return true;
       }
       

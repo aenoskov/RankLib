@@ -55,6 +55,8 @@
 #ifndef INDRI_KEYFILEDOCUMENTDATA_HPP
 #define INDRI_KEYFILEDOCUMENTDATA_HPP
 
+#include "indri/indri-platform.h"
+
 namespace indri {
   namespace index {
     struct DocumentData {

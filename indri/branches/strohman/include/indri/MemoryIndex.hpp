@@ -129,6 +129,8 @@ namespace indri {
       VocabularyIterator* vocabularyIterator();
       VocabularyIterator* frequentVocabularyIterator();
       VocabularyIterator* infrequentVocabularyIterator();
+
+      DocumentDataIterator* documentDataIterator();
       
       int addDocument( ParsedDocument& document );
     };
