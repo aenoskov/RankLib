@@ -69,6 +69,8 @@ namespace indri {
       virtual void after( class FilterNode* n );
       virtual void before( class ContextCounterNode* n );
       virtual void after( class ContextCounterNode* n );
+      virtual void before( class ContextSimpleCounterNode* n );
+      virtual void after( class ContextSimpleCounterNode* n );
       virtual void before( class ScoreAccumulatorNode* n );
       virtual void after( class ScoreAccumulatorNode* n );
       virtual void before( class AnnotatorNode* n );
