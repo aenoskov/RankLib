@@ -302,6 +302,11 @@ Parameters Parameters::operator[] ( const char* path ) {
   return get(path);
 }
 
+void Parameters::clear() {
+  parameter_value* root = _getRoot();
+  root->clear();
+}
+
 Parameters Parameters::append( const std::string& path ) {
   parameter_value* current = _createPath(path);
   parameter_value* slice = new parameter_value();

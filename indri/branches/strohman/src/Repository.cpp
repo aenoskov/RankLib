@@ -187,7 +187,7 @@ void Repository::_remove( const std::string& indexPath ) {
 //
 
 void Repository::_openIndexes( Parameters& params, const std::string& parentPath ) {
-  Parameters indexes = params["indexes"];
+  Parameters indexes = params["indexes"]["index"];
 
   //
   // <!ELEMENT name (#PCDATA)> -- name of index
@@ -206,12 +206,88 @@ void Repository::_openIndexes( Parameters& params, const std::string& parentPath
     if( indexSpec.get("prune", 0) ) {
       _remove( indexName );
     } else {
-      std::string path = Path::combine( parentPath, indexName );
-      diskIndex->open( path );
-
+      diskIndex->open( parentPath, indexName );
       _active->push_back( diskIndex );
     }
   }
+
+  _indexCount = params.get( "indexCount", 0 );
+}
+
+//
+// _countQuery
+//
+// Counts each document add--useful for load average computation.
+//
+
+void Repository::_countQuery() {
+  indri::atomic::increment( _queryLoad[0] );
+}
+
+//
+// _countDocumentAdd
+//
+// Counts each document add--useful for load average computation.
+//
+
+void Repository::_countDocumentAdd() {
+  indri::atomic::increment( _documentLoad[0] );
+}
+
+//
+// _incrementLoad
+//
+// Called four times a minute by a timer thread to update the load average
+//
+
+void Repository::_incrementLoad() {
+  memmove( (void*) &_documentLoad[0], (void*) &_documentLoad[1], (sizeof _documentLoad[0]) * 59 );
+  memmove( (void*) &_queryLoad[0], (void*) &_queryLoad[1], (sizeof _queryLoad[0]) * 59 );
+
+  _documentLoad[0] = 0;
+  _queryLoad[0] = 0;
+}
+
+//
+// _computeLoad
+//
+
+Repository::Load Repository::_computeLoad( indri::atomic::value_type* loadArray ) {
+  Load load;
+
+  load.one = load.five = load.fifteen = 0;
+
+  for( int i=0; i<LOAD_MINUTE_FRACTION; i++ ) {
+    load.one += loadArray[i];
+  }
+
+  for( int i=0; i<5*LOAD_MINUTE_FRACTION; i++ ) { 
+    load.five += loadArray[i];
+  }
+  load.five /= 5.;
+
+  for( int i=0; i<15*LOAD_MINUTE_FRACTION; i++ ) {
+    load.fifteen += loadArray[i];
+  }
+  load.fifteen /= 15.;
+
+  return load;
+}
+
+//
+// queryLoad
+//
+
+Repository::Load Repository::queryLoad() {
+  return _computeLoad( _queryLoad );
+}
+
+//
+// documentLoad
+//
+
+Repository::Load Repository::documentLoad() {
+  return _computeLoad( _documentLoad );
 }
 
 //
@@ -382,12 +458,14 @@ void Repository::addDocument( ParsedDocument* document ) {
 
   { 
     // get a copy of current index state
-    ScopedLock lock( _stateLock );
+    ScopedLock stateLock( _stateLock );
     state = _active;
   }
 
   int documentID = dynamic_cast<indri::index::MemoryIndex*>(state->back())->addDocument( *document );
   _collection->addDocument( documentID, document );
+
+  _countDocumentAdd();
 
   // TODO: make this better
   if( state->back()->documentCount() >= 500 ) {
@@ -545,12 +623,12 @@ void Repository::write() {
 
   std::string indexPath = Path::combine( _path, "index" );
   std::string newIndexPath = Path::combine( indexPath, indexNumber.str() );
-  indri::index::IndexWriter writer( _fields.size() );
+  indri::index::IndexWriter writer;
   writer.write( *index, newIndexPath );
 
   // open the index we just wrote
   indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
-  diskIndex->open( newIndexPath );
+  diskIndex->open( indexPath, indexNumber.str() );
 
   // make a new state, replacing the old index for the new one
   _swapState( index, diskIndex );
@@ -641,18 +719,43 @@ CompressedCollection* Repository::collection() {
 }
 
 //
+// _writeParameters
+//
+
+void Repository::_writeParameters( const std::string& path ) {
+  // have to make a list of all the indexes to load
+  _parameters.set( "indexes", "" );
+  ScopedLock lock( _stateLock );
+
+  Parameters indexes = _parameters["indexes"];
+  indexes.clear();
+
+  for( int i=0; i<_active->size(); i++ ) {
+    indri::index::DiskIndex* index = dynamic_cast<indri::index::DiskIndex*>((*_active)[i]);
+
+    if( index ) {
+      indexes.append( "index" ).set( index->path() );
+    }
+  }
+
+  _parameters.set( "indexCount", _indexCount );
+  _parameters.writeFile( path );
+}
+
+//
 // close
 //
 
 void Repository::close() {
   if( _collection ) {
+    // TODO: make sure all the indexes get deleted
     std::string manifest = "manifest";
     std::string paramPath = Path::combine( _path, manifest );
 
-    // TODO: need to write() here
-
-    if( !_readOnly )
-      _parameters.writeFile( paramPath );
+    if( !_readOnly ) {
+      write();
+      _writeParameters( paramPath );
+    }
 
     _closeIndexes();
 
@@ -670,5 +773,9 @@ void Repository::close() {
 //
 
 Repository::index_state Repository::indexes() {
+  // calling this method implies that some query-related operation
+  // is about to happen
+  _countQuery();
+
   return _active;
 }

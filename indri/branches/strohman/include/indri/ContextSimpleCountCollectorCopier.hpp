@@ -197,6 +197,7 @@ public:
       }
 
       result = new indri::lang::ContextSimpleCounterNode( terms, field, context );
+      result->setNodeName( contextNode->nodeName() );
       delete newNode;
     }
 

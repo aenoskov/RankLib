@@ -16,7 +16,7 @@
 //         RVLCompressed section (size is headerLength)
 //            termString
 //            termData (indri::index::TermData structure)
-//      byte (1b)   controlByte   (0x01 = hasSkips, 0x02 = hasTopdocs)
+//      byte (1b)   controlByte   (0x01 = hasTopdocs, 0x02 = isFrequent)
 //      topdocsCount (4b)  (if hasTopdocs)
 //         for each topdoc:
 //         docID (4b)
@@ -102,6 +102,7 @@ void indri::index::DiskDocListIterator::startIteration() {
   _file->read( &control, sizeof(UINT8) );
 
   _hasTopdocs = (control & 0x01) ? true : false;
+  _isFrequent = (control & 0x02) ? true : false;
   
   // clear out all the internal data
   _data.document = 0;
@@ -115,6 +116,7 @@ void indri::index::DiskDocListIterator::startIteration() {
   // read in the first entry
   _readSkip();
   _readEntry();
+  _result = &_data;
 }
 
 //
@@ -130,6 +132,7 @@ bool indri::index::DiskDocListIterator::nextEntry() {
       return true;
     } else {
       // all done
+      _result = 0;
       return false;
     }
   }
@@ -149,11 +152,13 @@ bool indri::index::DiskDocListIterator::nextEntry( int documentID ) {
   }
 
   // now, read entries until we find one that's good
-  while( _data.document < documentID && _list != _listEnd ) {
-    _readEntry();
+  while( _data.document < documentID ) {
+    if( !nextEntry() ) {
+      return false;
+    }
   }
 
-  return _list != _listEnd;
+  return true;
 }
 
 //
@@ -161,7 +166,7 @@ bool indri::index::DiskDocListIterator::nextEntry( int documentID ) {
 //
 
 indri::index::DiskDocListIterator::DocumentData* indri::index::DiskDocListIterator::currentEntry() {
-  return &_data;
+  return _result;
 }
 
 //
@@ -232,3 +237,13 @@ void indri::index::DiskDocListIterator::_readEntry() {
     lastPosition += deltaPosition;
   }
 }
+
+//
+// isFrequent
+//
+
+bool indri::index::DiskDocListIterator::isFrequent() const {
+  return _isFrequent;
+}
+
+

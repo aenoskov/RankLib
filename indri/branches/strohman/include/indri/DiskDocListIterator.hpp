@@ -23,9 +23,11 @@ namespace indri {
       UINT64 _startOffset;
       UINT64 _endOffset;
       bool _hasTopdocs;
+      bool _isFrequent;
 
       greedy_vector<TopDocument> _topdocs;
       DocumentData _data;
+      DocumentData* _result;
 
       void _readEntry();
       void _readSkip();
@@ -43,6 +45,7 @@ namespace indri {
       bool nextEntry( int documentID );
       DocumentData* currentEntry();
       bool finished();
+      bool isFrequent() const;
     };
   }
 }

@@ -131,6 +131,9 @@ size_t File::read( void* buffer, UINT64 position, size_t length ) {
 }
 
 size_t File::write( const void* buffer, UINT64 position, size_t length ) {
+  if( length == 0 )
+    return 0;
+
 #ifdef WIN32
   assert( _handle != INVALID_HANDLE_VALUE );
 

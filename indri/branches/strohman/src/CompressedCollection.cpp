@@ -72,13 +72,25 @@ const int OUTPUT_BUFFER_SIZE = 128*1024;
 const char POSITIONS_KEY[] = "#POSITIONS#";
 const char TEXT_KEY[] = "#TEXT#";
 
+//
+// zlib_alloc
+//
+
 static void* zlib_alloc( void* opaque, uInt items, uInt size ) {
   return malloc( items*size );
 }
 
+//
+// zlib_free
+//
+
 static void zlib_free( void* opaque, void* address ) {
   free( address );
 }
+
+//
+// zlib_deflate
+//
 
 static void zlib_deflate( z_stream_s& stream, SequentialWriteBuffer* outfile ) {
   if( stream.avail_out == 0 ) {
@@ -103,6 +115,10 @@ static void zlib_deflate( z_stream_s& stream, SequentialWriteBuffer* outfile ) {
   }
 }
 
+//
+// zlib_deflate_finish
+//
+
 static void zlib_deflate_finish( z_stream_s& stream, SequentialWriteBuffer* outfile ) {
   while(true) {
     if( stream.avail_out == 0 ) {
@@ -122,6 +138,10 @@ static void zlib_deflate_finish( z_stream_s& stream, SequentialWriteBuffer* outf
   outfile->unwrite( stream.avail_out );
   deflateReset( &stream );
 }
+
+//
+// zlib_read_document
+//
 
 static void zlib_read_document( z_stream_s& stream, File& infile, UINT64 offset, Buffer& outputBuffer ) {
   // read in data from the file until the stream ends
@@ -171,6 +191,10 @@ static void zlib_read_document( z_stream_s& stream, File& infile, UINT64 offset,
   }
 }
 
+//
+// copy_quad
+//
+
 static int copy_quad( char* buffer ) {
   unsigned char firstByte = buffer[0];
   unsigned char secondByte = buffer[1];
@@ -187,6 +211,10 @@ static int copy_quad( char* buffer ) {
   return result;
 }
 
+//
+// _writeMetadataItem
+//
+
 void CompressedCollection::_writeMetadataItem( ParsedDocument* document, int i, int& keyLength, int& valueLength ) {
   keyLength = strlen(document->metadata[i].key) + 1;
   _stream->next_in = (Bytef*) document->metadata[i].key;
@@ -200,6 +228,10 @@ void CompressedCollection::_writeMetadataItem( ParsedDocument* document, int i, 
 
   zlib_deflate( *_stream, _output );
 }
+
+//
+// _writePositions
+//
 
 void CompressedCollection::_writePositions( ParsedDocument* document, int& keyLength, int& valueLength ) {
   _positionsBuffer.clear();
@@ -230,6 +262,10 @@ void CompressedCollection::_writePositions( ParsedDocument* document, int& keyLe
   zlib_deflate( *_stream, _output );
 }
 
+//
+// _writeText
+//
+
 void CompressedCollection::_writeText( ParsedDocument* document, int& keyLength, int& valueLength ) {
   keyLength = sizeof TEXT_KEY;
   _stream->next_in = (Bytef*) TEXT_KEY;
@@ -240,6 +276,10 @@ void CompressedCollection::_writeText( ParsedDocument* document, int& keyLength,
   _stream->avail_in = document->textLength;
   zlib_deflate( *_stream, _output );
 }
+
+//
+// _readPositions
+//
 
 void CompressedCollection::_readPositions( ParsedDocument* document, const void* positionData, int positionDataLength ) {
   RVLDecompressStream decompress( (const char*) positionData, positionDataLength );
@@ -259,6 +299,10 @@ void CompressedCollection::_readPositions( ParsedDocument* document, const void*
   }
 }
 
+//
+// CompressedCollection
+//
+
 CompressedCollection::CompressedCollection() {
   _output = new SequentialWriteBuffer( _storage, 1024*1024 );
 
@@ -273,6 +317,10 @@ CompressedCollection::CompressedCollection() {
   _strings = string_set_create();
 }
 
+//
+// ~CompressedCollection
+//
+
 CompressedCollection::~CompressedCollection() {
   close();
 
@@ -282,10 +330,18 @@ CompressedCollection::~CompressedCollection() {
   string_set_delete( _strings );
 }
 
+//
+// create
+//
+
 void CompressedCollection::create( const std::string& fileName ) {
   std::vector<std::string> empty;
   create( fileName, empty );
 }
+
+//
+// create
+//
 
 void CompressedCollection::create( const std::string& fileName, const std::vector<std::string>& indexedFields ) {
   std::string manifestName = Path::combine( fileName, "manifest" );
@@ -312,6 +368,10 @@ void CompressedCollection::create( const std::string& fileName, const std::vecto
 
   manifest.writeFile( manifestName );
 }
+
+//
+// open
+//
 
 void CompressedCollection::open( const std::string& fileName ) {
   std::string lookupName = Path::combine( fileName, "lookup" );
@@ -342,6 +402,10 @@ void CompressedCollection::open( const std::string& fileName ) {
   }
 }
 
+//
+// openRead
+//
+
 void CompressedCollection::openRead( const std::string& fileName ) {
   std::string lookupName = Path::combine( fileName, "lookup" );
   std::string storageName = Path::combine( fileName, "storage" );
@@ -370,6 +434,10 @@ void CompressedCollection::openRead( const std::string& fileName ) {
     }
   }
 }
+
+//
+// close
+//
 
 void CompressedCollection::close() {
   _lookup.close();
@@ -528,6 +596,10 @@ ParsedDocument* CompressedCollection::retrieve( int documentID ) {
   output.detach();
   return document;
 }
+
+//
+// retrieveMetadatum
+//
 
 std::string CompressedCollection::retrieveMetadatum( int documentID, const std::string& attributeName ) {
   Keyfile** metalookup = _metalookups.find( attributeName.c_str() );

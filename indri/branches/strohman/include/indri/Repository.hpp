@@ -67,6 +67,12 @@
  */
 class Repository {
 public:
+  struct Load {
+    float one;
+    float five;
+    float fifteen;
+  };
+
   struct Field {
     std::string name;
     std::string parserName;
@@ -93,8 +99,19 @@ private:
   std::string _path;
   bool _readOnly;
 
-
   INT64 _memory;
+
+  enum { LOAD_MINUTES = 15, LOAD_MINUTE_FRACTION = 4 };
+
+  indri::atomic::value_type _queryLoad[ LOAD_MINUTES * LOAD_MINUTE_FRACTION ];
+  indri::atomic::value_type _documentLoad[ LOAD_MINUTES * LOAD_MINUTE_FRACTION ];
+
+  void _writeParameters( const std::string& path );
+
+  void _incrementLoad();
+  void _countDocumentAdd();
+  void _countQuery();
+  Load _computeLoad( indri::atomic::value_type* loadArray );
 
   void _buildFields();
   void _buildChain();
@@ -160,6 +177,12 @@ public:
 
   /// Write the most recent state out to disk
   void write();
+
+  /// Returns the average number of documents added each minute in the last 1, 5 and 15 minutes
+  Load queryLoad();
+
+  /// Returns the average number of documents added each minute in the last 1, 5 and 15 minutes
+  Load documentLoad();
 };
 
 #endif // INDRI_REPOSITORY_HPP

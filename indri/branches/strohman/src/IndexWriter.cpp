@@ -15,6 +15,10 @@
 #include "indri/greedy_vector"
 #include "indri/VocabularyMap.hpp"
 #include "indri/Path.hpp"
+#include "indri/Parameters.hpp"
+#include "indri/DiskTermData.hpp"
+#include "indri/TermBitmap.hpp"
+#include "indri/DiskDocListIterator.hpp"
 
 using namespace indri::index;
 
@@ -22,9 +26,60 @@ using namespace indri::index;
 // IndexWriter constructor
 //
 
-IndexWriter::IndexWriter( int fields ) :
-  _fieldCount(fields)
+IndexWriter::IndexWriter()
 {
+}
+
+//
+// _writeSkip
+//
+
+void IndexWriter::_writeSkip( SequentialWriteBuffer* buffer, int document, int length ) {
+  buffer->write( &document, sizeof(int) );
+  buffer->write( &length, sizeof(int) );
+}
+
+//
+// _writeBatch
+//
+
+void IndexWriter::_writeBatch( SequentialWriteBuffer* buffer, int document, int length, Buffer& data ) {
+  _writeSkip( buffer, document, length );
+  buffer->write( data.front(), data.position() );
+  data.clear();
+}
+
+//
+// _writeManifest
+//
+
+void IndexWriter::_writeManifest( const std::string& path ) {
+  Parameters manifest;
+
+  manifest.set( "type", "DiskIndex" );
+  manifest.set( "code-build-date", __DATE__ );
+
+  manifest.set( "corpus", "" );
+  Parameters corpus = manifest["corpus"];
+
+  corpus.set("total-documents", _corpus.totalDocuments);
+  corpus.set("total-terms", (UINT64) _corpus.totalTerms);
+  corpus.set("unique-terms", _corpus.uniqueTerms);
+  corpus.set("document-base", _documentBase);
+
+  manifest.set( "fields", "" );
+  Parameters fields = manifest["fields"];
+
+  for( int i=0; i<_fields.size(); i++ ) {
+    fields.append("field");
+
+    fields[i].set("isNumeric", _fields[i].numeric);
+    fields[i].set("name", _fields[i].name);
+    fields[i].set("total-documents", _fieldData[i].documentCount);
+    fields[i].set("total-terms", (UINT64) _fieldData[i].totalCount);
+  }
+
+  manifest.writeFile( path );
 }
 
 //
@@ -42,6 +97,7 @@ void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
   std::string documentStatisticsPath = Path::combine( path, "documentStatistics" );
   std::string invertedFilePath = Path::combine( path, "invertedFile" );
   std::string directFilePath = Path::combine( path, "directFile" );
+  std::string manifestPath = Path::combine( path, "manifest" );
 
   // infrequent stuff
   _infrequentTerms.idMap = new Keyfile();
@@ -67,6 +123,8 @@ void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
   indexes.push_back( &index );
   
   _writeInvertedLists( indexes );
+  _writeFieldLists( indexes, path );
+  _writeDirectLists( indexes, _directFile );
 
   // close infrequent
   _infrequentTerms.idMap->close();
@@ -85,16 +143,41 @@ void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
   _documentLengths.close();
   _invertedFile.close();
   _directFile.close();
+
+
+  // write a manifest file
+  _writeManifest( manifestPath );
+}
+
+//
+// _writeFieldLists
+//
+
+void IndexWriter::_writeFieldLists( std::vector<indri::index::Index*>& indexes, const std::string& path ) {
+  if( indexes.size() == 0 )
+    return;
+  
+  for( int field=1; field<=_fields.size(); field++ ) {
+    std::stringstream fieldName;
+    fieldName << "field" << field;
+    std::string fieldPath = Path::combine( path, fieldName.str() );
+
+    std::vector<indri::index::DocExtentListIterator*> iterators;
+    for( int i=0; i<indexes.size(); i++ )
+      iterators.push_back( indexes[i]->fieldListIterator( field ) ); 
+
+    _writeFieldList( fieldPath, iterators );
+  }
 }
 
 //
 // _fetchMatchingInvertedLists
 //
 
-void IndexWriter::_fetchMatchingInvertedLists( greedy_vector<WriterInvertedList*>& lists, invertedlist_pqueue& queue ) {
+void IndexWriter::_fetchMatchingInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue ) {
   lists.clear();
 
-  WriterInvertedList* first = queue.top();
+  WriterIndexContext* first = queue.top();
   lists.push_back( first );
   const char* firstTerm = first->iterator->currentEntry()->termData->term;
   queue.pop();
@@ -109,7 +192,7 @@ void IndexWriter::_fetchMatchingInvertedLists( greedy_vector<WriterInvertedList*
 // _pushInvertedLists
 //
 
-void IndexWriter::_pushInvertedLists( greedy_vector<WriterInvertedList*>& lists, invertedlist_pqueue& queue ) {
+void IndexWriter::_pushInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue ) {
   for( int i=0; i<lists.size(); i++ ) {
     lists[i]->iterator->nextEntry();
 
@@ -125,27 +208,97 @@ void IndexWriter::_pushInvertedLists( greedy_vector<WriterInvertedList*>& lists,
 // _writeStatistics
 //
 
-void IndexWriter::_writeStatistics( greedy_vector<WriterInvertedList*>& lists, indri::index::TermData* termData ) {
-  greedy_vector<WriterInvertedList*>::iterator iter;
-  ::termdata_clear( termData, _fieldCount );
+void IndexWriter::_writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData ) {
+  greedy_vector<WriterIndexContext*>::iterator iter;
+  ::termdata_clear( termData, _fields.size() );
 
   // find out what term we're writing
   strcpy( const_cast<char*>(termData->term), lists[0]->iterator->currentEntry()->termData->term );
 
   for( iter = lists.begin(); iter != lists.end(); ++iter ) {
     indri::index::DocListFileIterator::DocListData* listData = (*iter)->iterator->currentEntry();
-    ::termdata_merge( termData, listData->termData, _fieldCount );
+    ::termdata_merge( termData, listData->termData,  _fields.size() );
   }
 
   _termDataBuffer.clear();
   RVLCompressStream stream( _termDataBuffer );
 
   stream << termData->term;
-  ::termdata_compress( stream, termData, _fieldCount );
+  ::termdata_compress( stream, termData,  _fields.size() );
 
   int dataSize = stream.dataSize();
   _invertedOutput->write( &dataSize, sizeof(int) );
   _invertedOutput->write( stream.data(), stream.dataSize() );
+
+  _corpus.uniqueTerms++;
+  _corpus.totalTerms += termData->corpus.totalCount;
+}
+
+//
+// _writeFieldList
+//
+// field list is:
+//  control byte -- currently no options available here
+//  document / 
+//
+
+void IndexWriter::_writeFieldList( const std::string& fileName, std::vector<indri::index::DocExtentListIterator*> iterators ) {
+  File outputFile;
+  outputFile.create( fileName );
+  SequentialWriteBuffer output( outputFile, 1024*1024 );
+  
+  // write a control byte
+  UINT8 control = 0;
+  output.write( &control, sizeof(UINT8) );
+
+  Buffer dataBuffer;
+  const int minimumSkip = 1<<12; //4k
+  int lastDocument = 0;
+
+  for( int i=0; i<iterators.size(); i++ ) {
+    DocExtentListIterator* iterator = iterators[i];
+
+    if( !iterator )
+      continue;
+
+    iterator->startIteration();
+    RVLCompressStream stream( dataBuffer );
+
+    while( iterator->currentEntry() ) {
+      DocExtentListIterator::DocumentExtentData* entry = iterator->currentEntry();
+
+      if( dataBuffer.position() > minimumSkip ) {
+        _writeBatch( &output, entry->document, dataBuffer.position(), dataBuffer );
+        lastDocument = 0;
+      }
+
+      // add document difference
+      stream << ( entry->document - lastDocument );
+      lastDocument = entry->document;
+
+      // extent count
+      int count = entry->extents.size();
+      stream << count;
+
+      // extents and numbers
+      int lastPosition = 0;
+      for( int j=0; j<count; j++ ) {
+        Extent& extent = entry->extents[j];
+
+        stream << (extent.begin - lastPosition);
+        lastPosition = extent.begin;
+        stream << (extent.end - lastPosition);
+        lastPosition = extent.end;
+
+        if( entry->numbers.size() )
+          stream << entry->numbers[j];
+      }
+    }
+  }
+
+  _writeBatch( &output, -1, dataBuffer.position(), dataBuffer );
+  output.flush();
+  outputFile.close();
 }
 
 //
@@ -153,25 +306,40 @@ void IndexWriter::_writeStatistics( greedy_vector<WriterInvertedList*>& lists, i
 //
 // Inverted list is:
 //   termData (as written by _writeStatistics)
-//   control byte -- hasSkips(0x1), hasTopdocs(0x2)
+//   control byte -- hasTopdocs(0x1)
 //   optional topdocs list: topdocsCount + (document/count/length)+
 //   ( [skip: document/skipLength] (doc/positionCount/positions+)+ )
-// MAX_INT32/MAX_INT32 signifies there's no more skips
+// (-1) signifies there's no more skips
 // 
 //
 
-void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset ) {
-  greedy_vector<WriterInvertedList*>::iterator iter;
-  const minimumSkip = 1<<12; // 4k
+void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset ) {
+  greedy_vector<WriterIndexContext*>::iterator iter;
+  const int minimumSkip = 1<<12; // 4k
   int documentsWritten = 0;
 
   const float topdocsFraction = 0.01f;
-  bool hasTopdocs = termData->corpus.documentCount > 1000;
+  bool hasTopdocs = termData->corpus.documentCount > TOPDOCS_DOCUMENT_COUNT;
+  bool isFrequent = termData->corpus.totalCount > FREQUENT_TERM_COUNT;
   int topdocsCount = hasTopdocs ? int(termData->corpus.totalCount * 0.01) : 0;
   int topdocsSpace = hasTopdocs ? topdocsCount*3*sizeof(DocListIterator::TopDocument) + sizeof(int) : 0;
 
+  // compress term data
+  _termDataBuffer.clear(); 
+  RVLCompressStream termStream( _termDataBuffer );
+
+  termStream << termData->term;
+  ::termdata_compress( termStream, termData, _fieldData.size() );
+
+  // write term data
+  startOffset = _invertedOutput->tell();
+
+  int termDataLength = termStream.dataSize();
+  _invertedOutput->write( &termDataLength, sizeof termDataLength );
+  _invertedOutput->write( termStream.data(), termStream.dataSize() );
+
   // write a control byte
-  char control = (hasTopdocs ? 0x01 : 0);
+  char control = (hasTopdocs ? 0x01 : 0) | (isFrequent ? 0x02 : 0);
   _invertedOutput->write( &control, 1 );
 
   UINT64 initialPosition = _invertedOutput->tell();
@@ -213,13 +381,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
 
       if( listBuffer.position() > minimumSkip ) {
         // time to write in a skip
-        int skipLength = listBuffer.position();
-        int skipDocument = documentData->document;
-
-        _invertedOutput->write( &skipDocument, sizeof(int) );
-        _invertedOutput->write( &skipLength, sizeof(int) );
-        _invertedOutput->write( listBuffer.front(), listBuffer.position() );
-        listBuffer.clear();
+        _writeBatch( _invertedOutput, documentData->document, listBuffer.position(), listBuffer );
 
         // delta encode documents by batch
         lastDocument = 0;
@@ -241,13 +403,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
   }
 
   // write in the final skip info
-  int skipDocument = MAX_INT32;
-  int skipLength = listBuffer.position();
-  _invertedOutput->write( &skipDocument, sizeof(int) );
-  _invertedOutput->write( &skipLength, sizeof(int) );
-
-  _invertedOutput->write( listBuffer.front(), listBuffer.position() );
-  listBuffer.clear();
+  _writeBatch( _invertedOutput, -1, listBuffer.position(), listBuffer );
   UINT64 finalPosition = _invertedOutput->tell();
 
   if( hasTopdocs ) {
@@ -267,6 +423,8 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
 
     _invertedOutput->seek( finalPosition );
   }
+
+  endOffset = finalPosition;
 }
 
 //
@@ -274,17 +432,30 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
 //
 
 void IndexWriter::_storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::TermData* termData, INT64 startOffset, INT64 endOffset, int termID ) {
-  _termDataBuffer.clear();
-  RVLCompressStream stream( _termDataBuffer );
-  
-  stream << termData->term
-         << termID;
-  ::termdata_compress( stream, termData, _fieldCount );
-  stream << startOffset
-         << endOffset;
+  DiskTermData diskData;
 
-  pair.idMap->put( termID, stream.data(), stream.dataSize() );
-  pair.stringMap->put( termData->term, stream.data(), stream.dataSize() );
+  diskData.length = endOffset - startOffset;
+  diskData.startOffset = startOffset;
+  diskData.termData = termData;
+  diskData.termID = termID;
+
+  // add term data to id map (storing term string)
+  _termDataBuffer.clear();
+  RVLCompressStream idStream( _termDataBuffer );
+
+  disktermdata_compress( idStream, &diskData, _fieldData.size(), indri::index::DiskTermData::WithString |
+                                                                 indri::index::DiskTermData::WithOffsets );
+
+  pair.idMap->put( termID, idStream.data(), idStream.dataSize() );
+
+  // add term data to string map (storing termID)
+  _termDataBuffer.clear();
+  RVLCompressStream stringStream( _termDataBuffer );
+
+  disktermdata_compress( stringStream, &diskData, _fieldData.size(), indri::index::DiskTermData::WithTermID |
+                                                                     indri::index::DiskTermData::WithOffsets );
+
+  pair.stringMap->put( termData->term, stringStream.data(), stringStream.dataSize() );
 }
 
 //
@@ -305,13 +476,40 @@ void IndexWriter::_storeFrequentTerms() {
 // _storeMatchInformation
 //
 
-void IndexWriter::_storeMatchInformation( int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset ) {
-  // TODO: pick cutoff dynamically
-  if( termData->corpus.documentCount > 10000 ) {
+void IndexWriter::_storeMatchInformation( greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset ) {
+  bool isFrequent = termData->corpus.documentCount > FREQUENT_TERM_COUNT;
+
+  for( int i=0; i<lists.size(); i++ ) {
+    WriterIndexContext* list = lists[i];
+    indri::index::DiskDocListIterator* iterator = dynamic_cast<DiskDocListIterator*>(lists[i]->iterator);
+    bool wasFrequent = (iterator && iterator->isFrequent());
+
+    if( !wasFrequent ) {
+      if( !isFrequent ) {
+        // common case--remaining infrequent
+        list->bitmap->add( list->infrequentIndex, sequence );
+      } else if( isFrequent ) {
+        // becoming frequent
+        list->newlyFrequent->add( list->infrequentIndex, termData->term );
+      }
+    } else {
+      if( !isFrequent ) {
+        // want to grab the sequence now so it's easy to find what this term maps to
+        list->newlyInfrequent->add( sequence, termData->term );
+      } else {
+        // do nothing, we'll scrub the frequent B-Tree and figure this out later (?)
+      }
+    }
+
+    if( !isFrequent )
+      list->infrequentIndex++;
+  }
+
+  if( isFrequent ) {
     top_term_entry entry;
 
-    entry.termData = ::termdata_create( _fieldCount );
-    ::termdata_merge( entry.termData, termData, _fieldCount );
+    entry.termData = ::termdata_create(  _fields.size() );
+    ::termdata_merge( entry.termData, termData,  _fields.size() );
     entry.startOffset = startOffset;
     entry.endOffset = endOffset;
 
@@ -330,9 +528,9 @@ void IndexWriter::_writeInvertedLists( std::vector<indri::index::Index*>& indexe
   // write a combined inverted list in vocabulary order
   // in the process, create a new list of termIDs from the old list
   
-  std::priority_queue<WriterInvertedList*,
-                      std::vector<WriterInvertedList*>,
-                      WriterInvertedList::less> invertedLists;
+  std::priority_queue<WriterIndexContext*,
+                      std::vector<WriterIndexContext*>,
+                      WriterIndexContext::less> invertedLists;
   Buffer invertedListBuffer;
 
   UINT64 startOffset;
@@ -343,12 +541,15 @@ void IndexWriter::_writeInvertedLists( std::vector<indri::index::Index*>& indexe
   term[0] = 0;
   int sequence = 1;
 
+  _documentBase = indexes[0]->documentBase();
+
   for( int i=0; i<indexes.size(); i++ ) {
-    invertedLists.push( new WriterInvertedList( indexes[i]->docListFileIterator(), indexes[i] ) );
+    invertedLists.push( new WriterIndexContext( indexes[i]->docListFileIterator(), indexes[i] ) );
+    _corpus.totalDocuments += indexes[i]->documentCount();
   }
 
-  greedy_vector<WriterInvertedList*> current;
-  indri::index::TermData* termData = ::termdata_create( _fieldCount );
+  greedy_vector<WriterIndexContext*> current;
+  indri::index::TermData* termData = ::termdata_create( _fields.size() );
   char termBuffer[Keyfile::MAX_KEY_LENGTH+1] = {0};
   termData->term = termBuffer;
 
@@ -363,18 +564,153 @@ void IndexWriter::_writeInvertedLists( std::vector<indri::index::Index*>& indexe
     _addInvertedListData( current, termData, invertedListBuffer, startOffset, endOffset );
 
     // have to store the termData in a B-Tree (or something) for fast access later
-    _storeMatchInformation( sequence, termData, startOffset, endOffset );
+    _storeMatchInformation( current, sequence, termData, startOffset, endOffset );
 
     // push back all doc lists with useful information
     _pushInvertedLists( current, invertedLists );
+
+    _corpus.uniqueTerms++;
   }
 
   // at this point, we need to fill in all the "top" vocabulary data
   // into the keyfile
 
-  ::termdata_delete( termData, _fieldCount );
+  ::termdata_delete( termData, _fields.size() );
   _invertedOutput->flush();
   delete _invertedOutput;
   _invertedFile.close();
+}
+
+//
+// _lookupTermID
+//
+
+int IndexWriter::_lookupTermID( Keyfile& keyfile, const char* term ) {
+  char compressedData[16*1024];
+  char uncompressedData[16*1024];
+  int actual;
+
+  bool result = keyfile.get( term, compressedData, actual, sizeof compressedData );
+  
+  if( !result )
+    return 0;
+
+  RVLDecompressStream stream( compressedData, actual );
+  DiskTermData* diskTermData = ::disktermdata_decompress( stream,
+                                                          uncompressedData,
+                                                          _fields.size(),
+                                                          DiskTermData::WithOffsets | DiskTermData::WithTermID );
+
+  return diskTermData->termID;
+}
+
+//
+// _harvestTerms
+//
+
+indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInfrequentTerms,
+                                            Keyfile& newFrequentTerms,
+                                            TermRecorder& oldFrequentTermsRecorder,
+                                            TermRecorder& newFrequentTermsRecorder,
+                                            TermRecorder& newlyInfrequentTermsRecorder,
+                                            TermBitmap* bitmap )
+{
+  // already have the bitmap, the recorder.  Want to make a translator
+
+  // 1. map frequent terms to frequent terms
+  std::vector<int>* frequent = new std::vector<int>;
+
+  std::vector< std::pair<const char*, int> > missing;
+  oldFrequentTermsRecorder.sort();
+  oldFrequentTermsRecorder.buildMap( *frequent, newFrequentTermsRecorder, &missing );
+
+  // 2. map frequent terms to infrequent terms
+  for( int i=0; i<missing.size(); i++ ) {
+    int missingTerm = missing[i].second;
+    (*frequent)[missingTerm] = _lookupTermID( newInfrequentTerms, missing[i].first );
+  }
+
+  // 3. map infrequent terms to frequent terms
+  HashTable<int, int>* wasInfrequentMap = new HashTable<int, int>();
+  newlyInfrequentTermsRecorder.sort();
+  std::vector< std::pair< const char*, int > >& newlyInfrequentPairs = newlyInfrequentTermsRecorder.pairs();
+
+  for( int i=0; i<newlyInfrequentPairs.size(); i++ ) {
+    // lookup newlyInfrequentTerms[i]
+    int oldTermID = newlyInfrequentPairs[i].second;
+    int newTermID = _lookupTermID( newFrequentTerms, newlyInfrequentPairs[i].first );
+    wasInfrequentMap->insert( oldTermID, newTermID );
+  }
+
+  // 4. infrequent to infrequent is easy--bitmap takes care of it
+  //    just get the appropriate counts from the maps
+  // new frequent count = previouslyFrequent - becameInfrequent + becameFrequent
+
+  int oldFrequentCount = frequent->size();
+  int newFrequentCount = frequent->size() - missing.size() + wasInfrequentMap->size();
+
+  return new TermTranslator( oldFrequentCount,
+                             newFrequentCount,
+                             frequent,
+                             wasInfrequentMap,
+                             bitmap );
+}
+
+//
+// _writeDirectLists
+//
+
+void IndexWriter::_writeDirectLists( indri::index::Index* index, WriterIndexContext* context, SequentialWriteBuffer* output ) {
+  TermListFileIterator* iterator = index->termListFileIterator();
+  TermTranslator* translator = _buildTermTranslator( _infrequentTerms,
+                                                     _frequentTerms,
+                                                     _oldFrequentTermsRecorder,
+                                                     context->newlyFrequent,
+                                                     context->newlyInfrequent,
+                                                     context->bitmap );
+  iterator->startIteration();
+  TermList writeList;
+  Buffer outputBuffer( 256*1024 );
+
+  while( !iterator->finished() ) {
+    writeList.clear();
+    TermList* list = iterator->currentEntry();
+
+    // copy and translate terms
+    for( int i=0; i<list->terms().size(); i++ ) {
+      int currentTerm = list->terms()[i];
+      int translated = (*translator)( currentTerm );
+
+      writeList.addTerm( translated );
+    }
+
+    // copy field data
+    for( int i=0; i<list->fields().size(); i++ ) {
+      writeList.addField( list->fields()[i] );
+    }
+  
+    writeList.write( outputBuffer );
+
+    if( outputBuffer.position() > 128*1024 ) {
+      output->write( outputBuffer.front(), outputBuffer.size() );
+      outputBuffer.clear();
+    }
+  }
+
+  output->write( outputBuffer.front(), outputBuffer.size() );
+  outputBuffer.clear();
+}
+
+//
+// _writeDirectLists
+//
+
+void IndexWriter::_writeDirectLists( std::vector<indri::index::Index*>& indexes, File& directFile ) {
+  std::vector<indri::index::Index*>::iterator iter;
+  SequentialWriteBuffer* buffer = new SequentialWriteBuffer( directFile, 1024*1024 );
+
+  for( iter = indexes.begin(); iter != indexes.end(); iter++ ) {
+    _writeDirectLists( *iter, buffer );
+  }
 }
 
