@@ -247,7 +247,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		}
 		else if( src == tlPanel ) {
 			if( tlMouseWasDragged ) {
-				System.out.println( "DRAGGED from " + tlMousePressPos + " to " + e.getPoint() );			
+				System.out.println( "DRAGGED from " + tlMousePressPos + " to " + e.getPoint() );
+				updateTimeline();
 			}
 			tlPanel.clearDragPoints();
 			tlMouseWasDragged = false;
@@ -267,6 +268,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				tlPanel.setStartDragPoint( e.getPoint() );
 			tlPanel.setEndDragPoint( e.getPoint() );
 			tlPanel.repaint();
+			queryPanel.setTimelineStartDate( tlPanel.getDragStartDate() );
+			queryPanel.setTimelineEndDate( tlPanel.getDragEndDate() );
 			tlMouseWasDragged = true;
 		}
 	}
@@ -305,31 +308,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			queryPanel.setQueryText("");
 		}
 		else if( buttonText.equals( "Update timeline" ) ) {
-			String startDate = queryPanel.getTimelineStartDate();
-			String endDate = queryPanel.getTimelineEndDate();
-			
-			try {
-				StringTokenizer tok = new StringTokenizer( startDate, "/" );
-				int minMonth = Integer.parseInt( tok.nextToken() );
-				int minYear = Integer.parseInt( tok.nextToken() );
-				
-				tok = new StringTokenizer( endDate, "/" );
-				int maxMonth = Integer.parseInt( tok.nextToken() );
-				int maxYear = Integer.parseInt( tok.nextToken() );
-				
-				if( minYear > maxYear || ( minYear == maxYear && minMonth >= maxMonth ) ) {
-					showErrorDialog( "Start date must be before end date!" );
-					return;
-				}
-				
-				tlPanel.setStartDate( minMonth, minYear );
-				tlPanel.setEndDate( maxMonth, maxYear );
-			
-				repaint();
-			}
-			catch( Exception a ) {
-				showErrorDialog( "Dates must be in MM/YYYY format!" );
-			}
+			updateTimeline();
 		}
 		else if( buttonName.equals( "tlPrev" ) ) {
 			ScoredDocInfo info = tlPanel.getPreviousDoc();
@@ -481,5 +460,33 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
 		}
 
+	}
+	
+	private void updateTimeline() {
+		String startDate = queryPanel.getTimelineStartDate();
+		String endDate = queryPanel.getTimelineEndDate();
+		
+		try {
+			StringTokenizer tok = new StringTokenizer( startDate, "/" );
+			int minMonth = Integer.parseInt( tok.nextToken() );
+			int minYear = Integer.parseInt( tok.nextToken() );
+			
+			tok = new StringTokenizer( endDate, "/" );
+			int maxMonth = Integer.parseInt( tok.nextToken() );
+			int maxYear = Integer.parseInt( tok.nextToken() );
+			
+			if( minYear > maxYear || ( minYear == maxYear && minMonth >= maxMonth ) ) {
+				showErrorDialog( "Start date must be before end date!" );
+				return;
+			}
+			
+			tlPanel.setStartDate( minMonth, minYear );
+			tlPanel.setEndDate( maxMonth, maxYear );
+		
+			repaint();
+		}
+		catch( Exception a ) {
+			showErrorDialog( "Dates must be in MM/YYYY format!" );
+		}
 	}
 }
