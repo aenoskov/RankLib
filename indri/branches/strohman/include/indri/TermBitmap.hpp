@@ -69,7 +69,7 @@ namespace indri {
           return 0;
 
         while( right - left > 1 ) {
-          int middle = (right - left) / 2;
+          int middle = left + (right - left) / 2;
           Buffer* mid = _maps[ middle ];
 
           if( from < *(INT32*) mid->front() ) {
