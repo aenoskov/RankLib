@@ -81,6 +81,8 @@ private:
   bool _readOnly;
 
   INT64 _memory;
+
+  UINT64 _lastThrashTime;
   volatile bool _thrashing;
 
   enum { LOAD_MINUTES = 15, LOAD_MINUTE_FRACTION = 12 };
@@ -123,12 +125,14 @@ private:
   void _stopThreads();
 
   void _setThrashing( bool flag );
+  UINT64 _timeSinceThrashing();
   void _addMemoryIndex();
 
 public:
   Repository() {
     _collection = 0;
     _readOnly = false;
+    _lastThrashTime = 0;
     _thrashing = false;
     memset( (void*) _documentLoad, 0, sizeof(indri::atomic::value_type)*LOAD_MINUTES*LOAD_MINUTE_FRACTION );
     memset( (void*) _queryLoad, 0, sizeof(indri::atomic::value_type)*LOAD_MINUTES*LOAD_MINUTE_FRACTION );
