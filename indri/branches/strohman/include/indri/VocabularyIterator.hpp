@@ -14,12 +14,12 @@ namespace indri {
   namespace index { 
     class VocabularyIterator {
     public:
-      virtual ~VocabularyIterator();
+      virtual ~VocabularyIterator() {};
       
-      virtual void startIteration();
-      virtual bool finished();
-      virtual bool nextEntry();
-      virtual TermData* currentEntry();
+      virtual void startIteration() = 0;
+      virtual bool finished() = 0;
+      virtual bool nextEntry() = 0;
+      virtual TermData* currentEntry() = 0;
     };
   }
 }
