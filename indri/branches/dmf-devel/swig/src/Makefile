@@ -36,7 +36,7 @@ DOC=$(JAVAHOME)/bin/javadoc -classpath java  $(DOCARGS)
 .PHONY: java-lib doc
 
 #all: java-lib php/indri_phpwrap.cpp
-all: java-lib php/indri_phpwrap.cpp
+all: java-lib 
 
 
 java-lib: $(OUTDIR) $(OUTDIRUI) $(OUTDIRPROP) $(PROPS) $(SOLIB) doc $(JARFILES)
