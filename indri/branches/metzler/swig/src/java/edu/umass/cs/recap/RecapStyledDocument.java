@@ -1,5 +1,6 @@
 package edu.umass.cs.recap;
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -31,6 +32,8 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	// sentence matches in "analyze" mode
 	protected Vector sentenceMatches = null;
 	protected Vector viewableSentenceMatches = null;
+
+	protected ArrayList queryPositions = null;
 	
 	// annotation matches in "explore" mode
 	protected Vector annotationMatches = null;
@@ -61,15 +64,19 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		viewableSentenceMatches = new Vector();
 		annotationMatches = new Vector();
 		namedEntityMatches = new Vector();
+
+		queryPositions = new ArrayList();
 		
 		initNamedEntityMatches();
 	}
 	
-	public void addSentenceMatch( int begin, int end, double score ) {
+	public void addSentenceMatch( int begin, int end, double score, Match queryPos ) {
 		Match m = new Match( begin, end, score );
 		sentenceMatches.add( m );
 		viewableSentenceMatches.add( m );
 		applyStyle( "sentmatch", begin, end );
+		
+		queryPositions.add( queryPos );
 	}
 
 	public void applySentenceMatchThreshold(double threshold) {
@@ -101,16 +108,24 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		render( begin, end );
 	}
 
-	protected void setSentenceMatches( Vector matches ) {
+/*	protected void setSentenceMatches( Vector matches ) {
 		viewableSentenceMatches = matches;
-	}
+	}*/
 
+	public Vector getSentenceMatches() {
+		return sentenceMatches;
+	}
+	
 	protected void setViewableSentenceMatches( Vector matches ) {
 		viewableSentenceMatches = matches;
 	}
 	
 	public Vector getViewableSentenceMatches() {
 		return viewableSentenceMatches;
+	}
+
+	public ArrayList getQueryPositions() {
+		return queryPositions;
 	}
 	
 	// applies a style to the given segment of text
@@ -259,12 +274,12 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	}
 	
 	// makes a 'deep copy' of this object 
-	public Object clone() {
+/*	public Object clone() {
 		RecapStyledDocument clone = null;
 		try {
 			clone = new RecapStyledDocument( getText( 0, getLength() ), defaultStyle );
 		}
-		catch( Exception e ) { /* do nothing */ }
+		catch( Exception e ) {  }
 
 		clone.setSentenceMatches( sentenceMatches );
 		clone.setViewableSentenceMatches( viewableSentenceMatches );
@@ -286,5 +301,5 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 			clone.setHighlight( highlight.begin, highlight.end );
 		
 		return clone;
-	}
+	} */
 }
