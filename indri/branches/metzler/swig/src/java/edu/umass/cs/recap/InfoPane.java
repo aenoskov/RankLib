@@ -2,10 +2,12 @@ package edu.umass.cs.recap;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -35,21 +37,29 @@ import edu.umass.cs.indri.ScoredExtentResult;
  * @author Don Metzler
  *
  */
-public class InfoPane extends JSplitPane implements ActionListener, ChangeListener, MouseListener, HyperlinkListener {
+public class InfoPane extends JSplitPane implements ActionListener, ChangeListener,
+													MouseListener, MouseMotionListener,
+													HyperlinkListener {
 	
-	private RetrievalEngine retEngine = null;
-	
+	// subpanes
 	private DocViewPane dvPane = null;
 	private TimelinePanel tlPanel = null;
 	private QueryPanel queryPanel = null;
 	private MainMenuBar menu = null;
-	
+
 	// default settings
 	private String simMeasure = "#identsim1";
 	private String queryExtent = "sentence";
 	private int numExploreResults = 5;
 	private int numAnalyzeResults = 5;
+
+	// timeline mouse handling
+	private boolean tlMouseWasDragged = false;
+	private Point tlMousePressPos = null;
 	
+	// retrieval engine interface
+	protected RetrievalEngine retEngine = null;
+		
 	public InfoPane( RetrievalEngine retEngine, MainMenuBar menu ) {
 		super( JSplitPane.VERTICAL_SPLIT );
 		this.retEngine = retEngine;
@@ -202,7 +212,6 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			ScoredDocInfo info = tlPanel.getDocAt( e.getPoint() );
 			int clickCount = e.getClickCount();
 			if( info != null ) {
-				//DocInfo doc = new DocInfo( info.docName, info.docID );
 				if( clickCount == 1 ) { // 1 click => set tab to doc
 					tlPanel.setCurrent( info.docName );
 					dvPane.setSelectedDoc( info );
@@ -211,20 +220,19 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 					repaint();
 				}
 				else { // 2+ clicks => analyze document					
-					//updater.setSelectedDoc( doc );					
-					//dvPane.setSelectedDoc( info );
 					if( getMode().equals( "analyze" ) )
 						dvPane.displayDoc( ((RecapStyledDocument)dvPane.getResultPane().getDocument()).unformattedClone() );
-						//dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
 				}
 			}
 		}
 	}
+
+	public void mousePressed( MouseEvent e ) {
+		Object src = e.getSource();
+		if( src == tlPanel )
+			tlMousePressPos = e.getPoint();
+	}
 	
-	// required for MouseListener, but not implemented
-	public void mouseEntered( MouseEvent e ) {}
-	public void mouseExited( MouseEvent e ) {}
-	public void mousePressed( MouseEvent e ) {}
 	public void mouseReleased( MouseEvent e ) {
 		Object src = e.getSource();
 		if( src == dvPane.getDocTextPane() ) {
@@ -237,8 +245,34 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				queryPanel.setQueryText( pane.getSelectedText() );
 			doc.setHighlight( pane.getSelectionStart(), pane.getSelectionEnd() );
 		}
+		else if( src == tlPanel ) {
+			if( tlMouseWasDragged ) {
+				System.out.println( "DRAGGED from " + tlMousePressPos + " to " + e.getPoint() );			
+			}
+			tlPanel.clearDragPoints();
+			tlMouseWasDragged = false;
+		}
+
 	}
 
+	// required for MouseListener, but not implemented
+	public void mouseEntered( MouseEvent e ) {}
+	public void mouseExited( MouseEvent e ) {}
+
+	// required for MouseMotionListener
+	public void mouseDragged( MouseEvent e ) {
+		Object src = e.getSource();
+		if( src == tlPanel ) {
+			if( !tlMouseWasDragged ) // if we just started dragging
+				tlPanel.setStartDragPoint( e.getPoint() );
+			tlPanel.setEndDragPoint( e.getPoint() );
+			tlPanel.repaint();
+			tlMouseWasDragged = true;
+		}
+	}
+
+	public void mouseMoved( MouseEvent e ) {}
+	
 	// required for ActionListener
 	public void actionPerformed( ActionEvent e ) {
 		Object src = e.getSource();
