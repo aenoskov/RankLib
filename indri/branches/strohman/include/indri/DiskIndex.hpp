@@ -81,14 +81,17 @@ namespace indri {
       // Lists
       //
       
-      virtual DocListIterator* docListIterator( int termID );
-      virtual DocListIterator* docListIterator( const std::string& term );
-      virtual DocListFileIterator* docListFileIterator();
-      virtual DocExtentListIterator* fieldListIterator( int fieldID );
-      virtual DocExtentListIterator* fieldListIterator( const std::string& field );
-      virtual const TermList* termList( int documentID );
-      virtual TermListFileIterator* termListFileIterator();
-      virtual VocabularyIterator* vocabularyIterator();
+      DocListIterator* docListIterator( int termID );
+      DocListIterator* docListIterator( const std::string& term );
+      DocListFileIterator* docListFileIterator();
+      DocExtentListIterator* fieldListIterator( int fieldID );
+      DocExtentListIterator* fieldListIterator( const std::string& field );
+      const TermList* termList( int documentID );
+      TermListFileIterator* termListFileIterator();
+
+      VocabularyIterator* vocabularyIterator();
+      VocabularyIterator* frequentVocabularyIterator();
+      VocabularyIterator* infrequentVocabularyIterator();
     };
   }
 }

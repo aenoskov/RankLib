@@ -9,6 +9,7 @@
 #define INDRI_VOCABULARYITERATOR_HPP
 
 #include "indri/TermData.hpp"
+#include "indri/DiskTermData.hpp"
 
 namespace indri {
   namespace index { 
@@ -19,7 +20,7 @@ namespace indri {
       virtual void startIteration() = 0;
       virtual bool finished() = 0;
       virtual bool nextEntry() = 0;
-      virtual TermData* currentEntry() = 0;
+      virtual DiskTermData* currentEntry() = 0;
     };
   }
 }

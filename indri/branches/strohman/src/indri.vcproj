@@ -113,6 +113,9 @@
 				RelativePath=".\CachedFrequencyBeliefNode.cpp">
 			</File>
 			<File
+				RelativePath=".\CombinedVocabularyIterator.cpp">
+			</File>
+			<File
 				RelativePath=".\Combiner.cpp">
 			</File>
 			<File
@@ -140,7 +143,13 @@
 				RelativePath=".\DiskDocListIterator.cpp">
 			</File>
 			<File
+				RelativePath=".\DiskFrequentVocabularyIterator.cpp">
+			</File>
+			<File
 				RelativePath=".\DiskIndex.cpp">
+			</File>
+			<File
+				RelativePath=".\DiskKeyfileVocabularyIterator.cpp">
 			</File>
 			<File
 				RelativePath=".\DocExtentListMemoryBuilder.cpp">
@@ -406,6 +415,9 @@
 				RelativePath="..\include\indri\Collection.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\CombinedVocabularyIterator.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\Combiner.hpp">
 			</File>
 			<File
@@ -461,6 +473,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\DiskDocListFileIterator.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\DiskKeyfileVocabularyIterator.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\DiskTermData.hpp">
