@@ -65,6 +65,7 @@ private:
   int _insideCount;
 
 public:
+  RawScorerNodeExtractor() : _insideCount(0) { }
   void defaultBefore( indri::lang::Node* n ) {
     if( _insideCount ) {
       _reachableNodes.push_back(n);

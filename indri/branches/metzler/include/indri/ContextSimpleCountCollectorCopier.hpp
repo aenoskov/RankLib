@@ -239,6 +239,7 @@ private:
 	    int docid = (*doc_iter).docID();
 	    docMap[ docid ] = true;
 	  }
+	  delete(docInfo); // this was leaking -- dmf
 	}
 
 	maxOccurrences += _index.termMaxDocumentFrequency( termID );
