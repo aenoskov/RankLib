@@ -23,6 +23,49 @@
 
 int count_term_in_documents( Repository& r, int termID, std::vector<int>& documents );
 
+void print_field_positions( Repository& r, const std::string& fieldString ) {
+  LocalQueryServer local(r);
+
+  UINT64 totalCount = local.termCount();
+
+  std::cout << fieldString << std::endl;
+
+  Repository::index_state state = r.indexes();
+
+  for( size_t i=0; i<state->size(); i++ ) {
+    indri::index::Index* index = (*state)[i];
+    ScopedLock( index->iteratorLock() );
+
+    indri::index::DocExtentListIterator* iter = index->fieldListIterator( fieldString );
+    iter->startIteration();
+
+    int doc = 0;
+    indri::index::DocExtentListIterator::DocumentExtentData* entry;
+
+    for( iter->startIteration(); iter->finished() == false; iter->nextEntry() ) {
+      entry = iter->currentEntry();
+
+      std::cout << entry->document << " "
+                << entry->extents.size() << " "
+                << index->documentLength( entry->document ) << " ";
+
+      int count = entry->extents.size();
+
+      for( int i=0; i<count; i++ ) {
+        std::cout << " ( " << entry->extents[i].begin << ", " << entry->extents[i].end;
+        if( entry->numbers.size() ) {
+          std::cout << ", " << entry->numbers[i];
+        }
+        std::cout << " ) ";
+      }
+
+      std::cout << std::endl;
+    }
+
+    delete iter;
+  }
+}
+
 void print_term_positions( Repository& r, const std::string& termString ) {
   std::string stem = r.processTerm( termString );
   LocalQueryServer local(r);
@@ -96,7 +139,7 @@ void print_term_counts( Repository& r, const std::string& termString ) {
 
       std::cout << entry->document << " "
                 << entry->positions.size() << " "
-                << index->documentLength( entry->document ) << " ";
+                << index->documentLength( entry->document ) << std::endl;
     }
 
     delete iter;
@@ -211,6 +254,7 @@ void usage() {
   std::cout << "    Command              Argument       Description" << std::endl;
   std::cout << "    term (t)             Term text      Print inverted list for a term" << std::endl;
   std::cout << "    termpositions (tp)   Term text      Print inverted list for a term, with positions" << std::endl;
+  std::cout << "    fieldpositions (fp)  Field name     Print inverted list for a field, with positions" << std::endl;
   std::cout << "    documentid (di)      Field, Value   Print the document IDs of documents having a metadata field"
             << "                                              matching this value" << std::endl;
   std::cout << "    documentname (dn)    Document ID    Print the text representation of a document ID" << std::endl;
@@ -220,39 +264,48 @@ void usage() {
 }
 
 int main( int argc, char** argv ) {
-  if( argc < 4 || ( ( argv[2] == "di" || argv[2] == "documentid" ) && argc < 5 ) ) {
-    usage();
-    return -1;
-  }
+  try {
+    if( argc < 4 || ( ( argv[2] == "di" || argv[2] == "documentid" ) && argc < 5 ) ) {
+      usage();
+      return -1;
+    }
 
-  Repository r;
-  char* repName = argv[1];
-  r.openRead( repName );
+    Repository r;
+    char* repName = argv[1];
+    r.openRead( repName );
 
-  std::string command = argv[2];
+    std::string command = argv[2];
 
-  if( command == "t" || command == "term" ) {
-    std::string term = argv[3];
-    print_term_counts( r, term );
-  } else if( command == "tp" || command == "termpositions" ) { 
-    std::string term = argv[3];
-    print_term_positions( r, term );
-  } else if( command == "dn" || command == "documentname" ) {
-    print_document_name( r, argv[3] );
-  } else if( command == "dt" || command == "documenttext" ) {
-    print_document_text( r, argv[3] );
-  } else if( command == "dd" || command == "documentdata" ) {
-    print_document_data( r, argv[3] );
-  } else if( command == "dv" || command == "documentvector" ) {
-    print_document_vector( r, argv[3] );
-  } else if( command == "di" || command == "documentid" ) {
-    print_document_id( r, argv[3], argv[4] );
-  } else {
+    if( command == "t" || command == "term" ) {
+      std::string term = argv[3];
+      print_term_counts( r, term );
+    } else if( command == "tp" || command == "termpositions" ) { 
+      std::string term = argv[3];
+      print_term_positions( r, term );
+    } else if( command == "fp" || command == "fieldpositions" ) { 
+      std::string field = argv[3];
+      print_field_positions( r, field );
+    } else if( command == "dn" || command == "documentname" ) {
+      print_document_name( r, argv[3] );
+    } else if( command == "dt" || command == "documenttext" ) {
+      print_document_text( r, argv[3] );
+    } else if( command == "dd" || command == "documentdata" ) {
+      print_document_data( r, argv[3] );
+    } else if( command == "dv" || command == "documentvector" ) {
+      print_document_vector( r, argv[3] );
+    } else if( command == "di" || command == "documentid" ) {
+      print_document_id( r, argv[3], argv[4] );
+    } else {
+      r.close();
+      usage();
+      return -1;
+    }
+
     r.close();
-    usage();
-    return -1;
+    return 0;
+  } catch( Exception& e ) {
+    LEMUR_ABORT(e);
   }
-
-  r.close();
-  return 0;
 }
+
+
