@@ -69,6 +69,12 @@ bool CachedFrequencyBeliefNode::hasMatch( int documentID ) {
   return ( _iter < _list->entries.end() && _iter->document == documentID );
 }
 
+const greedy_vector<bool>& CachedFrequencyBeliefNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  // bogus result
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const std::string& CachedFrequencyBeliefNode::getName() const {
   return _name;
 }
