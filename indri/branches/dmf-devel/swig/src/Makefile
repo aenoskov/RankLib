@@ -65,7 +65,7 @@ $(OBJ)/java/indri_javawrap.o: java/indri_javawrap.cpp
 java/indri_javawrap.cpp: $(INTERFACES)
 	$(SWIG) -c++ -java -package edu.umass.cs.indri -o java/indri_javawrap.cpp -outdir $(JSRC) $(INCLUDES) $(SRC) 
 
-$(OUTDIRPROP) $(OUTDIRUI) $(OUTDIR) $(OBJ)/java/docs:
+$(OUTDIRPROP) $(OUTDIRUI) $(OUTDIR) $(OBJ)/java/docs $(OUTDIRPHP):
 	$(INSTALL_DIR) $@
 
 $(OUTDIR)/%.class:$(JSRC)/%.java
