@@ -13,7 +13,7 @@
 
 class RepositoryMaintenanceThread : public UtilityThread {
 private:
-  enum { WRITE, MERGE };
+  enum { WRITE, MERGE, TRIM };
   class Repository& _repository;
 
   Mutex _requestLock;

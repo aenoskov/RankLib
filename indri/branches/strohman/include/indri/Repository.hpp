@@ -152,6 +152,8 @@ private:
   void _merge(); 
   /// write the active index to disk
   void _write();
+  /// merge together some of the more recent indexes
+  void _trim();
 
   void _startThreads();
   void _stopThreads();
