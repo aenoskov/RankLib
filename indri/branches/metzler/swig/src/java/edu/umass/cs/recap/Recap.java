@@ -15,7 +15,7 @@ import edu.umass.cs.indri.QueryEnvironment;
  */
 public class Recap extends JFrame {
 	
-	private final String VERSION = "0.1";
+	private final String VERSION = "0.2";
 	
 	private MainPane mainPane = null;
 	

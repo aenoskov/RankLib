@@ -191,7 +191,7 @@ public class TimelinePanel extends JPanel {
 	}
 	
 	public String getStartDate() {
-		return minMonth + "/" + minDate + "/" + minYear;  
+		return minMonth + "/" + minYear;  
 	}
 	
 	public void setStartDate( int month, int year ) {
@@ -200,7 +200,7 @@ public class TimelinePanel extends JPanel {
 	}
 	
 	public String getEndDate() {
-		return maxMonth + "/" + maxDate + "/" + maxYear;  
+		return maxMonth + "/" + maxYear;  
 	}
 	
 	public void setEndDate( int month, int year ) {

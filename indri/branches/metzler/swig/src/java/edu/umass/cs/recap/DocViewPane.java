@@ -40,15 +40,9 @@ public class DocViewPane extends JSplitPane {
 	}
 	
 	public void displayDoc( DocInfo info ) {
-		// clear the tabs and relationship graph
-		//matchPane.removeAll();
-		//relPaneUpdater.clear();
-
 		DefaultStyledDocument doc = retEngine.getDocument( info );
 		docTextPane.setDocument( doc );
 		
-		// add main document tab
-		//addNewTab( info );
 		this.setDividerLocation( 0.5 );
 	}
 
