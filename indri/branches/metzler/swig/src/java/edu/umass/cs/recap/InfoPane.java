@@ -1,6 +1,7 @@
 package edu.umass.cs.recap;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -32,21 +33,27 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	private QueryPanel queryPanel = null;
 	
 	private MainPaneUpdater updater = null;
+
+	// default settings
+	private String simMeasure = "#identsim1";
+	private String queryExtent = "sentence";
+	private int numResults = 5;
 	
-	public InfoPane( RetrievalEngine retEngine, MainPaneUpdater updater ) {
+	public InfoPane( RetrievalEngine retEngine, Dimension screenSize, MainPaneUpdater updater ) {
 		super( JSplitPane.VERTICAL_SPLIT );
 		this.retEngine = retEngine;
 		this.updater = updater;
 		
 		tlPanel = new TimelinePanel();
-		dvPane = new DocViewPane( retEngine );
-		queryPanel = new QueryPanel( retEngine.getFieldList() );
+		dvPane = new DocViewPane( retEngine, screenSize );
+		queryPanel = new QueryPanel();
 		JPanel topPanel = new JPanel();
 		
-		topPanel.setLayout( new BorderLayout() );
+		topPanel.setLayout( new BorderLayout() );		
 		topPanel.add( dvPane, BorderLayout.CENTER );
 		topPanel.add( queryPanel, BorderLayout.SOUTH );
 		
+		tlPanel.setMinimumSize( new Dimension( 0, 100 ) );
 		setTopComponent( topPanel );
 		setBottomComponent( tlPanel );
 		
@@ -64,17 +71,12 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		dvPane.displayDoc( doc );
 	}
 
-	// runs a query, scores documents, and updates appropriate on-screen info
-	private void runQuery( String query ) {
-		dvPane.clearTabs();
-		String queryOp = queryPanel.getSimMeasure();
-		String queryExtent = queryPanel.getExtent();
-		String queryCombiner = queryPanel.getCombiner();
-		int numResults = queryPanel.getNumResults();
-		
-		this.setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
+	// runs an "explore" query, scores documents, and updates appropriate on-screen info
+	private void runExploreQuery( String query ) {
+		dvPane.clearTabs();		
+		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
 
-		Vector viewableResults = retEngine.runQuery( query, queryOp, queryExtent, queryCombiner, numResults );
+		Vector viewableResults = retEngine.runQuery( query, numResults );
 				
 		// update DocViewPane
 		dvPane.addMatches( viewableResults );
@@ -88,9 +90,43 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		queryPanel.setTimelineStartDate( tlPanel.getStartDate() );
 		queryPanel.setTimelineEndDate( tlPanel.getEndDate() );
 		
-		this.setCursor( new Cursor( Cursor.DEFAULT_CURSOR ) );
+		setCursor( new Cursor( Cursor.DEFAULT_CURSOR ) );
+	}	
+		
+	// runs an "analyze" query, scores documents, and updates appropriate on-screen info
+	private void runAnalyzeQuery( String query ) {
+		dvPane.clearTabs();
+		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
+
+		Vector viewableResults = retEngine.runQuery( query, simMeasure, queryExtent, numResults );
+				
+		// update DocViewPane
+		dvPane.addMatches( viewableResults );
+		
+		// update TimelinePanel
+		tlPanel.setResults( viewableResults );
+		String curDocName = ( (ScoredDocInfo)viewableResults.elementAt( 0 ) ).docName;
+		tlPanel.setCurrent( curDocName );
+
+		// update QueryPanel
+		queryPanel.setTimelineStartDate( tlPanel.getStartDate() );
+		queryPanel.setTimelineEndDate( tlPanel.getEndDate() );
+		
+		setCursor( new Cursor( Cursor.DEFAULT_CURSOR ) );
+	}	
+	
+	public void setSimMeasure( String simType ) {
+		simMeasure = simType;
 	}
-			
+	
+	public void setExtent( String extent ) {
+		queryExtent = extent;
+	}
+	
+	public void setNumResults( int results ) {
+		numResults = results;
+	}
+	
 	public void stateChanged( ChangeEvent e ) {		
 		if( dvPane != null && dvPane.getMatchPane().getSelectedIndex() != -1 ) {
 			String curDoc = dvPane.getMatchPane().getTitleAt( dvPane.getMatchPane().getSelectedIndex() );
@@ -111,7 +147,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 					dvPane.setSelectedDoc( doc );
 				}
 				else { // 2+ clicks => analyze document
-					updater.setSelectedDoc( doc );
+					//updater.setSelectedDoc( doc );
 					displayDoc( doc );
 				}
 			}
@@ -134,7 +170,13 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	public void actionPerformed( ActionEvent e ) {
 		Object src = e.getSource();
 		if( src == queryPanel.getRunQueryButton() ) {
-			runQuery( queryPanel.getQueryText() );
+			String mode = queryPanel.getMode();
+			if( mode.equals( "explore" ) )
+				runExploreQuery( queryPanel.getQueryText() );
+			else if( mode.equals( "analyze" ) )
+				runAnalyzeQuery( queryPanel.getQueryText() );
+			else
+				System.err.println( "ERROR -- invalid search mode!" );
 		}
 		else if( src == queryPanel.getClearQueryButton() ) {
 			queryPanel.setQueryText("");

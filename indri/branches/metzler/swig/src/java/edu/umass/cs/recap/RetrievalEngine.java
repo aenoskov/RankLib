@@ -18,6 +18,7 @@ import javax.swing.text.StyleContext;
 
 import edu.umass.cs.indri.DocumentVector;
 import edu.umass.cs.indri.ParsedDocument;
+import edu.umass.cs.indri.QueryAnnotation;
 import edu.umass.cs.indri.QueryEnvironment;
 import edu.umass.cs.indri.ScoredExtentResult;
 
@@ -49,8 +50,26 @@ public class RetrievalEngine {
 	}
 	
 	// runs a query with the given parameters
-	public Vector runQuery( String query, String queryOp, String queryExtent,
-							String queryCombiner, int numResults ) {
+	public Vector runQuery( String query, int numResults ) {
+		Vector allScores = new Vector();		
+					
+		System.err.println( "Running query: " + query );		
+		QueryAnnotation annotation = indri.runAnnotatedQuery( query, numResults );
+		ScoredExtentResult [] results = annotation.getResults();
+		
+		Vector viewableResults = new Vector();
+		for( int i = 0; i < results.length; i++ ) {
+			ScoredDocInfo info = new ScoredDocInfo( results[i].document, results[i].score, new Vector() );
+			viewableResults.add( info );
+		}
+		
+		setMetadata( viewableResults );
+		
+		return viewableResults;		
+	}
+	
+	// runs a query with the given parameters
+	public Vector runQuery( String query, String queryOp, String queryExtent, int numResults ) {
 		Vector queries = null;
 		Vector allScores = new Vector();		
 	
@@ -61,13 +80,7 @@ public class RetrievalEngine {
 			queryExtent = "[" + queryExtent + "]";
 		}
 		
-		if( queryCombiner.equals( "none" ) ) { // don't segment
-			queries = new Vector();
-			queries.add( parse( query ) );
-		} 
-		else { // segment by sentence
-			queries = getQuerySentences( query );
-		}
+		queries = getQuerySentences( query );
 		
 		// run a query for each sentence
 		for( int queryNum = 0; queryNum < queries.size(); queryNum++ ) {
@@ -78,7 +91,7 @@ public class RetrievalEngine {
 		}
 
 		System.err.println( "Combining scores...");
-		Vector results = scoreResults( allScores, queryExtent, queryCombiner );
+		Vector results = scoreResults( allScores, queryExtent );
 		
 		Collections.sort( results );
 
@@ -120,7 +133,7 @@ public class RetrievalEngine {
 	}
 
 	// returns a vector of ScoredDocInfo objects
-	private Vector scoreResults( Vector scores, String queryExtent, String queryCombiner ) {
+	private Vector scoreResults( Vector scores, String queryExtent ) {
 		Vector ret = new Vector();
 
 		HashMap candidateDocs = new HashMap();
@@ -135,20 +148,18 @@ public class RetrievalEngine {
 			}			
 		}
 
+		// TODO: make this work for fields other than
+		// "sentence"
 		String [] metadata = null;
-		if( queryCombiner.equals( "prob" ) ) { 
-			// TODO: make this work for fields other than
-			// "sentence"
-			// get the document vectors for each candidate
-			int [] docIDs = new int[ candidateDocs.size() ];
-			Iterator iter = candidateDocs.keySet().iterator();
-			int num = 0;
-			while( iter.hasNext() ) {
-				Integer i = (Integer)iter.next();
-				docIDs[ num++ ] = i.intValue();
-			}
-			metadata = indri.documentMetadata( docIDs, "numsentences" );
+		// get the document vectors for each candidate
+		int [] docIDs = new int[ candidateDocs.size() ];
+		Iterator iter = candidateDocs.keySet().iterator();
+		int num = 0;
+		while( iter.hasNext() ) {
+			Integer i = (Integer)iter.next();
+			docIDs[ num++ ] = i.intValue();
 		}
+		metadata = indri.documentMetadata( docIDs, "numsentences" );
 
 		// score the documents
 		for( int queryNum = 0; queryNum < scores.size(); queryNum++ ) {
@@ -167,22 +178,12 @@ public class RetrievalEngine {
 			}
 		
 			// update each document's score
-			Iterator iter = candidateDocs.keySet().iterator();
-			int num = 0;
+			iter = candidateDocs.keySet().iterator();
+			num = 0;
 			while( iter.hasNext() ) {
 				Integer i = (Integer)iter.next();
 				double score = 0.0;
-				if( queryCombiner.equals( "prob" ) ) 
-					score = getDocScoreProb( i , results, metadata[num++] );
-				else if( queryCombiner.equals( "none") ) {
-					Vector v = (Vector)results.get( i );
-					if( v.size() > 1 )
-						System.err.println( "WARNING: dropping some scores!" );
-					score = Math.exp( ( (ScoredExtentResult)v.elementAt( 0 ) ).score );
-				}
-				else {
-					System.err.println("Unrecognized query combiner: " + queryCombiner );
-				}
+				score = getDocScoreProb( i , results, metadata[num++] );
 				ScoredDocInfo info = (ScoredDocInfo)candidateDocs.get( i );
 				Vector v = (Vector)results.get( i );
 				info.score += Math.log( score );
@@ -194,7 +195,7 @@ public class RetrievalEngine {
 		}
 
 		// construct the final ranked list
-		Iterator iter = candidateDocs.keySet().iterator();
+		iter = candidateDocs.keySet().iterator();
 		while( iter.hasNext() ) {
 			Integer i = (Integer)iter.next();
 			ScoredDocInfo info = (ScoredDocInfo)candidateDocs.get( i );

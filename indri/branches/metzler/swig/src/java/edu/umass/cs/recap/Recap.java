@@ -1,4 +1,7 @@
 package edu.umass.cs.recap;
+import java.awt.Dimension;
+import java.awt.Toolkit;
+
 import javax.swing.JFrame;
 
 import edu.umass.cs.indri.QueryEnvironment;
@@ -76,18 +79,21 @@ public class Recap extends JFrame {
 		RetrievalEngine retEngine = new RetrievalEngine( indri );
 
 		if( interactive ) { // interactive mode
+			// get the screen size
+			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+
 			// add menu bar
 			MainMenuBar mainMenuBar = new MainMenuBar();
 			setJMenuBar( mainMenuBar );
-
-			// setup and display the application window			
-			mainPane = new MainPane( retEngine, mainMenuBar );			
-			setContentPane( mainPane );
 			
-			setSize( getMaximumSize() );
+			// setup and display the application window
+			mainPane = new MainPane( retEngine, mainMenuBar, screenSize );			
+			setContentPane( mainPane );
+
+			setSize( getMaximumSize() );						
 			setVisible( true );
-		
-			mainPane.init();
+			
+			//mainPane.init();
 		}
 		else { // command line mode
 			clm.run( retEngine );

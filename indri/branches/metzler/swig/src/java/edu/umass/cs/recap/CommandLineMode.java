@@ -19,7 +19,6 @@ public class CommandLineMode {
 	private int queryID = 0;
 	private String queryExtent = null;
 	private String queryOp = null;
-	private String queryCombiner = null;
 	private int numResults = 0;
 	
 	// command takes the form:
@@ -32,7 +31,6 @@ public class CommandLineMode {
 			this.queryID = Integer.parseInt( str.nextToken() );
 			this.queryExtent = str.nextToken();
 			this.queryOp = str.nextToken();
-			this.queryCombiner = str.nextToken();
 			this.numResults = Integer.parseInt( str.nextToken() );
 		}
 		catch( Exception e ) {
@@ -61,7 +59,7 @@ public class CommandLineMode {
 	// performs the specified command line commands
 	// using the given retrieval engine
 	public void run( RetrievalEngine retEngine ) {
-		Vector results = retEngine.runQuery( query, queryOp, queryExtent, queryCombiner, numResults );
+		Vector results = retEngine.runQuery( query, queryOp, queryExtent, numResults );
 		
 		// display the results
 		for( int i = 0; i < results.size(); i++ ) {
