@@ -46,6 +46,10 @@ struct WriterIndexContext {
     infrequentIndex = 1;
 
     iterator->startIteration();
+
+    newlyFrequent = new indri::index::TermRecorder;
+    newlyInfrequent = new indri::index::TermRecorder;
+    oldFrequent = new indri::index::TermRecorder;
   }
 
   ~WriterIndexContext() {
@@ -61,6 +65,7 @@ struct WriterIndexContext {
   int infrequentIndex;
   indri::index::TermRecorder* newlyFrequent;
   indri::index::TermRecorder* newlyInfrequent;
+  indri::index::TermRecorder* oldFrequent;
 };
 
 typedef std::priority_queue<WriterIndexContext*,
@@ -117,16 +122,17 @@ namespace indri {
       void _pushInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _fetchMatchingInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData );
-      void _writeInvertedLists( std::vector<indri::index::Index*>& indexes );
+      void _writeInvertedLists( std::vector<WriterIndexContext*>& contexts );
       void _storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::TermData* termData, INT64 startOffset, INT64 endOffset, int termID );
-      void _storeFrequentTerms();
+      void _storeFrequentTerms( const std::string& filename );
       void _addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset );
       void _storeMatchInformation( greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
 
       int _lookupTermID( Keyfile& keyfile, const char* term );
-      void _writeDirectLists( std::vector<indri::index::Index*>& indexes, File& output );
-      void _writeDirectLists( indri::index::Index* index, WriterIndexContext* context, SequentialWriteBuffer* output );
+      void _writeDirectLists( std::vector<WriterIndexContext*>& contexts, File& output );
+      void _writeDirectLists( WriterIndexContext* context, SequentialWriteBuffer* output );
 
+      void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes );
 
       indri::index::TermTranslator* _buildTermTranslator( Keyfile& newInfrequentTerms,
                                                           Keyfile& newFrequentTerms,

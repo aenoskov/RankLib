@@ -610,3 +610,19 @@ indri::index::DocListFileIterator* indri::index::MemoryIndex::docListFileIterato
 indri::index::VocabularyIterator* indri::index::MemoryIndex::vocabularyIterator() {
   return new indri::index::MemoryIndexVocabularyIterator( _idToTerm );
 }
+
+//
+// infrequentVocabularyIterator
+//
+
+indri::index::VocabularyIterator* indri::index::MemoryIndex::infrequentVocabularyIterator() {
+  return vocabularyIterator();
+}
+
+//
+// frequentVocabularyIterator
+//
+
+indri::index::VocabularyIterator* indri::index::MemoryIndex::frequentVocabularyIterator() {
+  return 0;
+}

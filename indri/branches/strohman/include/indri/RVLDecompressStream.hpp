@@ -66,6 +66,15 @@ public:
     _current = buffer;
   }
 
+  /// setBuffer
+  /// @param buffer the buffer to use for decompressing
+  /// @param size the size of buffer
+  void setBuffer( const char* buffer, int size ) {
+    _buffer = buffer;
+    _bufferSize = size;
+    _current = buffer;
+  }
+
   /// Decompress an INT64 from the buffer into value
   /// @param value reference to the container for the value.
   RVLDecompressStream& operator>> ( INT64& value ) {

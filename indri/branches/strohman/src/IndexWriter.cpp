@@ -122,9 +122,12 @@ void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
   std::vector<indri::index::Index*> indexes;
   indexes.push_back( &index );
   
-  _writeInvertedLists( indexes );
+  std::vector<WriterIndexContext*> contexts;
+  _buildIndexContexts( contexts, indexes );
+  _writeInvertedLists( contexts );
   _writeFieldLists( indexes, path );
-  _writeDirectLists( indexes, _directFile );
+  _writeDirectLists( contexts, _directFile );
+  delete_vector_contents( contexts );
 
   // close infrequent
   _infrequentTerms.idMap->close();
@@ -147,6 +150,15 @@ void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
 
   // write a manifest file
   _writeManifest( manifestPath );
+}
+
+//
+// _buildIndexContexts
+//
+
+void IndexWriter::_buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes ) {
+  for( int i=0; i<indexes.size(); i++ )
+    contexts.push_back( new WriterIndexContext( indexes[i]->docListFileIterator(), indexes[i] ) );
 }
 
 //
@@ -462,7 +474,7 @@ void IndexWriter::_storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index
 // _storeFrequentTerms
 //
 
-void IndexWriter::_storeFrequentTerms() {
+void IndexWriter::_storeFrequentTerms( const std::string& fileName ) {
   // sort the _topTerms vector by term count
   std::sort( _topTerms.begin(), _topTerms.end(), top_term_entry::greater() );
 
@@ -470,6 +482,35 @@ void IndexWriter::_storeFrequentTerms() {
     int termID = i+1;
     _storeTermEntry( _frequentTerms, _topTerms[i].termData, _topTerms[i].startOffset, _topTerms[i].endOffset, termID );
   }
+
+  // store data in a file, too
+  File output;
+  output.open( fileName );
+  SequentialWriteBuffer writeBuffer( output, 1024*1024 );
+  Buffer intermediateBuffer( 16*1024 );
+  RVLCompressStream stream( intermediateBuffer );
+
+  for( int i=0; i<_topTerms.size(); i++ ) { 
+    indri::index::DiskTermData diskTermData;
+
+    diskTermData.startOffset = _topTerms[i].startOffset;
+    diskTermData.length = _topTerms[i].endOffset - _topTerms[i].startOffset;
+    diskTermData.termData = _topTerms[i].termData;
+    diskTermData.termID = i+1;
+
+    ::disktermdata_compress( stream,
+                             &diskTermData,
+                             _fields.size(),
+                             indri::index::DiskTermData::WithOffsets |
+                             indri::index::DiskTermData::WithString |
+                             indri::index::DiskTermData::WithTermID );
+
+    writeBuffer.write( intermediateBuffer.front(), intermediateBuffer.size() );
+    intermediateBuffer.clear();
+  }
+
+  writeBuffer.flush();
+  output.close();
 }
 
 //
@@ -497,7 +538,7 @@ void IndexWriter::_storeMatchInformation( greedy_vector<WriterIndexContext*>& li
         // want to grab the sequence now so it's easy to find what this term maps to
         list->newlyInfrequent->add( sequence, termData->term );
       } else {
-        // do nothing, we'll scrub the frequent B-Tree and figure this out later (?)
+        // do nothing
       }
     }
 
@@ -523,7 +564,7 @@ void IndexWriter::_storeMatchInformation( greedy_vector<WriterIndexContext*>& li
 // writeInvertedLists
 //
 
-void IndexWriter::_writeInvertedLists( std::vector<indri::index::Index*>& indexes ) {
+void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& contexts ) {
   
   // write a combined inverted list in vocabulary order
   // in the process, create a new list of termIDs from the old list
@@ -541,11 +582,11 @@ void IndexWriter::_writeInvertedLists( std::vector<indri::index::Index*>& indexe
   term[0] = 0;
   int sequence = 1;
 
-  _documentBase = indexes[0]->documentBase();
+  _documentBase = contexts[0]->index->documentBase();
 
-  for( int i=0; i<indexes.size(); i++ ) {
-    invertedLists.push( new WriterIndexContext( indexes[i]->docListFileIterator(), indexes[i] ) );
-    _corpus.totalDocuments += indexes[i]->documentCount();
+  for( int i=0; i<contexts.size(); i++ ) {
+    invertedLists.push( contexts[i] );
+    _corpus.totalDocuments += contexts[i]->index->documentCount();
   }
 
   greedy_vector<WriterIndexContext*> current;
@@ -660,13 +701,25 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInf
 // _writeDirectLists
 //
 
-void IndexWriter::_writeDirectLists( indri::index::Index* index, WriterIndexContext* context, SequentialWriteBuffer* output ) {
+void IndexWriter::_writeDirectLists( WriterIndexContext* context, SequentialWriteBuffer* output ) {
+  // have to grab a list of all the old frequent terms first--how is this done?
+  VocabularyIterator* vocabulary = context->index->frequentVocabularyIterator();
+  indri::index::Index* index = context->index;
+  
+  while( !vocabulary->finished() ) {
+    indri::index::DiskTermData* diskTermData = vocabulary->currentEntry();
+
+    context->oldFrequent->add( diskTermData->termID, diskTermData->termData->term );
+    vocabulary->nextEntry();
+  }
+
+
   TermListFileIterator* iterator = index->termListFileIterator();
-  TermTranslator* translator = _buildTermTranslator( _infrequentTerms,
-                                                     _frequentTerms,
-                                                     _oldFrequentTermsRecorder,
-                                                     context->newlyFrequent,
-                                                     context->newlyInfrequent,
+  TermTranslator* translator = _buildTermTranslator( *_infrequentTerms.idMap,
+                                                     *_frequentTerms.idMap,
+                                                     *context->oldFrequent,
+                                                     *context->newlyFrequent,
+                                                     *context->newlyInfrequent,
                                                      context->bitmap );
   iterator->startIteration();
   TermList writeList;
@@ -705,11 +758,11 @@ void IndexWriter::_writeDirectLists( indri::index::Index* index, WriterIndexCont
 // _writeDirectLists
 //
 
-void IndexWriter::_writeDirectLists( std::vector<indri::index::Index*>& indexes, File& directFile ) {
-  std::vector<indri::index::Index*>::iterator iter;
+void IndexWriter::_writeDirectLists( std::vector<WriterIndexContext*>& contexts, File& directFile ) {
+  std::vector<WriterIndexContext*>::iterator iter;
   SequentialWriteBuffer* buffer = new SequentialWriteBuffer( directFile, 1024*1024 );
 
-  for( iter = indexes.begin(); iter != indexes.end(); iter++ ) {
+  for( iter = contexts.begin(); iter != contexts.end(); iter++ ) {
     _writeDirectLists( *iter, buffer );
   }
 }

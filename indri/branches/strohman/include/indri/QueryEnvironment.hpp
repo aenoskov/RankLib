@@ -128,7 +128,7 @@ public:
   /// @return the vector of ScoredExtentResults for the query
   std::vector<ScoredExtentResult> runQuery( const std::string& query, int resultsRequested );
 
-std::vector<ScoredExtentResult> runQuery( const std::string& query, const std::vector<DOCID_T>& documentSet, int resultsRequested );
+  std::vector<ScoredExtentResult> runQuery( const std::string& query, const std::vector<DOCID_T>& documentSet, int resultsRequested );
 
   /// \brief Run an Indri query language query. @see QueryAnnotation
   /// @param query the query to run

@@ -125,7 +125,10 @@ namespace indri {
       DocExtentListIterator* fieldListIterator( const std::string& field );
       const TermList* termList( int documentID );
       TermListFileIterator* termListFileIterator();
+
       VocabularyIterator* vocabularyIterator();
+      VocabularyIterator* frequentVocabularyIterator();
+      VocabularyIterator* infrequentVocabularyIterator();
       
       int addDocument( ParsedDocument& document );
     };

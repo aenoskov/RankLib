@@ -8,6 +8,9 @@
 #ifndef INDRI_DISKTERMDATA_HPP
 #define INDRI_DISKTERMDATA_HPP
 
+#include "indri/TermData.hpp"
+#include "lemur/Keyfile.hpp"
+
 namespace indri {
   namespace index {
     struct DiskTermData {
@@ -89,13 +92,24 @@ inline indri::index::DiskTermData* disktermdata_decompress( RVLDecompressStream&
 }
 
 //
+// disktermdata_size
+//
+
+inline int disktermdata_size( int fieldCount ) {
+  // how much space are we going to need?
+  int termDataSize = ::termdata_size( fieldCount );
+  int totalSize = termDataSize + (Keyfile::MAX_KEY_LENGTH+2) + sizeof(indri::index::DiskTermData);
+
+  return totalSize;
+}
+
+//
 // disktermdata_decompress
 //
 
 inline indri::index::DiskTermData* disktermdata_decompress( RVLDecompressStream& stream, int fieldCount, int mode ) {
   // how much space are we going to need?
-  int termDataSize = ::termdata_size( fieldCount );
-  int totalSize = termDataSize + (Keyfile::MAX_KEY_LENGTH+2) + sizeof(indri::index::DiskTermData);
+  int totalSize = disktermdata_size( fieldCount );
 
   return ::disktermdata_decompress( stream, malloc( totalSize ), fieldCount, mode );
 }

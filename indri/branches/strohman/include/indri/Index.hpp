@@ -77,6 +77,10 @@ namespace indri {
       virtual DocExtentListIterator* fieldListIterator( const std::string& field ) = 0;
       virtual const TermList* termList( int documentID ) = 0;
       virtual TermListFileIterator* termListFileIterator() = 0;
+
+      // Vocabulary
+      virtual VocabularyIterator* frequentVocabularyIterator() = 0;
+      virtual VocabularyIterator* infrequentVocabularyIterator() = 0;
       virtual VocabularyIterator* vocabularyIterator() = 0;
     };
   }

@@ -430,3 +430,23 @@ indri::index::VocabularyIterator* indri::index::DiskIndex::vocabularyIterator() 
   return 0;
 }
 
+//
+// frequentVocabularyIterator
+//
+
+indri::index::VocabularyIterator* indri::index::DiskIndex::frequentVocabularyIterator() {
+  // TODO: return appropriate data
+  assert( 0 && "unimplemented" );
+  return 0;
+}
+
+//
+// infrequentVocabularyIterator
+//
+
+indri::index::VocabularyIterator* indri::index::DiskIndex::infrequentVocabularyIterator() {
+  // TODO: return appropriate data
+  assert( 0 && "unimplemented" );
+  return 0;
+}
+

@@ -10,49 +10,55 @@
 
 #include "indri/Mutex.hpp"
 #include "indri/TermData.hpp"
+#include "indri/DiskTermData.hpp"
 
 namespace indri {
   namespace index {
     class MemoryIndexVocabularyIterator : public VocabularyIterator {
     private:
-      const std::vector<MemoryIndex::term_entry*>& _termData;
-      std::vector<MemoryIndex::term_entry*> _alphabetical;
-      std::vector<MemoryIndex::term_entry*>::iterator _iterator;
+      typedef std::vector<MemoryIndex::term_entry*> VTermEntry;
+      VTermEntry& _termData;
+      VTermEntry::iterator _iterator;
+      DiskTermData _diskTermData;
       
     public:
-      MemoryIndexVocabularyIterator( const std::vector<MemoryIndex::term_entry*>& termData ) :
+      MemoryIndexVocabularyIterator( VTermEntry& termData ) :
         _termData(termData)
       {
       }
       
       void startIteration() {
-        _alphabetical.clear();
-        std::copy( _termData.begin(), _termData.end(), std::back_inserter( _alphabetical ) );
-        std::sort( _alphabetical.begin(), _alphabetical.end(), MemoryIndex::term_entry::term_less() );
-        _iterator = _alphabetical.begin();
+        _iterator = _termData.begin();
+
+        _diskTermData.length = 0;
+        _diskTermData.startOffset = 0;
+        _diskTermData.termData = (*_iterator)->termData;
+        _diskTermData.termID = (*_iterator)->termID;
       }
       
-      TermData* currentEntry() { 
-        if( _iterator == _alphabetical.end() )
+      DiskTermData* currentEntry() { 
+        if( _iterator == _termData.end() )
           return 0;
         
-        return (*_iterator)->termData;
+        return &_diskTermData;
       }
       
       bool nextEntry() {
-        if( _iterator == _alphabetical.end() )
+        if( _iterator == _termData.end() )
           return false;
         
         _iterator++;
+        _diskTermData.termID++;
+        _diskTermData.termData = (*_iterator)->termData;
         
-        if( _iterator == _alphabetical.end() )
+        if( _iterator == _termData.end() )
           return false;
 
         return true;
       }
       
       bool finished() {
-        return _iterator == _alphabetical.end();
+        return _iterator == _termData.end();
       }
     };
   }
