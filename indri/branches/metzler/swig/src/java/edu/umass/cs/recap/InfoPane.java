@@ -2,7 +2,6 @@ package edu.umass.cs.recap;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -55,7 +54,6 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 
 	// timeline mouse handling
 	private boolean tlMouseWasDragged = false;
-	private Point tlMousePressPos = null;
 	
 	// retrieval engine interface
 	protected RetrievalEngine retEngine = null;
@@ -208,7 +206,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 
 	public void mouseClicked( MouseEvent e ) {
 		Object src = e.getSource();
-		if( src == tlPanel ) {
+		if( e.getButton() == MouseEvent.BUTTON1 && src == tlPanel ) {
 			ScoredDocInfo info = tlPanel.getDocAt( e.getPoint() );
 			int clickCount = e.getClickCount();
 			if( info != null ) {
@@ -221,16 +219,10 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				}
 				else { // 2+ clicks => analyze document					
 					if( getMode().equals( "analyze" ) )
-						dvPane.displayDoc( ((RecapStyledDocument)dvPane.getResultPane().getDocument()).unformattedClone() );
+					dvPane.displayDoc( ((RecapStyledDocument)dvPane.getResultPane().getDocument()).unformattedClone() );
 				}
 			}
 		}
-	}
-
-	public void mousePressed( MouseEvent e ) {
-		Object src = e.getSource();
-		if( src == tlPanel )
-			tlMousePressPos = e.getPoint();
 	}
 	
 	public void mouseReleased( MouseEvent e ) {
@@ -245,25 +237,22 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				queryPanel.setQueryText( pane.getSelectedText() );
 			doc.setHighlight( pane.getSelectionStart(), pane.getSelectionEnd() );
 		}
-		else if( src == tlPanel ) {
-			if( tlMouseWasDragged ) {
-				System.out.println( "DRAGGED from " + tlMousePressPos + " to " + e.getPoint() );
+		else if( e.getButton() == MouseEvent.BUTTON1 && src == tlPanel ) {
+			if( tlMouseWasDragged )
 				updateTimeline();
-			}
 			tlPanel.clearDragPoints();
 			tlMouseWasDragged = false;
 		}
-
+		
+		if( src == tlPanel && e.isPopupTrigger() )
+			tlPanel.getPopup().show(e.getComponent(), e.getX(), e.getY());
 	}
-
-	// required for MouseListener, but not implemented
-	public void mouseEntered( MouseEvent e ) {}
-	public void mouseExited( MouseEvent e ) {}
 
 	// required for MouseMotionListener
 	public void mouseDragged( MouseEvent e ) {
 		Object src = e.getSource();
-		if( src == tlPanel ) {
+		// make sure we're dragging with the left button
+		if( ( ( e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK ) == MouseEvent.BUTTON1_DOWN_MASK ) && src == tlPanel ) {
 			if( !tlMouseWasDragged ) // if we just started dragging
 				tlPanel.setStartDragPoint( e.getPoint() );
 			tlPanel.setEndDragPoint( e.getPoint() );
@@ -274,6 +263,17 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		}
 	}
 
+	public void mousePressed( MouseEvent e ) {
+		Object src = e.getSource();
+		if( src == tlPanel && e.isPopupTrigger() )
+			tlPanel.getPopup().show(e.getComponent(), e.getX(), e.getY());			
+	}
+
+	// required for MouseListener, but not implemented
+	public void mouseEntered( MouseEvent e ) {}
+	public void mouseExited( MouseEvent e ) {}
+	
+	// required for MouseMotionListener, but not implemented
 	public void mouseMoved( MouseEvent e ) {}
 	
 	// required for ActionListener
@@ -383,6 +383,9 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		}
 		else if( buttonText.equals( "Exit" ) ) {
 			System.exit( 0 );
+		}
+		else if( buttonText.equals( "Reset") ) { // resets the timeline
+			tlPanel.reset();
 		}
 		
 		// update these values each time a menu event occurs for simplicity

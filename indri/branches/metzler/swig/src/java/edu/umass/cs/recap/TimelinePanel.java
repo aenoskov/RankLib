@@ -13,7 +13,9 @@ import java.util.Vector;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 /*
  * Created on Nov 9, 2004
  *
@@ -71,7 +73,11 @@ public class TimelinePanel extends JPanel {
 	// which documents are actually viewable
 	// if this variable is null then all documents are viewable
 	private boolean [] viewable = null;
-		
+
+	// popup menu associated with timeline
+	private JPopupMenu popup = null;
+	private JMenuItem resetPopupItem = null;
+	
 	public TimelinePanel () {
 		ovals = new Vector();
 		
@@ -91,6 +97,11 @@ public class TimelinePanel extends JPanel {
 		add( previousDocButton );
 		add( analyzeButton );
 		add( nextDocButton );
+		
+		// set up popup menu
+		popup = new JPopupMenu();
+		resetPopupItem = new JMenuItem("Reset");
+		popup.add( resetPopupItem );
 		
 		// set tool tip text
 		previousDocButton.setToolTipText( "Move to previous document");
@@ -297,7 +308,6 @@ public class TimelinePanel extends JPanel {
 		
 		// draw click-dragged region, if any
 		if( startDragPoint != null && endDragPoint != null ) {
-			//g.drawLine( startDragPoint.x, startDragPoint.y, endDragPoint.x, endDragPoint.y );
 			g.setColor( new Color( 0.0f, 0.0f, 1.0f, 0.50f ) );
 			int w = endDragPoint.x - startDragPoint.x;
 			if( w < 0 ) {
@@ -314,7 +324,6 @@ public class TimelinePanel extends JPanel {
 			dragEndYear = minYear + (int)( ( dragEndMonth + minMonth - 1 ) / 12.0 );
 			dragStartMonth = ( dragStartMonth + minMonth - 1) % 12 + 1;
 			dragEndMonth = ( dragEndMonth + minMonth - 1) % 12 + 1;
-			System.out.println( "start = " + dragStartMonth + "/" + dragStartYear + ", end = " + dragEndMonth + "/" + dragEndYear);
 		}
 		else {
 			dragStartMonth = 0;
@@ -376,11 +385,24 @@ public class TimelinePanel extends JPanel {
 		return dragEndMonth + "/" + dragEndYear;
 	}
 
+	// returns the popup menu associated with the timeline
+	public JPopupMenu getPopup() {
+		return popup;
+	}
+	
+	// resets the timeline to it's original configuration
+	public void reset() {
+		init();
+		repaint();
+	}
+	
 	// register EventListeners for this class
 	public void addListeners( EventListener listener ) {
 		previousDocButton.addActionListener( (ActionListener)listener );
 		nextDocButton.addActionListener( (ActionListener)listener );
 		analyzeButton.addActionListener( (ActionListener)listener );
+		
+		resetPopupItem.addActionListener( (ActionListener)listener );
 		
 		addMouseListener( (MouseListener)listener );
 		addMouseMotionListener( (MouseMotionListener)listener );

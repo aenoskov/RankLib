@@ -341,7 +341,6 @@ public class RetrievalEngine {
 		for( int i = 0; i < docs.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)docs.elementAt( i );
 			ids[i] = info.docID;
-			System.out.println("DOCID = " + ids[i] );
 		}
 		
 		// arrays to fill in with data
