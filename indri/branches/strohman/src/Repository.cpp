@@ -887,6 +887,7 @@ void Repository::close() {
 
     if( !_readOnly ) {
       write();
+      merge();
     }
 
     // have to stop threads after the write request,
