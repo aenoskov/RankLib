@@ -86,6 +86,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		// update DocViewPane
 		//dvPane.addMatches( viewableResults );
 		dvPane.displayExplorationResults( annotation, viewableResults );
+		dvPane.displayHighlightedDoc( ( annotation.getResults()[0] ).document );
 		
 		// update TimelinePanel
 		tlPanel.setResults( viewableResults );
@@ -151,10 +152,14 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				if( clickCount == 1 ) { // 1 click => set tab to doc
 					tlPanel.setCurrent( info.docName );
 					dvPane.setSelectedDoc( doc );
+					if( queryPanel.getMode().equals( "explore" ) )
+						dvPane.displayHighlightedDoc( info.docID );
+					repaint();
 				}
 				else { // 2+ clicks => analyze document
 					//updater.setSelectedDoc( doc );
-					displayDoc( doc );
+					if( queryPanel.getMode().equals( "analyze" ) )
+						displayDoc( doc );
 				}
 			}
 		}

@@ -12,9 +12,6 @@ import javax.swing.JTextPane;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.Style;
-import javax.swing.text.StyleContext;
-import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 
@@ -30,8 +27,6 @@ import edu.umass.cs.indri.ScoredExtentResult;
 /**
  * @author Don Metzler
  *
- * TODO To change the template for this generated type comment go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 public class DocViewPane extends JSplitPane implements HyperlinkListener {
 
@@ -61,9 +56,11 @@ public class DocViewPane extends JSplitPane implements HyperlinkListener {
 	
 	public void displayDoc( DocInfo info ) {
 		DefaultStyledDocument doc = retEngine.getDocument( info );
-		docTextPane.setDocument( doc );
-		
-		setDividerLocation( 0.5 );
+		docTextPane.setDocument( doc );		
+	}
+	
+	public void displayHighlightedDoc( int docID ) {
+		docTextPane.setDocument( (DefaultStyledDocument)curExploreResults.get( new Integer( docID ) ) );
 	}
 
 	public void addMatches( Vector docs ) {		
@@ -92,9 +89,8 @@ public class DocViewPane extends JSplitPane implements HyperlinkListener {
 		QueryAnnotationNode root = annotation.getQueryTree();
 		Map matches = annotation.getAnnotations();
 		
-		for( int i = 0; i < results.length; i++ ) {
-			curExploreResults.put( new Integer( i ), retEngine.getAnnotatedDocument( results[i].document, annotation ) );
-		}
+		for( int i = 0; i < results.length; i++ )
+			curExploreResults.put( new Integer( results[i].document ), retEngine.getAnnotatedDocument( results[i].document, annotation ) );
 		
 		addResultTab( results, viewableResults );
 	}
@@ -118,14 +114,35 @@ public class DocViewPane extends JSplitPane implements HyperlinkListener {
 		
 		for( int i = 0; i < results.length; i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)viewableResults.elementAt(i);
-			String url = info.docName + ":" + i;
+			String url = info.docName + ":" + info.docID;
 			String title = "<h2>" + (i+1) + ". <a href=\"" + url + "\">" + info.docName + "</a></h2>";
 					
 			try {
 				htmlKit.insertHTML( doc, doc.getLength(), title, 0, 0, null );
+				htmlKit.insertHTML( doc, doc.getLength(), generateHTMLSnippet( results[i].document ), 0, 0, null );
 			}
 			catch( Exception e ) { e.printStackTrace(); }
 		}		
+	}
+	
+	private String generateHTMLSnippet( int docID ) {
+		DefaultStyledDocument doc = (DefaultStyledDocument)curExploreResults.get( new Integer( docID) );
+		String snippet = new String("Snippet not available.");
+		
+		// TODO: make this better!
+		try {
+			String docText = doc.getText( 0, doc.getLength() );
+			int textStart = docText.indexOf("<TEXT>");
+			if( textStart != -1 )
+				snippet = doc.getText(textStart+6, 250);
+			else
+				snippet = doc.getText(0, 250 );
+		}
+		catch(Exception e) {
+			snippet = "Snippet not available.";
+		}			
+		
+		return snippet + "...<br>";
 	}
 	
 	public JTabbedPane getMatchPane() {
@@ -149,14 +166,14 @@ public class DocViewPane extends JSplitPane implements HyperlinkListener {
 	public void clearTabs() {
 		matchPane.removeAll();
 	}
-
+	
 	// process a hyperlink click
 	public void hyperlinkUpdate(HyperlinkEvent e) {
 		if( e.getEventType() == HyperlinkEvent.EventType.ACTIVATED ) {
 			StringTokenizer tok = new StringTokenizer( e.getDescription(), ":" );
 			String docName = tok.nextToken();
-			int rank = Integer.parseInt( tok.nextToken() );			
-			docTextPane.setDocument( (DefaultStyledDocument)curExploreResults.get( new Integer( rank ) ) );			
+			int docID = Integer.parseInt( tok.nextToken() );
+			displayHighlightedDoc( docID );
 			setDividerLocation( 0.5 );
 		}
 	}
