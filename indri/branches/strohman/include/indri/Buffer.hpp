@@ -100,9 +100,6 @@ public:
   }
 
   char* write( size_t length ) {
-    assert( !_buffer || *(_buffer - 1) == (char) 0xfd );
-    assert( !_buffer || _buffer[_size + 1] == (char) 0xfd );
-
     grow( _position + length );
     char* spot = _buffer + _position;
     _position += length;
