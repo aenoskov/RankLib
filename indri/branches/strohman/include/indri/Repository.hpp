@@ -111,7 +111,10 @@ private:
   void _swapState( std::vector<indri::index::Index*>& oldIndexes, indri::index::Index* newIndex );
   void _closeIndexes();
   std::vector<indri::index::Index::FieldDescription> _fieldsForIndex( std::vector<Repository::Field>& _fields );
+
   void _merge( index_state& state );
+  indri::index::Index* _mergeStage( index_state& state );
+  UINT64 _mergeMemory( const std::vector<indri::index::Index*>& indexes );
 
   // these methods should only be called by the maintenance thread
   /// merge all known indexes together
