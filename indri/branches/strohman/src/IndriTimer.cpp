@@ -75,9 +75,13 @@ IndriTimer::IndriTimer()
 
 UINT64 IndriTimer::currentTime() {
 #ifdef WIN32
-  UINT64 ticks = ::GetTickCount();
-  UINT64 thousand = 1000;
-  return ticks * thousand;
+  LARGE_INTEGER counts;
+  LARGE_INTEGER frequency;
+  ::QueryPerformanceCounter( &counts );
+  ::QueryPerformanceFrequency( &frequency );
+  UINT64 million = 1000000;
+
+  return (counts.QuadPart * million)/ frequency.QuadPart;
 #else
   struct timeval tv;
   gettimeofday(&tv, 0);
