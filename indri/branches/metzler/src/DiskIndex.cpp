@@ -127,15 +127,16 @@ void indri::index::DiskIndex::close() {
 indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( int termID ) {
   char buffer[16*1024];
   int actual;
+  bool result;
 
-  bool result = _frequentIdToTerm.get( termID, buffer, actual, sizeof buffer );
-
-  if( !result ) {
+  if( termID <= _infrequentTermBase ) {
+    result = _frequentIdToTerm.get( termID, buffer, actual, sizeof buffer );
+  } else {
     result = _infrequentIdToTerm.get( termID - _infrequentTermBase, buffer, actual, sizeof buffer );
-
-    if( !result )
-      return 0;
   }
+
+  if( !result )
+    return 0;
   assert( result );
 
   RVLDecompressStream stream( buffer, actual );

@@ -326,17 +326,26 @@ void Repository::create( const std::string& path, Parameters* options ) {
     if( !Path::exists( collectionPath ) )
       Path::create( collectionPath );
 
-    std::vector<std::string> collectionFields;
+    std::vector<std::string> forwardFields;
+    std::vector<std::string> backwardFields;
 
-    if( options && options->exists( "collection.field" ) ) {
-      Parameters cfields = options->get( "collection.field" );
+    if( options && options->exists( "collection.forward" ) ) {
+      Parameters cfields = options->get( "collection.forward" );
 
       for( size_t i=0; i<cfields.size(); i++ ) {
-        collectionFields.push_back( (std::string) cfields[i] );
+        forwardFields.push_back( (std::string) cfields[i] );
       }
     }
 
-    _collection->create( collectionPath, collectionFields );
+    if( options && options->exists( "collection.backward" ) ) {
+      Parameters cfields = options->get( "collection.backward" );
+
+      for( size_t i=0; i<cfields.size(); i++ ) {
+        backwardFields.push_back( (std::string) cfields[i] );
+      }
+    }
+
+    _collection->create( collectionPath, forwardFields, backwardFields );
 
     _startThreads();
   } catch( Exception& e ) {
