@@ -103,13 +103,28 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
+				RelativePath=".\BooleanAndNode.cpp">
+			</File>
+			<File
+				RelativePath=".\CachedFrequencyBeliefNode.cpp">
+			</File>
+			<File
 				RelativePath=".\Combiner.cpp">
 			</File>
 			<File
 				RelativePath=".\CompressedCollection.cpp">
 			</File>
 			<File
+				RelativePath=".\ContextSimpleCountAccumulator.cpp">
+			</File>
+			<File
 				RelativePath=".\DirectoryIterator.cpp">
+			</File>
+			<File
+				RelativePath=".\DiskDocExtentListIterator.cpp">
+			</File>
+			<File
+				RelativePath=".\DiskDocListFileIterator.cpp">
 			</File>
 			<File
 				RelativePath=".\DiskDocListIterator.cpp">
@@ -148,6 +163,18 @@
 				RelativePath=".\FieldBetweenNode.cpp">
 			</File>
 			<File
+				RelativePath=".\FieldEqualsNode.cpp">
+			</File>
+			<File
+				RelativePath=".\FieldGreaterNode.cpp">
+			</File>
+			<File
+				RelativePath=".\FieldIteratorNode.cpp">
+			</File>
+			<File
+				RelativePath=".\FieldLessNode.cpp">
+			</File>
+			<File
 				RelativePath=".\File.cpp">
 			</File>
 			<File
@@ -155,6 +182,12 @@
 			</File>
 			<File
 				RelativePath=".\FileTreeIterator.cpp">
+			</File>
+			<File
+				RelativePath=".\FilterRejectNode.cpp">
+			</File>
+			<File
+				RelativePath=".\FilterRequireNode.cpp">
 			</File>
 			<File
 				RelativePath=".\HTMLParser.cpp">
@@ -169,10 +202,19 @@
 				RelativePath=".\IndriTimer.cpp">
 			</File>
 			<File
+				RelativePath=".\InferenceNetwork.cpp">
+			</File>
+			<File
+				RelativePath=".\InferenceNetworkBuilder.cpp">
+			</File>
+			<File
 				RelativePath=".\KeyfileWordMap.cpp">
 			</File>
 			<File
 				RelativePath=".\KrovetzStemmerTransformation.cpp">
+			</File>
+			<File
+				RelativePath=".\ListBeliefNode.cpp">
 			</File>
 			<File
 				RelativePath=".\MemoryIndex.cpp">
@@ -181,7 +223,31 @@
 				RelativePath=".\MemoryIndexTermListFileIterator.cpp">
 			</File>
 			<File
+				RelativePath=".\NetworkMessageStream.cpp">
+			</File>
+			<File
+				RelativePath=".\NetworkServerProxy.cpp">
+			</File>
+			<File
+				RelativePath=".\NetworkServerStub.cpp">
+			</File>
+			<File
 				RelativePath=".\NormalizationTransformation.cpp">
+			</File>
+			<File
+				RelativePath=".\NotNode.cpp">
+			</File>
+			<File
+				RelativePath=".\NullListNode.cpp">
+			</File>
+			<File
+				RelativePath=".\NullScorerNode.cpp">
+			</File>
+			<File
+				RelativePath=".\OrderedWindowNode.cpp">
+			</File>
+			<File
+				RelativePath=".\OrNode.cpp">
 			</File>
 			<File
 				RelativePath=".\Parameters.cpp">
@@ -202,6 +268,12 @@
 				RelativePath=".\PowerPointDocumentExtractor.cpp">
 			</File>
 			<File
+				RelativePath=".\PriorNode.cpp">
+			</File>
+			<File
+				RelativePath=".\QueryEnvironment.cpp">
+			</File>
+			<File
 				RelativePath=".\Repository.cpp">
 			</File>
 			<File
@@ -217,6 +289,9 @@
 				RelativePath=".\TaggedTextParser.cpp">
 			</File>
 			<File
+				RelativePath=".\TermFrequencyBeliefNode.cpp">
+			</File>
+			<File
 				RelativePath=".\TextDocumentExtractor.cpp">
 			</File>
 			<File
@@ -224,6 +299,15 @@
 			</File>
 			<File
 				RelativePath=".\TFIDFTermScoreFunction.cpp">
+			</File>
+			<File
+				RelativePath=".\UnorderedWindowNode.cpp">
+			</File>
+			<File
+				RelativePath=".\WeightedAndNode.cpp">
+			</File>
+			<File
+				RelativePath=".\WeightedSumNode.cpp">
 			</File>
 			<File
 				RelativePath=".\WordDocumentExtractor.cpp">
@@ -282,7 +366,13 @@
 				RelativePath="..\include\indri\ContextCountGraphExtractor.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\ContextSimpleCountAccumulator.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\ContextSimpleCountCollectorCopier.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\ContextSimpleCounterNode.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\Copier.hpp">
@@ -312,6 +402,15 @@
 				RelativePath="..\include\indri\DirichletTermScoreFunction.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\DiskDocExtentListIterator.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\DiskDocListFileIterator.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\DiskTermData.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\DocListDiskBlockReader.hpp">
 			</File>
 			<File
@@ -337,9 +436,6 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\DocListMemoryBuilder.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\DocPositionInfoList.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\DocumentCount.hpp">

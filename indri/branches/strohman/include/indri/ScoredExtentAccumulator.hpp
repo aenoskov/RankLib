@@ -56,6 +56,7 @@
 #define INDRI_SCOREDEXTENTACCUMULATOR_HPP
 
 #include "indri/SkippingCapableNode.hpp"
+#include <queue>
 
 class ScoredExtentAccumulator : public EvaluatorNode {
 private:

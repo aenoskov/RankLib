@@ -107,7 +107,10 @@ const std::string& TermFrequencyBeliefNode::getName() const {
   return _name;
 }
 
+void TermFrequencyBeliefNode::indexChanged( indri::index::Index& index ) {
+
+}
+
 void TermFrequencyBeliefNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   // can't annotate -- don't have position info
 }
-

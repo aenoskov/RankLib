@@ -7,12 +7,15 @@
 
 #include "indri/DiskIndex.hpp"
 #include "lemur/Keyfile.hpp"
+#include "indri/DiskDocListIterator.hpp"
+#include "indri/DiskDocExtentListIterator.hpp"
+#include "indri/DiskDocListFileIterator.hpp"
 
 //
 // _fetchTermData
 //
 
-indri::index::TermData* indri::index::DiskIndex::_fetchTermData( int termID ) {
+indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( int termID ) {
   char buffer[16*1024];
   int actual;
 
@@ -26,19 +29,15 @@ indri::index::TermData* indri::index::DiskIndex::_fetchTermData( int termID ) {
   }
   assert( result );
 
-  assert( 0 && "this code doesn't actually work: look at IndexWriter to make sure they match" );
   RVLDecompressStream stream( buffer, actual );
-  TermData* termData = ::termdata_create( _fieldData.size() );
-  ::termdata_decompress( stream, termData, _fieldData.size() );
-
-  return termData;
+  return disktermdata_decompress( stream, _fieldData.size(), DiskTermData::WithTermID | DiskTermData::WithOffsets );
 }
 
 //
 // _fetchTermData
 //
 
-indri::index::TermData* indri::index::DiskIndex::_fetchTermData( const char* term ) {
+indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( const char* term ) {
   char buffer[16*1024];
   int actual;
 
@@ -51,13 +50,9 @@ indri::index::TermData* indri::index::DiskIndex::_fetchTermData( const char* ter
       return 0;
   }
   assert( result );
-
-  assert( 0 && "this code doesn't actually work: look at IndexWriter to make sure they match" );
   RVLDecompressStream stream( buffer, actual );
-  TermData* termData = ::termdata_create( _fieldData.size() );
-  ::termdata_decompress( stream, termData, _fieldData.size() );
 
-  return termData;
+  return disktermdata_decompress( stream, _fieldData.size(), DiskTermData::WithString | DiskTermData::WithOffsets );
 }
 
 //
@@ -73,9 +68,9 @@ int indri::index::DiskIndex::documentBase() {
 //
 
 int indri::index::DiskIndex::term( const char* t ) {
-  indri::index::TermData* termData = _fetchTermData( t );
-  int termID = 0; // TODO: fix me termData->termID;
-  ::termdata_delete( termData, _fieldData.size() );
+  indri::index::DiskTermData* diskTermData = _fetchTermData( t );
+  int termID = diskTermData->termID;
+  ::disktermdata_delete( diskTermData );
   return termID;
 }
 
@@ -93,9 +88,9 @@ int indri::index::DiskIndex::term( const std::string& t ) {
 
 std::string indri::index::DiskIndex::term( int termID ) {
   std::string result;
-  indri::index::TermData* termData = _fetchTermData( termID );
-  result = termData->term;
-  ::termdata_delete( termData, _fieldData.size() );
+  indri::index::DiskTermData* diskTermData = _fetchTermData( termID );
+  result = diskTermData->termData->term;
+  ::disktermdata_delete( diskTermData );
 
   return result;
 }
@@ -146,9 +141,9 @@ UINT64 indri::index::DiskIndex::uniqueTermCount() {
 //
 
 UINT64 indri::index::DiskIndex::termCount( const std::string& t ) {
-  indri::index::TermData* termData = _fetchTermData( t.c_str() );
-  UINT64 count = termData->corpus.totalCount;
-  ::termdata_delete( termData, _fieldData.size() );
+  DiskTermData* diskTermData = _fetchTermData( t.c_str() );
+  UINT64 count = diskTermData->termData->corpus.totalCount;
+  ::disktermdata_delete( diskTermData );
   return count;
 }
 
@@ -157,10 +152,10 @@ UINT64 indri::index::DiskIndex::termCount( const std::string& t ) {
 //
 
 UINT64 indri::index::DiskIndex::fieldTermCount( const std::string& f, const std::string& t ) {
-  indri::index::TermData* termData = _fetchTermData( t.c_str() );
+  DiskTermData* diskTermData = _fetchTermData( t.c_str() );
   int index = field( f );
-  UINT64 count = termData->fields[index].totalCount;
-  ::termdata_delete( termData, _fieldData.size() );
+  UINT64 count = diskTermData->termData->fields[index].totalCount;
+  ::disktermdata_delete( diskTermData );
   return count;
 }
 
@@ -189,10 +184,10 @@ UINT64 indri::index::DiskIndex::fieldDocumentCount( const std::string& f ) {
 //
 
 UINT64 indri::index::DiskIndex::fieldDocumentCount( const std::string& f, const std::string& t ) {
-  indri::index::TermData* termData = _fetchTermData( t.c_str() );
+  DiskTermData* diskTermData = _fetchTermData( t.c_str() );
   int index = field( f );
-  UINT64 count = termData->fields[index].documentCount;
-  ::termdata_delete( termData, _fieldData.size() );
+  UINT64 count = diskTermData->termData->fields[index].documentCount;
+  ::disktermdata_delete( diskTermData );
   return count;
 }
 
@@ -201,14 +196,21 @@ UINT64 indri::index::DiskIndex::fieldDocumentCount( const std::string& f, const 
 //
 
 indri::index::DocListIterator* indri::index::DiskIndex::docListIterator( int termID ) {
-  // look up termID in Keyfile
-  // find offset to inverted list information
-  // make a DocListIterator object that knows the start and end offsets of the data
-  // return it
+  // find out where the iterator starts and ends
+  DiskTermData* data = _fetchTermData( termID );
 
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+  // if no such term, quit
+  if( !data )
+    return 0;
+
+  INT64 startOffset = data->startOffset;
+  INT64 length = data->length;
+  ::disktermdata_delete( data );
+
+  // truncate the length argument at 1MB, use it to pick a size for the readbuffer
+  length = lemur_compat::min<INT64>( length, 1024*1024 );
+
+  return new DiskDocListIterator( new SequentialReadBuffer( _invertedFile, length ), startOffset );
 }
 
 //
@@ -216,51 +218,63 @@ indri::index::DocListIterator* indri::index::DiskIndex::docListIterator( int ter
 //
 
 indri::index::DocListIterator* indri::index::DiskIndex::docListIterator( const std::string& term ) {
-  // look up termID in Keyfile
-  // find offset to inverted list information
-  // make a DocListIterator object that knows the start and end offsets of the data
-  // return it
+  // find out where the iterator starts and ends
+  DiskTermData* data = _fetchTermData( term.c_str() );
 
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+  // if no such term, quit
+  if( !data )
+    return 0;
+
+  INT64 startOffset = data->startOffset;
+  INT64 length = data->length;
+  ::disktermdata_delete( data );
+
+  // truncate the length argument at 1MB, use it to pick a size for the readbuffer
+  length = lemur_compat::min<INT64>( length, 1024*1024 );
+
+  return new DiskDocListIterator( new SequentialReadBuffer( _invertedFile, length ), startOffset );
 }
 
 //
 // docListFileIterator
 //
 
-indri::index::DocListIterator* indri::index::DiskIndex::docListFileIterator( ) {
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+indri::index::DocListFileIterator* indri::index::DiskIndex::docListFileIterator( ) {
+  return new DiskDocListFileIterator( _invertedFile, _fieldData.size() );
 }
 
 //
 // fieldListIterator
 //
 
-indri::index::DocExtentListIterator* indri::index::fieldListIterator( int fieldID ) {
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+indri::index::DocExtentListIterator* indri::index::DiskIndex::fieldListIterator( int fieldID ) {
+  if( fieldID == 0 || fieldID > _fieldData.size() ) {
+    return 0;
+  }
+
+  File& fieldFile = _fieldFiles[fieldID-1];
+  return new DiskDocExtentListIterator( new SequentialReadBuffer( fieldFile ), 0 );
 }
 
 //
 // fieldListIterator
 //
 
-indri::index::DocExtentListIterator* indri::index::fieldListIterator( const std::string& field ) {
-  // TODO: return appropriate data
-  assert( 0 && "unimplemented" );
-  return 0;
+indri::index::DocExtentListIterator* indri::index::DiskIndex::fieldListIterator( const std::string& fieldName ) {
+  int fieldID = field( fieldName );
+  
+  if( fieldID == 0 )
+    return 0;
+
+  File& fieldFile = _fieldFiles[fieldID-1];
+  return new DiskDocExtentListIterator( new SequentialReadBuffer( fieldFile ), 0 );
 }
 
 //
 // termListFileIterator
 //
 
-const indri::index::TermList* termList( int documentID ) {
+const indri::index::TermList* indri::index::DiskIndex::termList( int documentID ) {
   // TODO: return appropriate data
   assert( 0 && "unimplemented" );
   return 0;

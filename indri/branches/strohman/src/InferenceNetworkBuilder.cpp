@@ -85,7 +85,6 @@
 #include "indri/TermFrequencyBeliefNode.hpp"
 #include "indri/CachedFrequencyBeliefNode.hpp"
 #include "indri/BooleanAndNode.hpp"
-#include "indri/TopdocsIndex.hpp"
 
 #include <stdexcept>
 

@@ -49,11 +49,10 @@
 // DiskDocListIterator constructor
 //
 
-indri::index::DiskDocListIterator::DiskDocListIterator( SequentialReadBuffer* buffer, UINT64 startOffset, UINT64 endOffset )
+indri::index::DiskDocListIterator::DiskDocListIterator( SequentialReadBuffer* buffer, UINT64 startOffset )
   :
   _file(buffer),
-  _startOffset(startOffset),
-  _endOffset(endOffset)
+  _startOffset(startOffset)
 {
 }
 
@@ -69,9 +68,8 @@ indri::index::DiskDocListIterator::~DiskDocListIterator() {
 // setEndpoints
 //
 
-void indri::index::DiskDocListIterator::setEndpoints( UINT64 startOffset, UINT64 endOffset ) {
+void indri::index::DiskDocListIterator::setStartOffset( UINT64 startOffset ) {
   _startOffset = startOffset;
-  _endOffset = endOffset;
   _topdocs.clear();
   _file->seek( _startOffset );
 }
@@ -103,8 +101,7 @@ void indri::index::DiskDocListIterator::startIteration() {
   UINT8 control;
   _file->read( &control, sizeof(UINT8) );
 
-  _hasSkips = (control & 0x01) ? true : false;
-  _hasTopdocs = (control & 0x02) ? true : false;
+  _hasTopdocs = (control & 0x01) ? true : false;
   
   // clear out all the internal data
   _data.document = 0;
@@ -204,13 +201,8 @@ void indri::index::DiskDocListIterator::_readTopdocs() {
 void indri::index::DiskDocListIterator::_readSkip() {
   int skipLength; 
 
-  if( _hasSkips ) {
-    _file->read( &_skipDocument, sizeof(int) );
-    _file->read( &skipLength, sizeof(int) );
-  } else {
-    _skipDocument = -1;
-    skipLength = _endOffset - _file->position();
-  }
+  _file->read( &_skipDocument, sizeof(int) );
+  _file->read( &skipLength, sizeof(int) );
 
   _list = static_cast<const char*>(_file->read( skipLength ));
   _listEnd = _list + skipLength;

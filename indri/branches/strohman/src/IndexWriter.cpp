@@ -165,7 +165,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
   // write in the final skip info
   if( hasSkips ) {
     int skipDocument = MAX_INT32;
-    int skipLength = MAX_INT32;
+    int skipLength = listBuffer.position();
     _output.write( &skipDocument, sizeof(int) );
     _output.write( &skipLength, sizeof(int) );
   }

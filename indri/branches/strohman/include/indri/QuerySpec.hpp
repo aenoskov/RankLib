@@ -2221,26 +2221,15 @@ namespace indri {
       RawExtentNode* _context;
       bool _hasCounts;
       bool _hasContextSize;
-      bool _hasMaxScore;
       UINT64 _occurrences;
       UINT64 _contextSize;
-
-      UINT64 _minimumContextLength;
-      UINT64 _maximumContextLength;
-      UINT64 _maximumOccurrences;
-      double _maximumContextFraction;
 
     public:
       ContextCounterNode( RawExtentNode* raw, RawExtentNode* context ) :
          _hasCounts(false),
          _hasContextSize(false),
-         _hasMaxScore(false),
          _occurrences(0),
-         _contextSize(0),
-         _minimumContextLength(1),
-         _maximumContextLength(MAX_INT32),
-         _maximumOccurrences(MAX_INT32),
-         _maximumContextFraction(1.0)
+         _contextSize(0)
       {
         _raw = raw;
         _context = context;
@@ -2252,14 +2241,8 @@ namespace indri {
         _occurrences = unpacker.getInteger( "occurrences" );
         _contextSize = unpacker.getInteger( "contextSize" );
 
-        _minimumContextLength = unpacker.getInteger( "minimumContextLength" );
-        _maximumContextLength = unpacker.getInteger( "maximumContextLength" );
-        _maximumOccurrences = unpacker.getInteger( "maximumOccurrences" );
-        _maximumContextFraction = unpacker.getDouble( "maximumContextFraction" );
-
         _hasCounts = unpacker.getBoolean( "hasCounts" );
         _hasContextSize = unpacker.getBoolean( "hasContextSize" );
-        _hasMaxScore = unpacker.getBoolean( "hasMaxScore" );
       }
 
       std::string typeName() const {
@@ -2307,14 +2290,8 @@ namespace indri {
         packer.put( "occurrences", _occurrences );
         packer.put( "contextSize", _contextSize );
 
-        packer.put( "maximumOccurrences", _maximumOccurrences );
-        packer.put( "maximumContextFraction", _maximumContextFraction );
-        packer.put( "maximumContextLength", _maximumContextLength );
-        packer.put( "minimumContextLength", _minimumContextLength );
-
         packer.put( "hasCounts", _hasCounts );
         packer.put( "hasContextSize", _hasContextSize );
-        packer.put( "hasMaxScore", _hasMaxScore );
         packer.after(this);
       }
 
@@ -2343,32 +2320,12 @@ namespace indri {
         return _hasContextSize;
       }
 
-      bool hasMaxScore() const {
-        return _hasMaxScore;
-      }
-
       UINT64 getOccurrences() const {
         return _occurrences;
       }
 
       UINT64 getContextSize() const {
         return _contextSize;
-      }
-
-      UINT64 getMaximumOccurrences() const {
-        return _maximumOccurrences;
-      }
-
-      UINT64 getMinimumContextLength() const {
-        return _minimumContextLength;
-      }
-
-      UINT64 getMaximumContextLength() const {
-        return _maximumContextLength;
-      }
-
-      double getMaximumContextFraction() const {
-        return _maximumContextFraction;
       }
 
       void setContextSize( UINT64 contextSize ) {
@@ -2382,20 +2339,168 @@ namespace indri {
         _occurrences = occurrences;
         setContextSize( contextSize );
       }
+    };
+
+    class ContextSimpleCounterNode : public AccumulatorNode {
+    private:
+      RawExtentNode* _raw;
+      RawExtentNode* _context;
+
+      std::vector<std::string> _terms;
+      std::vector<std::string> _fields;
+      std::vector<std::string> _contexts;
+
+      bool _hasCounts;
+      bool _hasContextSize;
+      UINT64 _occurrences;
+      UINT64 _contextSize;
+
+    public:
+      ContextSimpleCounterNode( RawExtentNode* raw, RawExtentNode* context ) :
+         _hasCounts(false),
+         _hasContextSize(false),
+         _occurrences(0),
+         _contextSize(0)
+      {
+        _raw = raw;
+        _context = context;
+      }
+
+      ContextSimpleCounterNode( Unpacker& unpacker ) {
+        _raw = unpacker.getRawExtentNode( "raw" );
+        _context = unpacker.getRawExtentNode( "context" );
+        _occurrences = unpacker.getInteger( "occurrences" );
+        _contextSize = unpacker.getInteger( "contextSize" );
+
+        _terms = unpacker.getStringVector( "terms" );
+        _fields = unpacker.getStringVector( "fields" );
+        _contexts = unpacker.getStringVector( "contexts" );
+
+        _hasCounts = unpacker.getBoolean( "hasCounts" );
+        _hasContextSize = unpacker.getBoolean( "hasContextSize" );
+      }
+
+      std::string typeName() const {
+        return "ContextSimpleCounterNode";
+      }
+
+      std::string queryText() const {
+        std::stringstream qtext;
+        
+        if( _raw )
+          qtext << _raw->queryText();
+
+        if( _context ) {
+          // if we haven't added a period yet, put one in
+          int dot = qtext.str().find('.');
+          if( dot < 0 )
+            qtext << '.';
+
+          qtext << "(" << _context->queryText() << ")";
+        }
+
+        return qtext.str();
+      }
+
+      RawExtentNode* getContext() {
+        return _context;
+      }
+
+      RawExtentNode* getRawExtent() {
+        return _raw;
+      }
+
+      void setRawExtent( RawExtentNode* rawExtent ) {
+        _raw = rawExtent;
+      }
+
+      void setContext( RawExtentNode* context ) {
+        _context = context;
+      }
+
+      void pack( Packer& packer ) {
+        packer.before(this);
+        packer.put( "raw", _raw );
+        packer.put( "context", _context );
+        packer.put( "occurrences", _occurrences );
+        packer.put( "contextSize", _contextSize );
+
+        packer.put( "terms", _terms );
+        packer.put( "fields", _fields );
+        packer.put( "contexts", _contexts );
+
+        packer.put( "hasCounts", _hasCounts );
+        packer.put( "hasContextSize", _hasContextSize );
+        packer.after(this);
+      }
+
+      void walk( Walker& walker ) {
+        walker.before(this);
+        if( _raw ) _raw->walk(walker);
+        if( _context ) _context->walk(walker);
+        walker.after(this);
+      }
+
+      Node* copy( Copier& copier ) {
+        copier.before(this);
+        RawExtentNode* duplicateRaw = _raw ? dynamic_cast<RawExtentNode*>(_raw->copy(copier)) : 0;
+        RawExtentNode* duplicateContext = _context ? dynamic_cast<RawExtentNode*>(_context->copy(copier)) : 0;
+        ContextSimpleCounterNode* duplicate = new ContextSimpleCounterNode(*this);
+        duplicate->setContext(duplicateContext);
+        duplicate->setRawExtent(duplicateRaw);
+        return copier.after(this, duplicate);
+      }
+
+      bool hasCounts() const {
+        return _hasCounts;
+      }
+
+      bool hasContextSize() const {
+        return _hasContextSize;
+      }
+
+      UINT64 getOccurrences() const {
+        return _occurrences;
+      }
+
+      UINT64 getContextSize() const {
+        return _contextSize;
+      }
+
+      void setTerms( const std::vector<std::string>& terms ) {
+        _terms = terms;
+      }
+
+      void setFields( const std::vector<std::string>& fields ) {
+        _fields = fields;
+      }
+
+      void setContexts( const std::vector<std::string>& contexts ) {
+        _contexts = contexts;
+      }
+
+      const std::vector<std::string>& terms() const {
+        return _terms;
+      }
+
+      const std::vector<std::string>& fields() const {
+        return _fields;
+      }
+
+      const std::vector<std::string>& contexts() const {
+        return _contexts;
+      }
+
+      void setContextSize( UINT64 contextSize ) {
+        _contextSize = contextSize;
+        _hasContextSize = true;
+      }
 
       void setCounts( UINT64 occurrences,
-                      UINT64 contextSize,
-                      UINT64 maximumOccurrences, 
-                      UINT64 minimumContextLength, 
-                      UINT64 maximumContextLength,
-                      double maximumContextFraction )
-      {
-        setCounts( occurrences, contextSize );
-        _hasMaxScore = true;
-        _maximumOccurrences = maximumOccurrences;
-        _minimumContextLength = minimumContextLength;
-        _maximumContextLength = maximumContextLength;
-        _maximumContextFraction = maximumContextFraction;
+                      UINT64 contextSize ) {
+        _hasCounts = true;
+        _occurrences = occurrences;
+        setContextSize( contextSize );
       }
     };
 

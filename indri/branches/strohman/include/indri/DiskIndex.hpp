@@ -14,6 +14,7 @@
 #include "indri/TermData.hpp"
 #include "indri/FieldStatistics.hpp"
 #include "indri/CorpusStatistics.hpp"
+#include "indri/DiskTermData.hpp"
 #include <vector>
 #include <string>
 
@@ -39,8 +40,8 @@ namespace indri {
       std::vector<File> _fieldFiles;
       int _documentBase;
 
-      indri::index::TermData* _fetchTermData( int termID );
-      indri::index::TermData* _fetchTermData( const char* termString );
+      indri::index::DiskTermData* _fetchTermData( int termID );
+      indri::index::DiskTermData* _fetchTermData( const char* termString );
 
       CorpusStatistics _corpusStatistics;
 

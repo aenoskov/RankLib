@@ -45,13 +45,6 @@
   ==========================================================================
 */
 
-
-//
-//
-//
-//
-//
-
 #ifndef INDRI_RVLDECOMPRESSSTREAM_HPP
 #define INDRI_RVLDECOMPRESSSTREAM_HPP
 
@@ -117,6 +110,18 @@ public:
     _current += sizeof value;
     return *this;
   }
+
+  /// Decompress a string from the buffer into value
+  /// @param value pointer to a character buffer that will hold the decompressed value
+  RVLDecompressStream& operator>> ( char* value ) {
+    int length;
+    _current = RVLCompress::decompress_int( _current, length );
+    ::memcpy( value, _current, length );
+    _current += length;
+    return *this;
+  }
+
+
   /// @return true if no more values in the buffer, otherwise false.
   bool done() const {
     return (_current - _buffer) >= _bufferSize;

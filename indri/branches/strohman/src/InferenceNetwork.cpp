@@ -54,25 +54,19 @@
 
 #include "indri/InferenceNetwork.hpp"
 #include "indri/SkippingCapableNode.hpp"
-#include "indri/DocPositionInfoList.hpp"
-#include "indri/FieldListIterator.hpp"
-#include "indri/IndriIndex.hpp"
+
+#include "indri/DocListIterator.hpp"
+#include "indri/DocExtentListIterator.hpp"
 
 void InferenceNetwork::_moveToDocument( int candidate ) {
   // move all document iterators
-  std::vector<DocPositionInfoList*>::iterator iter;
+  std::vector<indri::index::DocListIterator*>::iterator iter;
   for( iter = _docIterators.begin(); iter != _docIterators.end(); iter++ ) {
     (*iter)->nextEntry( candidate );
   }
 
-  // move all frequency iterators
-  std::vector<indri::index::DocListFrequencyIterator*>::iterator fqiter;
-  for( fqiter = _freqIterators.begin(); fqiter != _freqIterators.end(); fqiter++ ) {
-    (*fqiter)->nextEntry( candidate );
-  }
-
   // move all field iterators
-  std::vector<indri::index::FieldListIterator*>::iterator fiter;
+  std::vector<indri::index::DocExtentListIterator*>::iterator fiter;
   for( fiter = _fieldIterators.begin(); fiter != _fieldIterators.end(); fiter++ ) {
     (*fiter)->nextEntry( candidate );
   }
@@ -81,6 +75,41 @@ void InferenceNetwork::_moveToDocument( int candidate ) {
   std::vector<ListIteratorNode*>::iterator diter;
   for( diter = _listIteratorNodes.begin(); diter != _listIteratorNodes.end(); diter++ ) {
     (*diter)->prepare( candidate );
+  }
+}
+
+//
+// _indexChanged
+//
+
+void InferenceNetwork::_indexChanged( indri::index::Index& index ) {
+  // doc iterators
+  for( int i=0; i<_docIterators.begin(); iter != _docIterators.begin(); iter++ ) {
+    (*iter)->indexChanged( index );
+  }
+
+  // field iterators
+  std::vector<indri::index::DocExtentListIterator*>::iterator fiter;
+  for( fiter = _fieldIterators.begin(); fiter != _fieldIterators.end(); fiter++ ) {
+    (*fiter)->indexChanged( index );
+  }
+
+  // extent iterator nodes
+  std::vector<ListIteratorNode*>::iterator diter;
+  for( diter = _listIteratorNodes.begin(); diter != _listIteratorNodes.end(); diter++ ) {
+    (*diter)->indexChanged( index );
+  }
+
+  // belief nodes
+  std::vector<BeliefNode*>::iterator biter;
+  for( biter = _beliefNodes.begin(); biter != _beliefNodes.end(); biter++ ) {
+    (*biter)->indexChanged( index );
+  }
+
+  // evaluator nodes
+  std::vector<EvaluatorNode*>::iterator eiter;
+  for( eiter = _evaluatorNodes.begin(); eiter != _evaluatorNodes.end(); eiter++ ) {
+    (*eiter)->indexChanged( index );
   }
 }
 
@@ -94,8 +123,8 @@ int InferenceNetwork::_nextCandidateDocument() {
   return candidate;
 }
 
-void InferenceNetwork::_evaluateDocument( int document ) {
-  int candidateLength = _repository.index()->docLength( document );
+void InferenceNetwork::_evaluateDocument( indri::index::Index& index, int document ) {
+  int candidateLength = index.documentLength( document );
 
   for( unsigned int i=0; i<_complexEvaluators.size(); i++ ) {
     _complexEvaluators[i]->evaluate( document, candidateLength );
@@ -108,24 +137,19 @@ InferenceNetwork::InferenceNetwork( Repository& repository ) :
 }
 
 InferenceNetwork::~InferenceNetwork() {
-  delete_vector_contents<indri::index::FieldListIterator*>( _fieldIterators );
-  delete_vector_contents<DocPositionInfoList*>( _docIterators );
-  delete_vector_contents<indri::index::DocListFrequencyIterator*>( _freqIterators );
+  delete_vector_contents<indri::index::DocExtentListIterator*>( _fieldIterators );
+  delete_vector_contents<indri::index::DocListIterator*>( _docIterators );
   delete_vector_contents<ListIteratorNode*>( _listIteratorNodes );
   delete_vector_contents<BeliefNode*>( _beliefNodes );
   delete_vector_contents<TermScoreFunction*>( _scoreFunctions );
   delete_vector_contents<EvaluatorNode*>( _evaluators );
 }
 
-void InferenceNetwork::addDocIterator( DocPositionInfoList* posInfoList ) {
+void InferenceNetwork::addDocIterator( indri::index::DocListIterator* posInfoList ) {
   _docIterators.push_back( posInfoList );
 }
 
-void InferenceNetwork::addFrequencyIterator( indri::index::DocListFrequencyIterator* freqList ) {
-  _freqIterators.push_back( freqList );
-}
-
-void InferenceNetwork::addFieldIterator( indri::index::FieldListIterator* fieldIterator ) {
+void InferenceNetwork::addFieldIterator( indri::index::DocExtentListIterator* fieldIterator ) {
   _fieldIterators.push_back( fieldIterator );
 }
 
@@ -153,15 +177,9 @@ const std::vector<EvaluatorNode*>& InferenceNetwork::getEvaluators() const {
   return _evaluators;
 }
 
-const EvaluatorNode* InferenceNetwork::getFirstEvaluator() const {
-  if( _evaluators.size() )
-    return _evaluators[0];
-  return 0;
-}
-
-const InferenceNetwork::MAllResults& InferenceNetwork::evaluate() {
+void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
   int lastCandidate = MAX_INT32;
-  int collectionSize = _repository.index()->docCount();
+  int collectionSize = index->documentBase() + index->docCount();
   int scoredDocuments = 0;
   int candidate = 0;
 
@@ -200,14 +218,32 @@ const InferenceNetwork::MAllResults& InferenceNetwork::evaluate() {
       lastCandidate = candidate+1;
     }
   }
+}
+
+//
+// evaluate
+//
+
+const InferenceNetwork::MAllResults& InferenceNetwork::evaluate() {
+  std::vector<indri::index::Index*> indexes = _repository->indexes();
+  
+  for( int i=0; i<indexes.size(); i++ ) {
+    indri::index::Index* index = indexes[i];
+
+    // TODO: index->lockIterators();
+    // TODO: index->lockStatistics();
+
+    _indexChanged( index );
+
+    // TODO: index->unlockStatistics()
+
+    _evaluateIndex( index );
+  }
 
   _results.clear();
   for( unsigned int i=0; i<_evaluators.size(); i++ ) {
     _results[ _evaluators[i]->getName() ] = _evaluators[i]->getResults();
   }
 
-  //std::cout << "Scored Documents: " << scoredDocuments << std::endl;
-
   return _results;
 }
-

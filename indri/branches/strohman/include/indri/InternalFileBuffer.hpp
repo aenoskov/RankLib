@@ -8,6 +8,8 @@
 #ifndef INDRI_INTERNALFILEBUFFER_HPP
 #define INDRI_INTERNALFILEBUFFER_HPP
 
+#include "indri/Buffer.hpp"
+
 struct InternalFileBuffer {
   InternalFileBuffer( size_t length ) {
     buffer.grow(length);
