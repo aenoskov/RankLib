@@ -57,6 +57,7 @@ void UtilityThread::start() {
   if( _thread )
     return;
 
+  _runThread = true;
   _thread = new Thread( utility_thread_run, this ); 
 }
 
