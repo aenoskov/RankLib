@@ -61,7 +61,9 @@
 class IndriTimer {
 private:
   /// when did we start.
+  UINT64 _elapsed;
   UINT64 _start;
+  bool _stopped;
 
 public:
   IndriTimer();
@@ -69,6 +71,10 @@ public:
   static UINT64 currentTime();
   /// start the timer
   void start();
+  /// pause the timer
+  void stop();
+  /// reset the timer
+  void reset();
   /// @return elapsed time since started as an unsigned 64 bit integer
   UINT64 elapsedTime() const;
   /// Print elapsed seconds to an output stream.
