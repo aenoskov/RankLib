@@ -48,7 +48,7 @@ UINT64 RepositoryLoadThread::work() {
   Repository::index_state state = _repository.indexes();
   UINT64 memorySize = dynamic_cast<indri::index::MemoryIndex*>(state->back())->memorySize();
 
-  if( memorySize > _memory ) {
+  if( memorySize > 2*_memory ) {
     _repository._setThrashing( true );
     return HALF_SECOND;
   } else {

@@ -61,6 +61,10 @@ UINT64 RepositoryMaintenanceThread::work() {
       if( _memory < index->memorySize() ) {
         _requests.push( WRITE );
       }
+
+      if( state->size() > 2 ) {
+        _requests.push( MERGE );
+      }
     }
 
     // now, figure out what needs to be done
