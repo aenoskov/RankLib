@@ -70,12 +70,12 @@ public class TimelinePanel extends JPanel {
 	
 	private void init() {
 		minYear = Integer.MAX_VALUE;
-		minDate = 31;
-		minMonth = 12;
+		minDate = 32;
+		minMonth = 13;
 		
 		maxYear = Integer.MIN_VALUE;
-		maxDate = 1;
-		maxMonth = 1;
+		maxDate = 0;
+		maxMonth = 0;
 		
 		maxScore = -100000.0;
 		
@@ -84,16 +84,18 @@ public class TimelinePanel extends JPanel {
 			int curMonth = info.month;
 			int curDate = info.date;
 			int curYear = info.year;
-			if( curYear <= maxYear &&
-					( curMonth < maxMonth ||
-					( curMonth == maxMonth && curDate < maxDate ) ) ) { 
+			if( curYear < minYear ||
+				( curYear == minYear &&
+				( curMonth < minMonth ||
+				( curMonth == minMonth && curDate < minDate ) ) ) ) { 
 				minMonth = curMonth;
 				minDate = curDate;
 				minYear = curYear;
 			}
-			if( curYear >= maxYear &&
+			if( curYear > maxYear ||
+				( curYear == maxYear &&
 				( curMonth > maxMonth ||
-				( curMonth == maxMonth && curDate > maxDate ) ) ) { 
+				( curMonth == maxMonth && curDate > maxDate ) ) ) ) { 
 				maxMonth = curMonth;
 				maxDate = curDate;
 				maxYear = curYear;
@@ -187,11 +189,15 @@ public class TimelinePanel extends JPanel {
 		return minMonth + "/" + minDate + "/" + minYear;  
 	}
 	
-	public void setStartDate() {
+	public void setStartDate( String start ) {
 		
 	}
 	
 	public String getEndDate() {
 		return maxMonth + "/" + maxDate + "/" + maxYear;  
+	}
+	
+	public void setEndDate( String end ) {
+		
 	}
 }

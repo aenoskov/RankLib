@@ -135,10 +135,11 @@ public class QueryPanel extends JPanel {
 	}
 	
 	public String getExtent() {
-		String choice = fieldChoice.getSelectedItem();
-		if( choice.equals( "document") )
-			return "";
-		return "[" + choice + "]";
+		return fieldChoice.getSelectedItem();
+	}
+	
+	public String getCombiner() {
+		return combineMethodChoice.getSelectedItem();
 	}
 	
 	public int getNumResults() {
