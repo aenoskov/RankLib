@@ -94,13 +94,10 @@ void ContextCountAccumulator::evaluate( int documentID, int documentLength ) {
     for( unsigned int i=0; i<extents.size(); i++ ) {
       documentContextSize += extents[i].end - extents[i].begin;
     }
-
-    _contextSize += documentContextSize;
   } 
 
-  if( documentOccurrences ) {
-    _occurrences += documentOccurrences;
-  }
+  _occurrences += documentOccurrences;
+  _contextSize += documentContextSize;
 }
 
 int ContextCountAccumulator::nextCandidateDocument() {

@@ -679,7 +679,7 @@ void InferenceNetworkBuilder::after( indri::lang::RawScorerNode* rawScorerNode )
       // this is here to turn max-score off for this term
       // only frequency lists are "max-scored"
       double maximumScore = INDRI_HUGE_SCORE;
-      double maximumBackgroundScore = INDRI_TINY_SCORE;
+      double maximumBackgroundScore = INDRI_HUGE_SCORE;
       
       belief = new ListBeliefNode( rawScorerNode->nodeName(), *iterator, context, rawIterator, *function, maximumBackgroundScore, maximumScore );
     } else {
