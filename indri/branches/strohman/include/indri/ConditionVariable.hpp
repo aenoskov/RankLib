@@ -12,8 +12,12 @@
 
 #ifndef WIN32
 #include <pthread.h>
+#include <sys/time.h>
+#include <errno.h>
 #endif
 
+
+#include "indri/indri-platform.h"
 #include "Mutex.hpp"
 
 class ConditionVariable {

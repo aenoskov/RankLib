@@ -158,3 +158,5 @@ bool indri::index::DocListMemoryBuilderIterator::finished() {
 greedy_vector<indri::index::DocListIterator::TopDocument>& indri::index::DocListMemoryBuilderIterator::topDocuments() {
   return _emptyTopDocuments;
 }
+
+

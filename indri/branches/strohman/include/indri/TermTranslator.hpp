@@ -65,4 +65,4 @@ namespace indri {
 #endif // INDRI_TERMTRANSLATOR_HPP
 
 
-  
+

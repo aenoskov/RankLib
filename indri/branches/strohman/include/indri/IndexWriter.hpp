@@ -34,7 +34,7 @@ struct WriterIndexContext {
     indri::index::DocListFileIterator::iterator_greater _iterator_greater;
   
   public:
-    bool operator () ( const WriterIndexContext*& one, const WriterIndexContext*& two ) const {
+    bool operator () ( const WriterIndexContext* const&  one, const WriterIndexContext* const& two ) const {
       return _iterator_greater( one->iterator, two->iterator );
     }
   };

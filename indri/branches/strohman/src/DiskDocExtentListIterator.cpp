@@ -5,6 +5,7 @@
 // 13 December 2004 -- tds
 //
 
+#include "indri/indri-platform.h"
 #include "indri/DiskDocExtentListIterator.hpp"
 #include "lemur/RVLCompress.hpp"
 
