@@ -65,14 +65,6 @@ indri::index::DocListMemoryBuilderIterator::DocListMemoryBuilderIterator( const 
 }
 
 //
-// finished
-//
-
-bool indri::index::DocListMemoryBuilderIterator::finished() {
-  return _current == _lists->end() && _list == _listEnd;
-}
-
-//
 // nextEntry
 //
 
@@ -137,3 +129,18 @@ indri::index::DocListIterator::DocumentData* indri::index::DocListMemoryBuilderI
   return &_data;
 }
 
+//
+// finished
+//
+
+bool indri::index::DocListMemoryBuilderIterator::finished() {
+  return _current == _lists->end() && _list == _listEnd;
+}
+
+//
+// topDocuments
+//
+
+greedy_vector<indri::index::DocListIterator::TopDocument>& indri::index::DocListMemoryBuilderIterator::topDocuments() {
+  return _emptyTopDocuments;
+}

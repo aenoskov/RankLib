@@ -56,6 +56,7 @@
 #define INDRI_DOCLISTFILEITERATOR_HPP
 
 #include "indri/DocListIterator.hpp"
+#include "indri/TermData.hpp"
 
 namespace indri {
   namespace index {
@@ -67,11 +68,11 @@ namespace indri {
       };
 
       struct iterator_less {
-        bool operator() ( const DocListFileIterator*& one, const DocListFileIterator*& two ) const {
+        bool operator() ( const DocListFileIterator*const& one, const DocListFileIterator*const& two ) const {
           assert( !one->finished() && !two->finished() );
           
-          DocListData* oneData = one->currentEntry();
-          DocListData* twoData = two->currentEntry();
+          const DocListData* oneData = one->currentEntry();
+          const DocListData* twoData = two->currentEntry();
 
           const char* oneTerm = oneData->termData->term;
           const char* twoTerm = twoData->termData->term;
@@ -99,6 +100,7 @@ namespace indri {
 
       virtual bool nextEntry() = 0;
       virtual DocListData* currentEntry() = 0;
+      virtual const DocListData* currentEntry() const = 0;
     };
   }
 }

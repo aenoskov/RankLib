@@ -38,7 +38,7 @@ namespace indri {
         std::sort( _alphabetical.begin(), _alphabetical.end(), MemoryIndex::term_entry::term_less() );
         _currentTerm = _alphabetical.begin();
         _iterator.reset( (*_currentTerm)->list );
-        _data.termData = &(*_currentTerm)->termData;
+        _data.termData = (*_currentTerm)->termData;
         _data.iterator = &_iterator;
       }
       
@@ -47,7 +47,11 @@ namespace indri {
       }
       
       DocListData* currentEntry() { 
-        return &_iterator;
+        return &_data;
+      }
+      
+      const DocListData* currentEntry() const { 
+        return &_data;
       }
       
       bool nextEntry() {
@@ -59,7 +63,7 @@ namespace indri {
           return false;
         
         _iterator.reset( (*_currentTerm)->list );
-        _data.termData = &(*_currentTerm)->termData;
+        _data.termData = (*_currentTerm)->termData;
         return true;
       }
     };

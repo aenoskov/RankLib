@@ -67,6 +67,7 @@ namespace indri {
       const greedy_vector< std::pair<char*, char*>, 4 >* _lists;
       greedy_vector< std::pair<char*, char*>, 4 >::const_iterator _current;
       indri::index::DocListIterator::DocumentData _data;
+      greedy_vector<DocListIterator::TopDocument> _emptyTopDocuments;
       
       const char* _list;
       const char* _listEnd;
@@ -83,6 +84,7 @@ namespace indri {
       bool nextEntry( int documentID );
       bool nextEntry();
       DocListIterator::DocumentData* currentEntry();
+      greedy_vector<DocListIterator::TopDocument>& topDocuments();
     };
 
     class DocListMemoryBuilder {

@@ -24,6 +24,12 @@ public:
     _position(0)
   {
   }
+
+  void seek( UINT64 position ) {
+    flush();
+    _position = position;
+    _current.filePosition = position;
+  }
   
   char* write( size_t length ) {
     // if this won't fit in the buffer, flush it
@@ -37,12 +43,12 @@ public:
     return _current.buffer.write( length );
   }
 
-  void write( const char* buffer, size_t length ) {
+  void write( const void* buffer, size_t length ) {
     memcpy( write( length ), buffer, length );
   }
   
   void unwrite( size_t length ) {
-    assert( length >= _current.buffer.position() );
+    assert( length <= _current.buffer.position() );
     _current.buffer.unwrite( length );
   }
   

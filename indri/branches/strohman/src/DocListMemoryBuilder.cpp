@@ -67,7 +67,12 @@ const size_t PLENTY_OF_SPACE = 15; // docID, count, position: 5 bytes each
 indri::index::DocListMemoryBuilder::DocListMemoryBuilder() :
   _list(0),
   _listBegin(0),
-  _listEnd(0)
+  _listEnd(0),
+  _documentPointer(0),
+  _locationCountPointer(0),
+  _lastLocation(0),
+  _lastDocument(0),
+  _lastTermFrequency(0)
 {
 }
 
@@ -131,7 +136,7 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
 //
 
 void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int position ) {
-  if( _lastDocument != documentID ) {
+  if( _lastDocument != documentID && _lastDocument != 0 ) {
     _terminateDocument();
     
     _documentPointer = _list;
@@ -176,13 +181,13 @@ void indri::index::DocListMemoryBuilder::_growAddLocation( int documentID, int p
   bool terminateSpace = (RVLCompress::compressedSize( _termFrequency - _lastTermFrequency ) - 1) <= _listEnd - _list;
 
   // by terminating the document now, we save a document copy and a bit of space
-  if( documentMismatch && terminateSpace )
+  if( documentMismatch && terminateSpace && _lastDocument != 0 )
     _terminateDocument();
 
   // grow the list, adding space for a document if necessary
   _grow();
 
-  assert( newDataSize >= size_t(_listEnd - _list) );
+  assert( newDataSize <= size_t(_listEnd - _list) );
   _safeAddLocation( documentID, position );
 }
 
