@@ -498,7 +498,7 @@ void Parameters::loadFile( const std::string& filename ) {
   input.seekg( 0, std::ios::end );
   size_t length = input.tellg();
   input.seekg( 0, std::ios::beg );
-  std::auto_ptr<char> buffer( new char[length] );
+  char* buffer = new char[length];
   
   try {
     input.read( buffer.get(), length );
@@ -509,6 +509,7 @@ void Parameters::loadFile( const std::string& filename ) {
     LEMUR_RETHROW( e, "Had trouble parsing parameter file '" + filename + "'" );
   }
 
+  delete buffer;
   input.close();
 }
 
