@@ -157,6 +157,7 @@ LocalQueryServer::LocalQueryServer( Repository& repository ) :
 
 indri::index::Index* LocalQueryServer::_indexWithDocument( Repository::index_state& indexes, int documentID ) {
   for( int i=0; i<indexes->size(); i++ ) {
+    ScopedLock lock( (*indexes)[i]->statisticsLock() );
     int lowerBound = (*indexes)[i]->documentBase();
     int upperBound = (*indexes)[i]->documentBase() + (*indexes)[i]->documentCount();
     
@@ -218,6 +219,7 @@ INT64 LocalQueryServer::termCount() {
   INT64 total = 0;
 
   for( int i=0; i<indexes->size(); i++ ) {
+    ScopedLock lock( (*indexes)[i]->statisticsLock() );
     total += (*indexes)[i]->termCount();
   }
 
@@ -234,6 +236,7 @@ INT64 LocalQueryServer::stemCount( const std::string& stem ) {
   INT64 total = 0;
 
   for( int i=0; i<indexes->size(); i++ ) {
+    ScopedLock lock( (*indexes)[i]->statisticsLock() );
     total += (*indexes)[i]->termCount( stem );
   }
 
@@ -250,6 +253,7 @@ INT64 LocalQueryServer::stemFieldCount( const std::string& stem, const std::stri
   INT64 total = 0;
 
   for( int i=0; i<indexes->size(); i++ ) {
+    ScopedLock lock( (*indexes)[i]->statisticsLock() );
     total += (*indexes)[i]->fieldTermCount( field, stem );
   }
 
@@ -259,6 +263,7 @@ INT64 LocalQueryServer::stemFieldCount( const std::string& stem, const std::stri
 std::string LocalQueryServer::termName( int term ) {
   Repository::index_state indexes = _repository.indexes();
   indri::index::Index* index = (*indexes)[0];
+  ScopedLock lock( index->statisticsLock() );
   return index->term( term );
 }
 
@@ -266,6 +271,7 @@ int LocalQueryServer::termID( const std::string& term ) {
   Repository::index_state indexes = _repository.indexes();
   indri::index::Index* index = (*indexes)[0];
   std::string processed = _repository.processTerm( term );
+  ScopedLock lock( index->statisticsLock() );
   return index->term( processed.c_str() );
 }
 
@@ -285,6 +291,7 @@ int LocalQueryServer::documentLength( int documentID ) {
   indri::index::Index* index = _indexWithDocument( indexes, documentID );
 
   if( index ) {
+    ScopedLock lock( index->statisticsLock() );
     return index->documentLength( documentID );
   }
 
@@ -296,6 +303,7 @@ INT64 LocalQueryServer::documentCount() {
   INT64 total = 0;
   
   for( int i=0; i<indexes->size(); i++ ) {
+    ScopedLock lock( (*indexes)[i]->statisticsLock() );
     total += (*indexes)[i]->documentCount();
   }
   
@@ -307,6 +315,7 @@ INT64 LocalQueryServer::documentCount( const std::string& term ) {
   INT64 total = 0;
   
   for( int i=0; i<indexes->size(); i++ ) {
+    ScopedLock lock( (*indexes)[i]->statisticsLock() );
     total += (*indexes)[i]->documentCount( term );
   }
   

@@ -296,11 +296,7 @@ int main(int argc, char * argv[]) {
 
       if( printQuery ) std::cout << "# query: " << queryString << std::endl;
 
-      IndriTimer t;
-      t.start();
       results = env.runQuery( queryString, initialRequested );
-      t.printElapsedMicroseconds( std::cout );
-      std::cout << std::endl;
 
       if( qe ) {
         expandedQuery = qe->expand( queryString, results );

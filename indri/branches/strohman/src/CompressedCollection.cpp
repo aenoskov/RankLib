@@ -699,6 +699,7 @@ std::string CompressedCollection::retrieveMetadatum( int documentID, const std::
 
     delete[] resultBuffer;
   } else {
+    l.unlock();
     ParsedDocument* document = retrieve( documentID );
 
     greedy_vector<MetadataPair>::iterator iter = std::find_if( document->metadata.begin(),
