@@ -290,20 +290,6 @@ int main(int argc, char * argv[]) {
     std::vector<std::string> documentNames;
     std::vector<ParsedDocument*> documents;
 
-    // TODO: DEBUG stuff
-    std::vector<int> docids;
-    docids.push_back( 1 );
-    // verify that we can get documents back
-    documents = env.documents( docids );
-    // verify that we can get DocumentVectors
-    std::vector<DocumentVector*> vecs = env.documentVectors( docids );
-    
-    DocumentVector* v = vecs[0];
-    for( int ii = 0; ii < v->positions().size(); ii++ ) {
-      std::cout << v->stems()[v->positions()[ii]] << std::endl;
-    }
-
-
     for( int query = 0; query < queries.size(); query++ ) {
       std::string queryString = std::string( queries[ query ] );
       std::string expandedQuery;

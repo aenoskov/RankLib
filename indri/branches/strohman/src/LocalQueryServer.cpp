@@ -71,6 +71,7 @@
 #include "indri/WeightFoldingCopier.hpp"
 
 #include "indri/Appliers.hpp"
+#include "indri/ScopedLock.hpp"
 
 //
 // Response objects
@@ -356,10 +357,15 @@ QueryServerVectorsResponse* LocalQueryServer::documentVectors( const std::vector
 
   for( size_t i=0; i<documentIDs.size(); i++ ) {
     indri::index::Index* index = _indexWithDocument( indexes, documentIDs[i] );
-    const indri::index::TermList* termList = index->termList( documentIDs[i] );
-    DocumentVector* result = new DocumentVector( index, termList, termIDStringMap );
-    delete termList;
-    response->addVector( result );
+
+    {
+      ScopedLock lock( index->statisticsLock() );
+  
+      const indri::index::TermList* termList = index->termList( documentIDs[i] );
+      DocumentVector* result = new DocumentVector( index, termList, termIDStringMap );
+      delete termList;
+      response->addVector( result );
+    }
   }
 
   return response;

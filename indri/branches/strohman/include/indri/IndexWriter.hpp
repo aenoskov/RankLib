@@ -159,7 +159,7 @@ namespace indri {
 
       enum {
         TOPDOCS_DOCUMENT_COUNT = 1000,
-        FREQUENT_TERM_COUNT = 10000
+        FREQUENT_TERM_COUNT = 1000
       };
 
     public:

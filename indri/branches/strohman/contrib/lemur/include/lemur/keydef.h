@@ -1,3 +1,5 @@
+#if !defined(KEYDEF_H)
+#define KEYDEF_H
 
 /*                                                               */
 /* Copyright 1984,1985,1986,1988,1989,1990,2003,2004 by Howard Turtle      */
@@ -13,7 +15,7 @@
 #define level_one 1                  /* level immediately above leaves */
 #define long_lc   sizeof(long)       /* lc of a long int */
 #define min_buffer_cnt 8             /* default number of buffers allocated */
-#define max_buffer_cnt 1024          /* max buffers allowed */
+#define max_buffer_cnt 16384         /* max buffers allowed */
 #define buf_hash_load_factor 3       /* hash table is>=this times buffers alloc,*/
 #define max_level 32                 /* number of index block levels */
 #define fib_lc 6432                  /* length of fixed portion of fib ****hand computed *****/
@@ -56,6 +58,8 @@ struct level0_pntr {
     lc;
 };
 #define level0_lc sizeof(struct level0_pntr)
+
+typedef struct level0_pntr keyfile_pointer; /* external name for Chiliad use */
 
 struct key_ptr_t {
   short
@@ -207,3 +211,5 @@ struct fcb {
     buffer[min_buffer_cnt];     /* should be at end of fcb so we can extend */
 };
 #define min_fcb_lc sizeof(struct fcb)
+
+#endif

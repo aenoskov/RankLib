@@ -133,6 +133,7 @@ size_t File::read( void* buffer, UINT64 position, size_t length ) {
   largePosition.QuadPart = position;
 
   result = SetFilePointerEx( _handle, largePosition, &actual, FILE_BEGIN ); 
+  assert( largePosition.QuadPart == actual.QuadPart );
 
   if( !result )
     LEMUR_THROW( LEMUR_IO_ERROR, "Failed to seek to some file position" );
@@ -169,6 +170,7 @@ size_t File::write( const void* buffer, UINT64 position, size_t length ) {
   largePosition.QuadPart = position;
 
   result = SetFilePointerEx( _handle, largePosition, &actual, FILE_BEGIN ); 
+  assert( largePosition.QuadPart == actual.QuadPart );
 
   if( !result )
     LEMUR_THROW( LEMUR_IO_ERROR, "Failed to seek to some file position" );

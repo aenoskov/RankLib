@@ -470,8 +470,7 @@ void Repository::addDocument( ParsedDocument* document ) {
     LEMUR_THROW( LEMUR_RUNTIME_ERROR, "addDocument: Cannot add documents to a repository that is opened for read-only access." ); 
 
   while( _thrashing ) {
-    std::cout << "{thrash}" << std::endl;
-    Thread::sleep( 1000 );
+    Thread::sleep( 100 );
   }
 
   ScopedLock lock( _addLock );

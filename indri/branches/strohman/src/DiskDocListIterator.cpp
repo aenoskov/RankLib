@@ -184,16 +184,16 @@ bool indri::index::DiskDocListIterator::finished() {
 void indri::index::DiskDocListIterator::_readTopdocs() {
   if( !_hasTopdocs ) return;
 
-  int topdocsCount;
+  UINT32 topdocsCount;
   _topdocs.clear();
-  _file->read( &topdocsCount, sizeof(int) );
+  _file->read( &topdocsCount, sizeof(UINT32) );
 
   for( int i=0; i<topdocsCount; i++ ) {
     int documentID, count, length;
 
-    _file->read( &documentID, sizeof(int) );
-    _file->read( &count, sizeof(int) );
-    _file->read( &length, sizeof(int) );
+    _file->read( &documentID, sizeof(UINT32) );
+    _file->read( &count, sizeof(UINT32) );
+    _file->read( &length, sizeof(UINT32) );
 
     assert( documentID > 0 );
     assert( count <= length );

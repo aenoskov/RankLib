@@ -23,9 +23,6 @@
 #include "indri/DocumentDataIterator.hpp"
 #include "indri/MemoryIndex.hpp"
 
-// TODO DEBUG TODO
-#include <iostream>
-
 #include "indri/IndriTimer.hpp"
 const int KEYFILE_MEMORY_SIZE = 128*1024;
 const int OUTPUT_BUFFER_SIZE = 32*1024;
@@ -147,16 +144,6 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
   _invertedOutput = new SequentialWriteBuffer( _invertedFile, OUTPUT_BUFFER_SIZE );
 
   std::vector<WriterIndexContext*> contexts;
-
-  // begin DEBUG TODO
-  std::cout << "==== WRITING INDEXES ====" << std::endl;
-  for( int m = 0; m<indexes.size(); m++ ) {
-    if( dynamic_cast<indri::index::MemoryIndex*>(indexes[m]) )
-      std::cout << m << " MemoryIndex" << std::endl;
-    else
-      std::cout << m << " DiskIndex " << dynamic_cast<indri::index::DiskIndex*>(indexes[m])->path() << std::endl;
-  }
-  // end DEBUG TODO
 
   _buildIndexContexts( contexts, indexes );
   _writeInvertedLists( contexts );
@@ -384,7 +371,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
   bool hasTopdocs = termData->corpus.documentCount > TOPDOCS_DOCUMENT_COUNT;
   bool isFrequent = termData->corpus.totalCount > FREQUENT_TERM_COUNT;
   int topdocsCount = hasTopdocs ? int(termData->corpus.totalCount * 0.01) : 0;
-  int topdocsSpace = hasTopdocs ? topdocsCount*3*sizeof(int) + sizeof(int) : 0;
+  int topdocsSpace = hasTopdocs ? ((topdocsCount*3*sizeof(UINT32)) + sizeof(int)) : 0;
 
   // write a control byte
   char control = (hasTopdocs ? 0x01 : 0) | (isFrequent ? 0x02 : 0);
@@ -720,25 +707,25 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInf
   std::vector< std::pair< size_t, int > >& pairs = oldFrequentTermsRecorder.pairs();
 
   for( int i=0; i<pairs.size(); i++ ) {
-    int missingTermID = pairs[i].second;
-    const char* missingTerm = oldFrequentTermsRecorder.buffer().front() + pairs[i].first;
+    int oldFrequentTermID = pairs[i].second;
+    const char* oldFrequentTerm = oldFrequentTermsRecorder.buffer().front() + pairs[i].first;
 
-    if( frequent->size() <= missingTermID ) 
-      frequent->resize( missingTermID+1, -1 );
+    if( frequent->size() <= oldFrequentTermID ) 
+      frequent->resize( oldFrequentTermID+1, -1 );
 
-    int mapping = _lookupTermID( newFrequentTerms, missingTerm );
+    int mapping = _lookupTermID( newFrequentTerms, oldFrequentTerm );
 
     if( mapping < 0 ) {
-      mapping = _lookupTermID( newInfrequentTerms, missingTerm );
+      mapping = _lookupTermID( newInfrequentTerms, oldFrequentTerm );
       assert( mapping > 0 );
       mapping += _isFrequentCount;
       becameInfrequent++;
     }
 
     assert( mapping > 0 );
-    (*frequent)[missingTermID] = mapping;
+    (*frequent)[oldFrequentTermID] = mapping;
 
-    assert( missingTermID <= oldTermCount );
+    assert( oldFrequentTermID <= oldTermCount );
     assert( mapping <= newTermCount );
   }
 
@@ -748,25 +735,28 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInf
   for( int i=0; i<newlyFrequentPairs.size(); i++ ) {
     // lookup newlyInfrequentTerms[i]
     const char* term = newlyFrequentPairs[i].first + newFrequentTermsRecorder.buffer().front();
-    int newTermID = _lookupTermID( newFrequentTerms, term ) + _isFrequentCount;
+    int newTermID = _lookupTermID( newFrequentTerms, term );
     int oldTermID = newlyFrequentPairs[i].second; 
     oldInfrequentHashTable->insert( oldTermID, newTermID );
     becameFrequent++;
 
+    assert( oldInfrequentHashTable->find( oldTermID ) );
     assert( oldTermID <= oldTermCount );
     assert( newTermID <= newTermCount );
   }
 
   int oldFrequentCount = oldFrequentTermsRecorder.pairs().size();
-  int newFrequentCount = oldFrequentCount - becameInfrequent + becameFrequent;
+  int newFrequentCount = _isFrequentCount;
 
-  return new TermTranslator( oldFrequentCount,
-                             newFrequentCount,
-                             oldTermCount,
-                             newTermCount,
-                             frequent,
-                             oldInfrequentHashTable,
-                             bitmap );
+  TermTranslator* translator = new TermTranslator( oldFrequentCount,
+                                                   newFrequentCount,
+                                                  oldTermCount,
+                                                  newTermCount,
+                                                  frequent,
+                                                  oldInfrequentHashTable,
+                                                  bitmap );
+
+  return translator;
 }
 
 //
