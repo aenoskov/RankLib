@@ -250,8 +250,8 @@ void Repository::_countDocumentAdd() {
 //
 
 void Repository::_incrementLoad() {
-  memmove( (void*) &_documentLoad[0], (void*) &_documentLoad[1], (sizeof _documentLoad[0]) * 59 );
-  memmove( (void*) &_queryLoad[0], (void*) &_queryLoad[1], (sizeof _queryLoad[0]) * 59 );
+  memmove( (void*) &_documentLoad[1], (void*) &_documentLoad[0], (sizeof _documentLoad[0]) * (LOAD_MINUTES * LOAD_MINUTE_FRACTION - 1) );
+  memmove( (void*) &_queryLoad[1], (void*) &_queryLoad[0], (sizeof _queryLoad[0]) * (LOAD_MINUTES * LOAD_MINUTE_FRACTION - 1) );
 
   _documentLoad[0] = 0;
   _queryLoad[0] = 0;

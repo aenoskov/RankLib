@@ -29,6 +29,17 @@ const int OUTPUT_BUFFER_SIZE = 32*1024;
 
 using namespace indri::index;
 
+#define LOGGING
+
+#ifdef LOGGING
+IndriTimer g_t;
+#define LOGSTART  { g_t.start(); }
+#define LOGMESSAGE(x)  { g_t.printElapsedMicroseconds(std::cout); std::cout << ": " << x << std::endl; }
+#else
+#define LOGMESSAGE(x) assert(1)
+#define LOGSTART assert(1)
+#endif
+
 //
 // IndexWriter constructor
 //
@@ -145,10 +156,17 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
 
   std::vector<WriterIndexContext*> contexts;
 
+  LOGSTART
+  
+  LOGMESSAGE( "Starting write" );
   _buildIndexContexts( contexts, indexes );
+  LOGMESSAGE( "Writing Inverted Lists" );
   _writeInvertedLists( contexts );
+  LOGMESSAGE( "Inverted Lists Complete" );
   _writeFieldLists( indexes, path );
+  LOGMESSAGE( "Fields Complete" );
   _writeDirectLists( contexts );
+  LOGMESSAGE( "Direct Lists Complete" );
   delete_vector_contents( contexts );
 
   // close infrequent
