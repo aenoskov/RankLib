@@ -179,21 +179,7 @@ public class RetrievalEngine {
 		
 		return viewableResults;		
 	}
-	
-	// tokenizes query string
-/*	private Vector getQuerySentences( String in ) {
-		Vector ret = new Vector();
-		SentenceTokenizer tok = new SentenceTokenizer( in );
 		
-		while( tok.hasMoreTokens() ) {
-			String sentence = parse( tok.nextSentence() );
-			//System.out.println( "SENTENCE = " + sentence );
-			ret.add( sentence );
-		}
-		
-		return ret;
-	}*/
-	
 	private String parse( String in ) {
 		String ret = new String();
 	

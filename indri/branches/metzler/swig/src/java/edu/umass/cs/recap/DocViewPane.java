@@ -15,6 +15,7 @@ import javax.swing.text.Document;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 
+import edu.umass.cs.indri.ParsedDocument;
 import edu.umass.cs.indri.QueryAnnotation;
 import edu.umass.cs.indri.QueryAnnotationNode;
 import edu.umass.cs.indri.ScoredExtentResult;
@@ -38,6 +39,8 @@ public class DocViewPane extends JSplitPane {
 	
 	private HashMap curExploreResults = null;
 	private Vector curAnalyzeResults = null;
+	
+	private EventListener listener = null;
 	
 	public DocViewPane( RetrievalEngine retEngine ) {
 		super( JSplitPane.HORIZONTAL_SPLIT );
@@ -91,6 +94,7 @@ public class DocViewPane extends JSplitPane {
 		RecapStyledDocument doc = retEngine.getMarkedDocument( info );		
 		curAnalyzeResults.add( doc );
 		JScrollPane scrollPane = new QuickFindScrollPane( doc.getViewableSentenceMatches(), doc.getQueryPositions(), doc.getLength() );
+		scrollPane.addMouseListener( (MouseListener)listener );
 		JTextPane textPane = new JTextPane();
 		textPane.setDocument( doc );
 		textPane.setEditable( false );		
@@ -142,15 +146,17 @@ public class DocViewPane extends JSplitPane {
 			String docinfo = "<i>Extent</i>: <font color=#ff0000><b><a href=\"" + info.docName + ":extent:" + info.docID + ":" + results[i].begin + ":" + results[i].end + "\">[" + results[i].begin + "," + results[i].end + "]</a></b></font><br>";
 					
 			try {
+				ParsedDocument theDoc = retEngine.getParsedDocument( results[i].document );
+				String snippet = RecapTools.buildSnippet( annotation, results[i].document, theDoc.text, theDoc.positions, 200, 7, 20 );
 				htmlKit.insertHTML( doc, doc.getLength(), title, 0, 0, null );
-				htmlKit.insertHTML( doc, doc.getLength(), generateHTMLSnippet( results[i].document ), 0, 0, null );
+				htmlKit.insertHTML( doc, doc.getLength(), snippet + "<br>", 0, 0, null ); //generateHTMLSnippet( results[i].document ), 0, 0, null );
 				htmlKit.insertHTML( doc, doc.getLength(), docinfo, 0, 0, null );
 			}
 			catch( Exception e ) { e.printStackTrace(); }
 		}		
 	}
 	
-	private String generateHTMLSnippet( int docID ) {
+/*	private String generateHTMLSnippet( int docID ) {
 		DefaultStyledDocument doc = (DefaultStyledDocument)curExploreResults.get( new Integer( docID) );
 		String snippet = new String("Snippet not available.");
 		
@@ -168,7 +174,7 @@ public class DocViewPane extends JSplitPane {
 		}			
 		
 		return snippet + "...<br>";
-	}
+	}*/
 	
 	public Vector getCurAnalyzeResults() {
 		return curAnalyzeResults;
@@ -207,8 +213,9 @@ public class DocViewPane extends JSplitPane {
 	}
 
 	// registers EventListeners for this class
-	public void addListeners( EventListener pane) {
-		docTextPane.addMouseListener( (MouseListener)pane );
-		matchPane.addChangeListener( (ChangeListener)pane );
+	public void addListeners( EventListener listener ) {
+		this.listener = listener;
+		docTextPane.addMouseListener( (MouseListener)listener );
+		matchPane.addChangeListener( (ChangeListener)listener );
 	}
 }

@@ -97,7 +97,7 @@ public class SentenceTokenizer extends StringTokenizer {
 			if( foundSentence ) {
 				//System.out.println("SENTENCE(1) = " + ret);
 				unparsedSentenceLength = ret.length();
-				return removeDelims( removeTags( ret ) );
+				return RecapTools.removeDelims( RecapTools.removeTags( ret ), delims );
 				//return ret;
 			}
 		}
@@ -106,70 +106,12 @@ public class SentenceTokenizer extends StringTokenizer {
 		ret += curTerm;
 		//System.out.println("SENTENCE(2) = " + ret);
 		unparsedSentenceLength = ret.length();
-		return removeDelims( removeTags( ret ) );
+		return RecapTools.removeDelims( RecapTools.removeTags( ret ), delims );
 		//return ret;
 	}
-	
-	// returns the next token that is not a delimiter, or null if there are no more
-/*	private String nextNonDelimToken() {
-		String ret = null;
 		
-		int pos = 0;
-		try {
-			while( pos >= 0 ) {
-				ret = nextToken();
-				pos = delims.indexOf( ret );
-				unparsedSentenceLength = newUnparsedSentenceLength;
-				newUnparsedSentenceLength += ret.length();
-			}
-		}
-		catch( Exception e ) { ret = null; } // this occurs if we run out of tokens
-		
-		return ret;
-	}*/
-	
 	// returns the unparsed sentence length
 	public int getUnparsedSentenceLength() {		
 		return unparsedSentenceLength;
 	}
-	
-	// TODO: put this into a "RecapTools" class
-	// removes any tags from the string
-	private String removeTags( String s ) {
-		String ret = "";
-		
-		String tok0 = null;
-		String tok1 = null;
-
-		StringTokenizer tok = new StringTokenizer( s, "<>", true );
-		
-		try {
-			tok0 = tok.nextToken();
-			ret += tok0;
-		}
-		catch( Exception e ) { return ret; }
-
-		try { tok1 = tok.nextToken(); }
-		catch( Exception e ) { return ret; }
-
-		while( tok.hasMoreTokens() ) {
-			String token = tok.nextToken();
-			if( token.equals(">") && tok0.equals("<") ) { /* tok1 is tag name, so don't add it to the return string */ }
-			else { ret += tok1; }
-			tok0 = tok1;
-			tok1 = token;
-		}
-		
-		ret += tok1;
-		
-		return ret.replaceAll("<>", "");
-	}
-	
-	// replaces all delimiters with a space
-	private String removeDelims( String s ) {
-		for( int i = 0; i < delims.length(); i++ )
-			s.replace( delims.charAt(i), ' ' );
-
-		return s;
-	}	
 }
