@@ -55,6 +55,8 @@
 #ifndef INDRI_RVLCOMPRESSSTREAM_HPP
 #define INDRI_RVLCOMPRESSSTREAM_HPP
 
+#include "RVLCompress.hpp"
+
 /*! Provide RVL compression on a stream.
  */
 class RVLCompressStream {

@@ -57,8 +57,6 @@
 
 #include "indri/TermFieldStatistics.hpp"
 #include <indri/greedy_vector>
-#include "indri/DocListMemoryBuilder.hpp"
-#include "lemur/File.hpp"
 #include "lemur/lemur-compat.hpp"
 #include "indri/RVLCompressStream.hpp"
 #include "indri/RVLDecompressStream.hpp"
@@ -67,8 +65,6 @@
 // remove warning about zero-sized arrays
 #pragma warning ( disable: 4200 )
 #endif 
-
-#define INDRI_MAX_SEGMENTS (8)
 
 namespace indri {
   namespace index {
@@ -87,13 +83,16 @@ namespace indri {
           minDocumentLength(MAX_INT32)
       {
         term = 0;
-        
-        memset( segmentOffsets, 0xFF, sizeof segmentOffsets );
       }
+      
+      struct term_less {
+      public:
+        bool operator () ( const TermData*& one, const TermData*& two ) const {
+          return strcmp( one->term, two->term ) < 0;
+        }
+      };
 
-      File::offset_type segmentOffsets[INDRI_MAX_SEGMENTS];
       TermFieldStatistics corpus;
-      DocListMemoryBuilder list;
 
       float maxDocumentFraction;         // argmax_documents of (termCount/docLength)
       unsigned int maxDocumentFrequency; // maximum number of times this term appears in any given document
@@ -151,26 +150,6 @@ inline int termdata_compress( char* buffer, int size, int fieldCount, indri::ind
          << termData->minDocumentLength
          << termData->maxDocumentFraction;
 
-  // segment information
-  
-  int numSegments = 0;
-
-  // count up the number of segments used here
-  for( size_t i=0; i<INDRI_MAX_SEGMENTS; i++ ) {
-    if( termData->segmentOffsets[i] != (INT64) (-1) )
-      numSegments++;
-  }
-
-  stream << numSegments;
-
-  // stream out only the segment offsets that are used
-  for( unsigned int i=0; i<INDRI_MAX_SEGMENTS; i++ ) {
-    if( termData->segmentOffsets[i] != (INT64) (-1) ) {
-      stream << i
-             << termData->segmentOffsets[i];
-    }
-  }
-
   // field statistics
   for( int i=0; i<fieldCount; i++ ) {
     stream << termData->fields[i].totalCount
@@ -191,20 +170,6 @@ inline void termdata_decompress( const char* buffer, int size, int fieldCount, i
   stream >> termData->maxDocumentFrequency
          >> termData->minDocumentLength
          >> termData->maxDocumentFraction;
-
-  // segment information
-  int numSegments = 0;
-  stream >> numSegments;
-
-  for( int i=0; i<numSegments; i++ ) {
-    int segment;
-    File::offset_type offset;
-
-    stream >> segment
-           >> offset;
-
-    termData->segmentOffsets[segment] = offset;
-  }
 
   // field statistics
   for( int i=0; i<fieldCount; i++ ) {

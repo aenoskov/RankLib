@@ -59,80 +59,95 @@
 #include <vector>
 #include <assert.h>
 #include "indri/greedy_vector"
+#include "indri/DocListIterator.hpp"
 
 namespace indri {
   namespace index {
-    class DocListMemoryBuilderIterator {
-      const greedy_vector< std::pair<char*, char*>, 4 >& _lists;
+    class DocListMemoryBuilderIterator : public DocListIterator {
+      const greedy_vector< std::pair<char*, char*>, 4 >* _lists;
       greedy_vector< std::pair<char*, char*>, 4 >::const_iterator _current;
-
+      indri::index::DocListIterator::DocumentData _data;
+      
       const char* _list;
       const char* _listEnd;
 
-      int _currentDocument;
-      int _currentPosition;
-      int _positionsLeft;
-
     public:
-      DocListMemoryBuilderIterator( const greedy_vector< std::pair<char*,char*>, 4 >& lists ) :
-        _lists(lists)
-      {
-        _current = _lists.begin();
-        _currentDocument = 0;
-        _currentPosition = 0;
-        _positionsLeft = 0;
-        _list = 0;
-        _listEnd = 0;
-
-        if( _current != _lists.end() ) {
+      void reset( const greedy_vector< std::pair<char*,char*>, 4 >& lists ) {
+        _lists = &lists;
+        
+        _current = _lists->begin();
+        
+        if( _current != _lists->end() ) {
           _list = _current->first;
           _listEnd = _current->second;
+        } else {
+          _list = 0;
+          _listEnd = 0;
         }
+        
+        _data.document = 0;
+        _data.positions.clear();
+        
+        nextEntry();
+      }
+      
+      DocListMemoryBuilderIterator( const greedy_vector< std::pair<char*,char*>, 4 >& lists ) {
+        reset( lists );
+      }
+      
+      bool finished() {
+        return _current == _lists->end() && _list == _listEnd;
       }
 
-      bool next() {
+      bool nextEntry( int documentID ) {
+        do {
+          if( _data.document >= documentID )
+            return true;
+        }
+        while( nextEntry() );
+        
+        return false;
+      }
+      
+      bool nextEntry() {
         if( _list < _listEnd ) {
-          if( _positionsLeft > 0 ) {
-            // we have more positions left in the current document
-            int deltaPosition;
+          int deltaDocument;
+          int positions;
+          
+          _list = RVLCompress::decompress_int( _list, deltaDocument );
+          _data.document += deltaDocument;
+
+          _list = RVLCompress::decompress_int( _list, positions );
+
+          int lastPosition = 0;
+          int deltaPosition;
+
+          for( int i=0; i<positions; i++ ) {
             _list = RVLCompress::decompress_int( _list, deltaPosition );
-            _currentPosition += deltaPosition;
-            _positionsLeft--;
-            return true;
-          } else {
-            // no positions left, but we have more documents to read
-            int deltaDocument;
-            _list = RVLCompress::decompress_int( _list, deltaDocument );
-            _list = RVLCompress::decompress_int( _list, _positionsLeft );
-            _list = RVLCompress::decompress_int( _list, _currentPosition );
-            _currentDocument += deltaDocument;
-            _positionsLeft--;
-            return true;
+            lastPosition += deltaPosition;
+
+            _data.positions.push_back( lastPosition );
           }
         } else {    
           assert( _list == _listEnd );
 
           // no data left, go to the next segment
-          if( _current != _lists.end() )
+          if( _current != _lists->end() )
             _current++;
           
-          if( _current != _lists.end() ) {
+          if( _current != _lists->end() ) {
             _list = _current->first;
             _listEnd = _current->second;
-            return next();
+            return nextEntry();
           }
 
           // no more list segments
           return false;
         }
       }
-
-      int document() {
-        return _currentDocument;
-      }
-
-      int position() {
-        return _currentPosition;
+      
+      indri::index::DocListIterator::DocumentData* currentEntry() {
+        return &_data;
       }
     };
 
@@ -181,4 +196,3 @@ namespace indri {
 }
 
 #endif // LEMUR_DOCLISTMEMORYBUILDER_HPP
-
