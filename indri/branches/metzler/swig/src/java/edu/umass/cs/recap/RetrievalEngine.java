@@ -35,9 +35,13 @@ public class RetrievalEngine {
 	// Indri retrieval engine wrapper
 	private QueryEnvironment indri = null;
 
+	// Cached metadata and ParsedDocuments
+	private RecapCache cache = null;
+	
 	// create a new Indri Retrieval Engine 
 	public RetrievalEngine( QueryEnvironment indri ) {
 		this.indri = indri;
+		this.cache = new RecapCache();
 	}
 	
 	// runs a query with the given parameters
@@ -73,7 +77,6 @@ public class RetrievalEngine {
 		Vector results = scoreResults( allScores, queryExtent, queryCombiner );
 		
 		Collections.sort( results );
-		setMetadata( results );
 
 		Vector viewableResults = new Vector();
 		for( int i = results.size() - 1; i >= results.size() - numResults; i-- ) {
@@ -82,6 +85,8 @@ public class RetrievalEngine {
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
 			viewableResults.add( results.elementAt( i ) );
 		}
+
+		setMetadata( viewableResults );
 		
 		return viewableResults;		
 	}
@@ -178,8 +183,8 @@ public class RetrievalEngine {
 				Vector v = (Vector)results.get( i );
 				info.score += Math.log( score );
 				if( v != null && v.size() > 0 )
-					info.extents.addAll( v ); // add all matches
-					//info.extents.add( v.elementAt( 0 ) ); // only add the best match
+					//info.extents.addAll( v ); // add all matches
+					info.extents.add( v.elementAt( 0 ) ); // only add the best match
 				
 			}
 		}
@@ -240,15 +245,20 @@ public class RetrievalEngine {
 	// objects contained in the docs Vector
 	private void setMetadata( Vector docs ) {
 		int [] ids = new int[docs.size()];
-		
+
 		for( int i = 0; i < docs.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)docs.elementAt( i );
 			ids[i] = info.docID;
 		}
 		
-		String [] docNames = indri.documentMetadata( ids, "docno" );
+		// arrays to fill in with data
+		String [] docNames = new String[ docs.size() ]; //indri.documentMetadata( ids, "docno" );
+		String [] docDates = new String[ docs.size() ]; //indri.documentMetadata( ids, "date" );
+		ParsedDocument [] parsedDocs = new ParsedDocument[ docs.size() ]; //indri.documents( ids );
 		String [] docDates = indri.documentMetadata( ids, "date" );
 		
+		getMetadata( ids, docNames, docDates, parsedDocs );
+				
 		for( int i = 0; i < docs.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)docs.elementAt( i );
 			info.docName = docNames[ i ];
@@ -290,40 +300,39 @@ public class RetrievalEngine {
 	
 	public DefaultStyledDocument getDocument( DocInfo info ) {
 		DefaultStyledDocument doc = new DefaultStyledDocument();
+
+		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
+		StyleConstants.setFontSize( defaultStyle, 16 );
+
+		ParsedDocument theDoc = getParsedDocument( info.getDocNum() );
 		
-		// TODO: clean this up a bit
-		int [] id = new int[1];
-		id[0] = info.getDocNum();
-		ParsedDocument [] docs = indri.documents( id );
-		try {
-			doc.insertString( 0, docs[0].text , null );
-		}
+		try { doc.insertString( 0, theDoc.text , defaultStyle ); }
 		catch( Exception e ) { /* do nothing */ }
 				
 		return doc;
 	}
-	
+
+	// returns a RecapStyledDocument for a given ScoredDocInfo record
 	public RecapStyledDocument getMarkedDocument( ScoredDocInfo info ) {
 		RecapStyledDocument doc = new RecapStyledDocument();
 		
-		// TODO: clean this up a bit
-		int [] id = new int[1];
-		id[0] = info.docID;
-		ParsedDocument [] docs = indri.documents( id );
-		try {
-			doc.insertString( 0, docs[0].text , null );
-		}
-		catch( Exception e ) { /* do nothing */ }
-
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
+		StyleConstants.setFontSize( defaultStyle, 16 );
+		
 		Style s = doc.addStyle( "match", defaultStyle );
 		StyleConstants.setForeground( s, Color.blue );
 		StyleConstants.setItalic( s, true );
+				
+		ParsedDocument theDoc = getParsedDocument( info.docID );
         
+		// insert document text into RecapStyledDocument
+		try { doc.insertString( 0, theDoc.text , defaultStyle ); }
+		catch( Exception e ) { /* do nothing */ }
+
 		for( int i = 0; i < info.extents.size(); i++ ) {
 			ScoredExtentResult extent = (ScoredExtentResult)info.extents.elementAt( i );
-			int extentBegin = docs[0].positions[extent.begin].begin;
-			int extentEnd = docs[0].positions[extent.end - 1].end;
+			int extentBegin = theDoc.positions[extent.begin].begin;
+			int extentEnd = theDoc.positions[extent.end - 1].end;
 
 			doc.addMatch( extentBegin, extentEnd );
 			
@@ -335,10 +344,69 @@ public class RetrievalEngine {
 			catch(Exception e) { /* do nothing */ }
 		}
 		
-		doc.setByteLength( docs[0].text.length() );
+		doc.setByteLength( theDoc.text.length() );
 		
 		return doc;
 	}
+
+	public ParsedDocument getParsedDocument( int docID ) {
+		ParsedDocument theDoc = null;		
+		RecapCache.Entry entry = (RecapCache.Entry)cache.get( new Integer( docID ) );
+		if( entry == null ) { // need to get the ParsedDocument
+			int [] id = new int[1];
+			id[0] = docID;
+			ParsedDocument [] docs = indri.documents( id );
+			theDoc = docs[0];
+		}
+		else // got the ParsedDocument from the cache
+			theDoc = entry.doc;
+		return theDoc;
+	}
+
+	private void getMetadata( int [] ids, String [] docNames, String [] docDates, ParsedDocument [] parsedDocs ) {
+		boolean [] found = new boolean[ ids.length ];
+		int [] lookup = new int[ ids.length ];
+		int numMissing = 0;
+		for( int i = 0; i < ids.length; i++ ) {
+			RecapCache.Entry entry = (RecapCache.Entry)cache.get( new Integer( ids[i] ) );
+			if( entry == null ) { // need to look up this value 
+				found[i] = false;
+				lookup[ numMissing++ ] = i;
+			}
+			else { // found in cache, so fill it in
+				found[i] = true;
+				docNames[i] = entry.name;
+				docDates[i] = entry.date;
+				parsedDocs[i] = entry.doc;
+			}
+		}
+				
+		if( numMissing == 0 ) // we're done
+			return;
+		
+		int [] missingIDs = new int[ numMissing ];
+		
+		numMissing = 0;
+		for( int i = 0; i < ids.length; i++ ) { 
+			if( !found[i] )
+				missingIDs[ numMissing++ ] = ids[ i ];
+		}
+		
+		String [] tmpNames = indri.documentMetadata( missingIDs, "docno" );
+		String [] tmpDates = indri.documentMetadata( missingIDs, "date" );
+		ParsedDocument [] tmpDocs = indri.documents( missingIDs );
+		
+		// fill in the missing values
+		for( int i = 0; i < numMissing; i++ ) {
+			docNames[ lookup[i] ] = tmpNames[i];
+			docDates[ lookup[i] ] = tmpDates[i];
+			parsedDocs[ lookup[i] ] = tmpDocs[i];
+		}
+		
+		// add new information to the cache
+		cache.put( missingIDs, tmpNames, tmpDates, tmpDocs );
+	}
+
 	
 	// returns a list of indexed fields
 	public String [] getFieldList() {

@@ -145,13 +145,11 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			
 			StringTokenizer tok = new StringTokenizer( startDate, "/" );
 			int minMonth = Integer.parseInt( tok.nextToken() );
-			tok.nextToken();
 			int minYear = Integer.parseInt( tok.nextToken() );
 			tlPanel.setStartDate( minMonth, minYear );
 
 			tok = new StringTokenizer( endDate, "/" );
 			int maxMonth = Integer.parseInt( tok.nextToken() );
-			tok.nextToken();
 			int maxYear = Integer.parseInt( tok.nextToken() );
 			tlPanel.setEndDate( maxMonth, maxYear );
 			

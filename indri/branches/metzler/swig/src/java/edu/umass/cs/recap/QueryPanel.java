@@ -30,7 +30,7 @@ public class QueryPanel extends JPanel {
 	private Choice simMeasureChoice = null;
 	private Choice combineMethodChoice = null;
 	private Choice fieldChoice = null;
-
+	
 	private JTextField startDate = null;
 	private JTextField endDate = null;
 	private JButton updateTimelineButton = null;
@@ -65,9 +65,9 @@ public class QueryPanel extends JPanel {
 		fieldChoice.add( "document" ); // document retrieval
 		for( int i = 0; i < fields.length; i++ )
 			fieldChoice.add( fields[i] );
-
-		startDate = new JTextField("1/1/1980");
-		endDate = new JTextField("12/31/2010");
+		
+		startDate = new JTextField("1/1980");
+		endDate = new JTextField("12/2010");
 		updateTimelineButton = new JButton( "Update timeline");
 		
 		// subpanel
