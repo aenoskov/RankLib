@@ -10,8 +10,6 @@ import edu.umass.cs.indri.QueryEnvironment;
 /**
  * @author Don Metzler
  *
- * TODO To change the template for this generated type comment go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 public class Recap extends JFrame {
 	
@@ -78,10 +76,14 @@ public class Recap extends JFrame {
 		RetrievalEngine retEngine = new RetrievalEngine( indri );
 
 		if( interactive ) { // interactive mode
-			// setup and display the application window
-			mainPane = new MainPane( retEngine );
-			setContentPane( mainPane );
+			// add menu bar
+			MainMenuBar mainMenuBar = new MainMenuBar();
+			setJMenuBar( mainMenuBar );
 
+			// setup and display the application window			
+			mainPane = new MainPane( retEngine, mainMenuBar );			
+			setContentPane( mainPane );
+			
 			setSize( getMaximumSize() );
 			setVisible( true );
 		

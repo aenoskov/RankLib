@@ -60,7 +60,7 @@ public class DocViewPane extends JSplitPane {
 		JScrollPane scrollPane = new QuickFindScrollPane( doc.getMatches(), doc.getByteLength() );
 		JTextPane textPane = new JTextPane();
 		textPane.setDocument( doc );
-		textPane.setEditable( false );
+		//textPane.setEditable( false );
 		scrollPane.getViewport().setView( textPane );
 		matchPane.addTab( info.docName, scrollPane );
 	}

@@ -37,11 +37,15 @@ public class RetrievalEngine {
 
 	// Cached metadata and ParsedDocuments
 	private RecapCache cache = null;
+
+	// StyledDocument's font size
+	private int docFontSize;
 	
 	// create a new Indri Retrieval Engine 
 	public RetrievalEngine( QueryEnvironment indri ) {
 		this.indri = indri;
 		this.cache = new RecapCache();
+		this.docFontSize = 12; 
 	}
 	
 	// runs a query with the given parameters
@@ -255,7 +259,6 @@ public class RetrievalEngine {
 		String [] docNames = new String[ docs.size() ]; //indri.documentMetadata( ids, "docno" );
 		String [] docDates = new String[ docs.size() ]; //indri.documentMetadata( ids, "date" );
 		ParsedDocument [] parsedDocs = new ParsedDocument[ docs.size() ]; //indri.documents( ids );
-		String [] docDates = indri.documentMetadata( ids, "date" );
 		
 		getMetadata( ids, docNames, docDates, parsedDocs );
 				
@@ -302,7 +305,7 @@ public class RetrievalEngine {
 		DefaultStyledDocument doc = new DefaultStyledDocument();
 
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
-		StyleConstants.setFontSize( defaultStyle, 16 );
+		StyleConstants.setFontSize( defaultStyle, docFontSize );
 
 		ParsedDocument theDoc = getParsedDocument( info.getDocNum() );
 		
@@ -317,7 +320,7 @@ public class RetrievalEngine {
 		RecapStyledDocument doc = new RecapStyledDocument();
 		
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
-		StyleConstants.setFontSize( defaultStyle, 16 );
+		StyleConstants.setFontSize( defaultStyle, docFontSize );
 		
 		Style s = doc.addStyle( "match", defaultStyle );
 		StyleConstants.setForeground( s, Color.blue );
@@ -433,5 +436,13 @@ public class RetrievalEngine {
 			ret.add( new DocInfo( docIDs[i], i+1 ) );
 		
 		return ret;
+	}
+	
+	public void increaseDocFontSize() {
+		docFontSize += 2;
+	}
+	
+	public void decreaseDocFontSize() {
+		docFontSize -= 2;
 	}
 }
