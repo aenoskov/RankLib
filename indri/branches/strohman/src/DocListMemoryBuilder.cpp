@@ -144,7 +144,7 @@ void indri::index::DocListMemoryBuilder::_grow() {
 // _terminateDocument
 //
 
-void indri::index::DocListMemoryBuilder::_terminateDocument() {
+inline void indri::index::DocListMemoryBuilder::_terminateDocument() {
   assert( _locationCountPointer );
   int locations = _termFrequency - _lastTermFrequency;
   int locationsSize = RVLCompress::compressedSize( locations );
