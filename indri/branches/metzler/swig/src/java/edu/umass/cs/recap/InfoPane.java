@@ -22,6 +22,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
+import javax.swing.text.Style;
 
 import edu.umass.cs.indri.ParsedDocument;
 import edu.umass.cs.indri.QueryAnnotation;
@@ -234,7 +235,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();			
 			String queryText = pane.getSelectedText();
 			if( queryText != null && !queryText.trim().equals("") )
-				queryPanel.setQueryText( pane.getSelectedText() );
+				queryPanel.setQueryText( removeTags( pane.getSelectedText() ) );
 			doc.setHighlight( pane.getSelectionStart(), pane.getSelectionEnd() );
 		}
 		else if( e.getButton() == MouseEvent.BUTTON1 && src == tlPanel ) {
@@ -481,6 +482,33 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
 		}
 
+	}
+	
+	// removes any tags from the string
+	private String removeTags( String s ) {
+		String ret = "";
+		
+		String tok0 = null;
+		String tok1 = null;
+
+		StringTokenizer tok = new StringTokenizer( s, "<>", true );
+		try {
+			tok0 = tok.nextToken();
+			ret += tok0;
+			tok1 = tok.nextToken();
+		}
+		catch( Exception e ) { return ""; }
+		while( tok.hasMoreTokens() ) {
+			String token = tok.nextToken();
+			if( token.equals(">") && tok0.equals("<") ) { /* tok1 is tag name, so don't add it to the return string */ }
+			else { ret += tok1; }
+			tok0 = tok1;
+			tok1 = token;
+		}
+		
+		ret += tok1;
+		
+		return ret.replaceAll("<>", "");
 	}
 	
 	private void updateTimeline() {

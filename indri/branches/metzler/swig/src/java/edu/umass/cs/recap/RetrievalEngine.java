@@ -433,8 +433,8 @@ public class RetrievalEngine {
 						continue;
 					int extentBegin = theDoc.positions[extents[i].begin].begin;
 					int extentEnd = theDoc.positions[extents[i].end - 1].end;
-					
-					doc.addAnnotationMatch( extentBegin, extentEnd, highlightNum );					
+									
+					doc.addAnnotationMatch( extentBegin, extentEnd, highlightNum );
 				}
 				highlightNum = ( highlightNum + 1 ) % 5;
 			}			
