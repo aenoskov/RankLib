@@ -487,7 +487,7 @@ void Repository::addDocument( ParsedDocument* document ) {
     state = _active;
   }
 
-  //int documentID = dynamic_cast<indri::index::MemoryIndex*>(state->back())->addDocument( *document );
+  int documentID = dynamic_cast<indri::index::MemoryIndex*>(state->back())->addDocument( *document );
   //_collection->addDocument( documentID, document );
 
   _countDocumentAdd();

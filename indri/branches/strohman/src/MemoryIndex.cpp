@@ -677,16 +677,9 @@ size_t indri::index::MemoryIndex::memorySize() {
   ScopedLock l( _readLock );
 
   HashTable<const char*, term_entry*>::iterator iter;
-  size_t listDataSize = 0;
 
   // inverted list data
-  for( iter = _stringToTerm.begin(); iter != _stringToTerm.end(); iter++ ) {
-    size_t listSize = (*iter->second)->list.memorySize();
-    size_t stringLength = strlen( (*iter->second)->term );
-    size_t dataSize = ::termdata_size( _fieldData.size() );
-    
-    listDataSize += (listSize + stringLength + dataSize);
-  }
+  size_t listDataSize = _allocator.allocatedBytes();
 
   // document metadata
   size_t documentDataSize = _documentData.size() * sizeof(indri::index::DocumentData);
