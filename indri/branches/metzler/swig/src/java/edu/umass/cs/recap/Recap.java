@@ -2,6 +2,7 @@ package edu.umass.cs.recap;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 
 import edu.umass.cs.indri.QueryEnvironment;
@@ -16,12 +17,13 @@ import edu.umass.cs.indri.QueryEnvironment;
  */
 public class Recap extends JFrame {
 	
-	private final String VERSION = "0.3";
+	private final String VERSION = "0.4";
 	
 	private MainPane mainPane = null;
 	
 	public Recap() {
 		setTitle( "RECAP v" + VERSION );
+		setIconImage( (new ImageIcon("edu/umass/cs/recap/images/recap-small.png")).getImage() );
 		setDefaultCloseOperation( EXIT_ON_CLOSE );
 	}
 	
@@ -92,8 +94,6 @@ public class Recap extends JFrame {
 
 			setSize( getMaximumSize() );						
 			setVisible( true );
-			
-			//mainPane.init();
 		}
 		else { // command line mode
 			clm.run( retEngine );

@@ -20,6 +20,7 @@ import javax.swing.event.HyperlinkListener;
 
 import edu.umass.cs.indri.ParsedDocument;
 import edu.umass.cs.indri.QueryAnnotation;
+import edu.umass.cs.indri.ScoredExtentResult;
 
 /*
  * Created on Sep 28, 2004
@@ -43,7 +44,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	// default settings
 	private String simMeasure = "#identsim1";
 	private String queryExtent = "sentence";
-	private int numResults = 5;
+	private int numExploreResults = 5;
+	private int numAnalyzeResults = 5;
 	
 	public InfoPane( RetrievalEngine retEngine, Dimension screenSize, MainPaneUpdater updater ) {
 		super( JSplitPane.VERTICAL_SPLIT );
@@ -85,19 +87,25 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			this.showErrorDialog( "Unable to evaluate empty or null query!" );
 			return;
 		}
-
-		dvPane.clearTabs();		
+				
 		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
 
-		Pair p = retEngine.runQuery( query, numResults );
+		Pair p = retEngine.runQuery( query, numExploreResults );
 		QueryAnnotation annotation = (QueryAnnotation)p.left;
 		Vector viewableResults = (Vector)p.right;
-				
+
+		ScoredExtentResult [] results = annotation.getResults();
+		if( results == null || results.length == 0 ) {
+			setCursor( new Cursor( Cursor.DEFAULT_CURSOR ) );
+			showErrorDialog( "Query returned no results!" );
+			return;
+		}
+		
 		// update DocViewPane
-		//dvPane.addMatches( viewableResults );
+		dvPane.clearTabs();
 		dvPane.displayExplorationResults( annotation, viewableResults );
 		dvPane.getResultPane().addHyperlinkListener( this );
-		dvPane.displayHighlightedDoc( ( annotation.getResults()[0] ).document );
+		dvPane.displayHighlightedDoc( results[0].document );
 		
 		// update TimelinePanel
 		tlPanel.setResults( viewableResults );
@@ -121,7 +129,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		dvPane.clearTabs();
 		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
 
-		Vector viewableResults = retEngine.runQuery( query, simMeasure, queryExtent, numResults );
+		Vector viewableResults = retEngine.runQuery( query, simMeasure, queryExtent, numAnalyzeResults );
 				
 		// update DocViewPane
 		dvPane.addMatches( viewableResults );
@@ -146,8 +154,12 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		queryExtent = extent;
 	}
 	
-	public void setNumResults( int results ) {
-		numResults = results;
+	public void setNumExploreResults( int results ) {
+		numExploreResults = results;
+	}
+	
+	public void setNumAnalyzeResults( int results ) {
+		numAnalyzeResults = results;
 	}
 	
 	public void stateChanged( ChangeEvent e ) {		
@@ -168,13 +180,13 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				if( clickCount == 1 ) { // 1 click => set tab to doc
 					tlPanel.setCurrent( info.docName );
 					dvPane.setSelectedDoc( doc );
-					if( queryPanel.getMode().equals( "explore" ) )
+					if( getMode().equals( "explore" ) )
 						dvPane.displayHighlightedDoc( info.docID );
 					repaint();
 				}
 				else { // 2+ clicks => analyze document
 					//updater.setSelectedDoc( doc );
-					if( queryPanel.getMode().equals( "analyze" ) )
+					if( getMode().equals( "analyze" ) )
 						displayDoc( doc );
 				}
 			}
@@ -189,7 +201,9 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		Object src = e.getSource();
 		if( src == dvPane.getDocTextPane() ) {
 			JTextPane pane = dvPane.getDocTextPane();
-			queryPanel.setQueryText( pane.getSelectedText() );
+			String queryText = pane.getSelectedText();
+			if( queryText != null && !queryText.trim().equals("") )
+				queryPanel.setQueryText( pane.getSelectedText() );
 		}
 	}
 
@@ -197,7 +211,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	public void actionPerformed( ActionEvent e ) {
 		Object src = e.getSource();
 		if( src == queryPanel.getRunQueryButton() ) {
-			String mode = queryPanel.getMode();
+			String mode = getMode();
 			if( mode.equals( "explore" ) )
 				runExploreQuery( queryPanel.getQueryText() );
 			else if( mode.equals( "analyze" ) )
@@ -212,24 +226,35 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			String startDate = queryPanel.getTimelineStartDate();
 			String endDate = queryPanel.getTimelineEndDate();
 			
-			StringTokenizer tok = new StringTokenizer( startDate, "/" );
-			int minMonth = Integer.parseInt( tok.nextToken() );
-			int minYear = Integer.parseInt( tok.nextToken() );
-			tlPanel.setStartDate( minMonth, minYear );
-
-			tok = new StringTokenizer( endDate, "/" );
-			int maxMonth = Integer.parseInt( tok.nextToken() );
-			int maxYear = Integer.parseInt( tok.nextToken() );
-			tlPanel.setEndDate( maxMonth, maxYear );
+			try {
+				StringTokenizer tok = new StringTokenizer( startDate, "/" );
+				int minMonth = Integer.parseInt( tok.nextToken() );
+				int minYear = Integer.parseInt( tok.nextToken() );
+				
+				tok = new StringTokenizer( endDate, "/" );
+				int maxMonth = Integer.parseInt( tok.nextToken() );
+				int maxYear = Integer.parseInt( tok.nextToken() );
+				
+				if( minYear > maxYear || ( minYear == maxYear && minMonth >= maxMonth ) ) {
+					showErrorDialog( "Start date must be before end date!" );
+					return;
+				}
+				
+				tlPanel.setStartDate( minMonth, minYear );
+				tlPanel.setEndDate( maxMonth, maxYear );
 			
-			repaint();
+				repaint();
+			}
+			catch( Exception a ) {
+				showErrorDialog( "Dates must be in MM/YYYY format!" );
+			}
 		}
 		else if( src == tlPanel.getPreviousDocButton() ) {
 			ScoredDocInfo info = tlPanel.getPreviousDoc();
 			DocInfo doc = new DocInfo( info.docName, info.docID );
 			tlPanel.setCurrent( info.docName );
 			dvPane.setSelectedDoc( doc );
-			if( queryPanel.getMode().equals( "explore" ) )
+			if( getMode().equals( "explore" ) )
 				dvPane.displayHighlightedDoc( info.docID );
 			repaint();
 		}
@@ -238,7 +263,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			DocInfo doc = new DocInfo( info.docName, info.docID );
 			tlPanel.setCurrent( info.docName );
 			dvPane.setSelectedDoc( doc );
-			if( queryPanel.getMode().equals( "explore" ) )
+			if( getMode().equals( "explore" ) )
 				dvPane.displayHighlightedDoc( info.docID );
 			repaint();
 		}
@@ -275,6 +300,10 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			docTextPane.setCaretPosition( endPos );
 		docTextPane.setCaretPosition( startPos );
 		docTextPane.moveCaretPosition( endPos );
+	}
+	
+	public String getMode() {
+		return queryPanel.getMode();
 	}
 	
 	protected void showErrorDialog( String msg ) {
