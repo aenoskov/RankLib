@@ -75,6 +75,8 @@ public class RetrievalEngine {
 
 		Vector viewableResults = new Vector();
 		for( int i = results.size() - 1; i >= results.size() - numResults; i-- ) {
+			if( i <= 0 ) // in case we don't actually retrieve as many docs as was requested
+				break;
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
 			viewableResults.add( results.elementAt( i ) );
 		}
