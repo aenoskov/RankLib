@@ -368,7 +368,6 @@ optional parameter with the default of no stopping.</dd>
 #include <vector>
 #include <map>
 #include "indri/IndriTimer.hpp"
-#include <crtdbg.h>
 
 #include "indri/QueryEnvironment.hpp"
 #include "indri/Thread.hpp"
