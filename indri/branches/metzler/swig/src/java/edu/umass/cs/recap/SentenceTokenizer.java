@@ -42,7 +42,7 @@ public class SentenceTokenizer extends StringTokenizer {
 
 			char lastChar = curTerm.charAt( curTerm.length() - 1 );
 
-			if( lastChar == '?' || lastChar == '!' ) {
+			if( lastChar == '?' || lastChar == '!' || lastChar == ';' ) {
 		        foundSentence = true;
 		    }
 			else if( lastChar == '.' ) {
