@@ -63,6 +63,8 @@ indri::lang::Node* indri::lang::Unpacker::_unpack( XMLNode* child ) {
     result = new WeightNode(*this);
   } else if( type == "ExtentRestriction" ) {
     result = new ExtentRestriction(*this);
+  } else if( type == "FixedPassage" ) {
+    result = new FixedPassage(*this);
   } else if( type == "FilterNode" ) {
     result = new FilterNode(*this);
   } else if( type == "ContextCounterNode" ) {
