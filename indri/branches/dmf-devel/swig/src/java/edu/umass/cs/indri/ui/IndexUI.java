@@ -194,11 +194,12 @@ public class IndexUI extends JPanel implements ActionListener,
 		
 	colFields = new JTextField("docno", 25);
 	colFields.setToolTipText("Comma delimited list of field names, " +
-				 "without spaces");
+				 "without spaces to index as metadata.");
 		
 	indFields = new JTextField("title", 25);
 	indFields.setToolTipText("Comma delimited list of field names, " +
-				 "without spaces");
+				 "without spaces to index as data for " +
+				 "field queries");
 	label = new JLabel("Collection Fields: ", JLabel.TRAILING);
 	label.setLabelFor(colFields);
 	constraints.gridx = 0;
