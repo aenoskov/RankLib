@@ -47,7 +47,8 @@ public class IndexUI extends JPanel implements ActionListener,
     private final static String helpFile = "properties/IndriIndex.html";
     /** The little icon */
     //    private final static String iconFile = "properties/lemur_icon.GIF";
-    private final static String iconFile = "properties/lemur.GIF";
+    //    private final static String iconFile = "properties/lemur.GIF";
+    private final static String iconFile = "properties/lemur_head_32.gif";
     /** The big logo */
     private final static String logoFile = null;
     /** Indri FileClassEnvironments */
