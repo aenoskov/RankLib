@@ -35,6 +35,9 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	// annotation matches in "explore" mode
 	protected Vector annotationMatches = null;
 
+	// named entity matches
+	protected Vector namedEntityMatches = null;
+	
 	// annotation highlighting styles and colors 
 	protected final String [] highlightNames = new String [] {
 			"annotation0", "annotation1", "annotation2", "annotation3", "annotation4" };
@@ -52,13 +55,14 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		this.defaultStyle = defaultStyle;
 
 		initStyles();
-
-		annotateNamedEntities();
 		
 		// initialize match vectors
 		sentenceMatches = new Vector();
 		viewableSentenceMatches = new Vector();
 		annotationMatches = new Vector();
+		namedEntityMatches = new Vector();
+		
+		initNamedEntityMatches();
 	}
 	
 	public void addSentenceMatch( int begin, int end, double score ) {
@@ -94,6 +98,7 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		}
 		highlight = new Match( begin, end );
 		applyStyle( "highlight", begin, end );
+		render( begin, end );
 	}
 
 	protected void setSentenceMatches( Vector matches ) {
@@ -116,6 +121,7 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	
 	// renders a portion of the document
 	protected void render( int begin, int end ) {
+		// TODO: tidy this up a bit
 		for( int i = 0; i < sentenceMatches.size(); i++ ) {
 			Match m = (Match)sentenceMatches.elementAt( i );
 			if( ( m.begin <= begin && m.end >= begin ) ||
@@ -129,12 +135,21 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 			if( ( m.begin <= begin && m.end >= begin ) ||
 				( m.begin >= begin && m.end <= end ) ||
 				( m.begin <= end && m.end >= end ) )
-				applyStyle( "annotation"+m.type, m.begin, m.end );
+				applyStyle( "annotation"+(int)m.type, m.begin, m.end );
+		}
+
+		for( int i = 0; i < namedEntityMatches.size(); i++ ) {
+			Match m = (Match)namedEntityMatches.elementAt( i );
+			if( ( m.begin <= begin && m.end >= begin ) ||
+				( m.begin >= begin && m.end <= end ) ||
+				( m.begin <= end && m.end >= end ) )
+				// TODO: fix this to allow different styles for each named entity
+				applyStyle( "ne:person", m.begin, m.end );
 		}
 	}
 	
 	// goes through the text and applies the styles to the named entities
-	private void annotateNamedEntities() {
+	private void initNamedEntityMatches() {
 		String tok0 = null;
 		String tok1 = null;
 		int pos0 = 0;
@@ -158,8 +173,11 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 					s = getStyle( "ne:" + tok1.substring( 1 ) );
 				else
 					s = getStyle( "ne:" + tok1 );
-				if( s != null )
+				if( s != null ) {
+					// TODO: fix this to change 'type' for different types of named entities
+					namedEntityMatches.add( new Match( pos0, pos1 + tok1.length() + 1, -1 ) );
 					applyStyle( s.getName(), pos0, pos1 + tok1.length() + 1 );
+				}
 			}
 			tok0 = tok1;
 			pos0 = pos1;
