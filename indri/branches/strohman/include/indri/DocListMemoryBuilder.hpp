@@ -83,6 +83,7 @@ namespace indri {
       
       const char* _list;
       const char* _listEnd;
+      bool _finished;
 
     public:
       DocListMemoryBuilderIterator();

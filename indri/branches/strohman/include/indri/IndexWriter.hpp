@@ -42,7 +42,8 @@ struct WriterIndexContext {
   WriterIndexContext( indri::index::Index* _index ) {
     bitmap = new indri::index::TermBitmap;
     index = _index;
-    infrequentIndex = 1;
+    wasInfrequentCount = 0;
+    wasFrequentCount = 0;
 
     if( index->iteratorLock() )
       index->iteratorLock()->lock();
@@ -51,9 +52,11 @@ struct WriterIndexContext {
     iterator->startIteration();
 
     newlyFrequent = new indri::index::TermRecorder;
-    newlyInfrequent = new indri::index::TermRecorder;
     oldFrequent = new indri::index::TermRecorder;
     oldInfrequent = new HashTable<int, int>;
+
+    // DEBUG
+    sequenceCount = 0;
   }
 
   ~WriterIndexContext() {
@@ -64,7 +67,6 @@ struct WriterIndexContext {
 
     delete oldFrequent;
     delete newlyFrequent;
-    delete newlyInfrequent;
     delete oldInfrequent;
     delete bitmap;
   }
@@ -73,9 +75,10 @@ struct WriterIndexContext {
   indri::index::TermBitmap* bitmap;
   indri::index::Index* index;
 
-  int infrequentIndex;
+  int wasFrequentCount;
+  int wasInfrequentCount;
+  int sequenceCount;
   indri::index::TermRecorder* newlyFrequent;
-  indri::index::TermRecorder* newlyInfrequent;
   indri::index::TermRecorder* oldFrequent;
   HashTable<int, int>* oldInfrequent;
 };
@@ -114,6 +117,7 @@ namespace indri {
       greedy_vector<indri::index::DiskTermData*> _topTerms;
       Buffer _termDataBuffer;
 
+      int _isFrequentCount;
       int _documentBase;
       indri::index::CorpusStatistics _corpus;
       std::vector<indri::index::Index::FieldDescription> _fields;
@@ -150,7 +154,7 @@ namespace indri {
                                                           indri::index::TermRecorder& oldFrequentTermsRecorder,
                                                           HashTable<int, int>* oldInfrequent,
                                                           indri::index::TermRecorder& newFrequentTermsRecorder,
-                                                          indri::index::TermRecorder& newlyInfrequentTermsRecorder,
+                                                          indri::index::Index* index,
                                                           indri::index::TermBitmap* bitmap );
 
       enum {

@@ -129,7 +129,7 @@ indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( int termID 
   bool result = _frequentIdToTerm.get( termID, buffer, actual, sizeof buffer );
 
   if( !result ) {
-    result = _infrequentIdToTerm.get( termID, buffer, actual, sizeof buffer );
+    result = _infrequentIdToTerm.get( termID - _infrequentTermBase, buffer, actual, sizeof buffer );
 
     if( !result )
       return 0;
@@ -147,6 +147,7 @@ indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( int termID 
 indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( const char* term ) {
   char buffer[16*1024];
   int actual;
+  int adjust = 0;
 
   bool result = _frequentStringToTerm.get( term, buffer, actual, sizeof buffer );
 
@@ -155,11 +156,17 @@ indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( const char*
 
     if( !result )
       return 0;
+
+    adjust = _infrequentTermBase;
   }
   assert( result );
   RVLDecompressStream stream( buffer, actual );
 
-  return disktermdata_decompress( stream, _fieldData.size(), DiskTermData::WithTermID | DiskTermData::WithOffsets );
+  indri::index::DiskTermData* diskTermData = disktermdata_decompress( stream,
+                                                                      _fieldData.size(),
+                                                                      DiskTermData::WithTermID | DiskTermData::WithOffsets );
+  diskTermData->termID += adjust;
+  return diskTermData;
 }
 
 //

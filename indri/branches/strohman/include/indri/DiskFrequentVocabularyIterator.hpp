@@ -23,6 +23,7 @@ namespace indri {
       Buffer _buffer;
       const char* _current;
       int _fieldCount;
+      bool _finished;
 
       DiskTermData* _data;
       char _dataBuffer[16*1024];

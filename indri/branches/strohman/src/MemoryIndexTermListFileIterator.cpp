@@ -20,14 +20,18 @@ void indri::index::MemoryIndexTermListFileIterator::startIteration() {
   _buffersIterator = _buffers.begin();
   _bufferBase = 0;
 
+  _finished = false;
   _index = -1;
   nextEntry();
 }
 
 bool indri::index::MemoryIndexTermListFileIterator::nextEntry() {
   _index++;
-  if( _index >= _data.size() )
+
+  if( _index >= _data.size() ) {
+    _finished = true;  
     return false;
+  }
 
   DocumentData& data = _data[_index];
 
@@ -47,9 +51,12 @@ bool indri::index::MemoryIndexTermListFileIterator::nextEntry() {
 }
 
 indri::index::TermList* indri::index::MemoryIndexTermListFileIterator::currentEntry() {
-  return &_list;
+  if( !_finished )
+    return &_list;
+
+  return 0;
 }
 
 bool indri::index::MemoryIndexTermListFileIterator::finished() {
-  return _index >= _data.size();
+  return _finished;
 }

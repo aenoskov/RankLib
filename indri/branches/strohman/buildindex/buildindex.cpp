@@ -368,10 +368,11 @@ optional parameter with the default of no stopping.</dd>
 #include <vector>
 #include <map>
 #include "indri/IndriTimer.hpp"
+#include <crtdbg.h>
 
 #include "indri/QueryEnvironment.hpp"
 #include "indri/Thread.hpp"
-
+#include "indri/SequentialWriteBuffer.hpp"
 
 #include <math.h>
 static IndriTimer g_timer;
@@ -463,8 +464,6 @@ void require_parameter( const char* name, Parameters& p ) {
 
 int main(int argc, char * argv[]) {
   try {
-    //lock_tests();
-
     Parameters& parameters = Parameters::instance();
     parameters.loadCommandLine( argc, argv );
 

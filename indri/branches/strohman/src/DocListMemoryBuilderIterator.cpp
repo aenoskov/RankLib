@@ -55,6 +55,7 @@ void indri::index::DocListMemoryBuilderIterator::reset( const greedy_vector< Doc
   
   _data.document = 0;
   _data.positions.clear();
+  _finished = false;
 
   nextEntry();
 }
@@ -85,7 +86,7 @@ bool indri::index::DocListMemoryBuilderIterator::nextEntry( int documentID ) {
       return true;
   }
   while( nextEntry() );
-  
+
   return false;
 }
 
@@ -126,6 +127,7 @@ bool indri::index::DocListMemoryBuilderIterator::nextEntry() {
     }
 
     // no more list segments
+    _finished = true;
     return false;
   }
 
@@ -148,7 +150,7 @@ indri::index::DocListIterator::DocumentData* indri::index::DocListMemoryBuilderI
 //
 
 bool indri::index::DocListMemoryBuilderIterator::finished() {
-  return _current == _lists->end() && _list == _listEnd;
+  return _finished;
 }
 
 //

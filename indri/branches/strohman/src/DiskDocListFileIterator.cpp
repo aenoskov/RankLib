@@ -46,7 +46,8 @@ indri::index::DiskDocListFileIterator::DiskDocListFileIterator( File& docListFil
   _file( new SequentialReadBuffer( docListFile ) ),
   _fileLength( docListFile.size() ),
   _fieldCount( fieldCount ),
-  _iterator( _file, 0 )
+  _iterator( _file, 0 ),
+  _finished( false )
 {
   _termData = (indri::index::TermData*) malloc( ::termdata_size( fieldCount ) );
 }
@@ -64,9 +65,8 @@ indri::index::DiskDocListFileIterator::~DiskDocListFileIterator() {
 //
 
 void indri::index::DiskDocListFileIterator::startIteration() {
-  if( !finished() ) {
-    _readEntry();
-  }
+  _finished = false;
+  _readEntry();
 }
 
 //
@@ -74,9 +74,13 @@ void indri::index::DiskDocListFileIterator::startIteration() {
 //
 
 bool indri::index::DiskDocListFileIterator::nextEntry() {
-  assert( !finished() );
-  _readEntry();
-  return true;
+  if( _file->position() < _fileLength ) {
+    _readEntry();
+    return true;
+  }
+
+  _finished = true;
+  return false;
 }
 
 //
@@ -100,6 +104,5 @@ const indri::index::DocListFileIterator::DocListData* indri::index::DiskDocListF
 //
 
 bool indri::index::DiskDocListFileIterator::finished() const {
-  return _fileLength <= _file->position();
+  return _finished;
 }
-

@@ -278,7 +278,6 @@ void IndexWriter::_writeStatistics( greedy_vector<WriterIndexContext*>& lists, i
   _invertedOutput->write( &dataSize, sizeof(UINT32) );
   _invertedOutput->write( stream.data(), stream.dataSize() );
 
-  _corpus.uniqueTerms++;
   _corpus.totalTerms += termData->corpus.totalCount;
 }
 
@@ -537,7 +536,7 @@ void IndexWriter::_storeFrequentTerms() {
                              indri::index::DiskTermData::WithString |
                              indri::index::DiskTermData::WithTermID );
 
-    writeBuffer.write( intermediateBuffer.front(), intermediateBuffer.size() );
+    writeBuffer.write( intermediateBuffer.front(), intermediateBuffer.position() );
     intermediateBuffer.clear();
   }
 
@@ -549,32 +548,36 @@ void IndexWriter::_storeFrequentTerms() {
 //
 
 void IndexWriter::_storeMatchInformation( greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset ) {
-  bool isFrequent = termData->corpus.documentCount > FREQUENT_TERM_COUNT;
+  bool isFrequent = termData->corpus.totalCount > FREQUENT_TERM_COUNT;
+
+  if( isFrequent )
+    _isFrequentCount++;
 
   for( int i=0; i<lists.size(); i++ ) {
     WriterIndexContext* list = lists[i];
-    indri::index::DiskDocListIterator* iterator = dynamic_cast<DiskDocListIterator*>(lists[i]->iterator);
-    bool wasFrequent = (iterator && iterator->isFrequent());
+    indri::index::DiskDocListIterator* iterator = dynamic_cast<DiskDocListIterator*>(lists[i]->iterator->currentEntry()->iterator);
+    bool isMemoryIndex = (iterator == 0);
+    bool wasFrequent = (isMemoryIndex || iterator->isFrequent());
+
+    if( !wasFrequent )
+      list->wasInfrequentCount++;
+
+    if( wasFrequent )
+      list->wasFrequentCount++;
+
+    list->sequenceCount++;
 
     if( !wasFrequent ) {
       if( !isFrequent ) {
         // common case--remaining infrequent
-        list->bitmap->add( list->infrequentIndex, sequence );
+        assert( sequence - _isFrequentCount  - 1 >= 0 );
+        assert( ((sequence -_isFrequentCount  - 1) + _isFrequentCount + 1) <= _corpus.uniqueTerms );
+        list->bitmap->add( list->wasInfrequentCount - 1, sequence - _isFrequentCount - 1 );
       } else if( isFrequent ) {
         // becoming frequent
-        list->newlyFrequent->add( list->infrequentIndex, termData->term );
-      }
-    } else {
-      if( !isFrequent ) {
-        // want to grab the sequence now so it's easy to find what this term maps to
-        list->newlyInfrequent->add( sequence, termData->term );
-      } else {
-        // do nothing
+        list->newlyFrequent->add( list->wasInfrequentCount - 1, termData->term );
       }
     }
-
-    if( !isFrequent )
-      list->infrequentIndex++;
   }
 
   if( isFrequent ) {
@@ -617,7 +620,6 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
   // clear out the term buffer
   char term[Keyfile::MAX_KEY_LENGTH+1];
   term[0] = 0;
-  int sequence = 1;
 
   _documentBase = contexts[0]->index->documentBase();
 
@@ -631,8 +633,13 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
   indri::index::TermData* termData = ::termdata_create( _fields.size() );
   char termBuffer[Keyfile::MAX_KEY_LENGTH+1] = {0};
   termData->term = termBuffer;
+  _isFrequentCount = 0;
 
   for( int sequence = 1; invertedLists.size(); sequence++ ) {
+    // new term
+    _corpus.uniqueTerms++;
+    assert( sequence == _corpus.uniqueTerms );
+
     // fetch useful doc lists
     _fetchMatchingInvertedLists( current, invertedLists );
 
@@ -647,8 +654,6 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
 
     // push back all doc lists with useful information
     _pushInvertedLists( current, invertedLists );
-
-    _corpus.uniqueTerms++;
   }
 
   // at this point, we need to fill in all the "top" vocabulary data into the keyfile
@@ -672,7 +677,7 @@ int IndexWriter::_lookupTermID( Keyfile& keyfile, const char* term ) {
   bool result = keyfile.get( term, compressedData, actual, sizeof compressedData );
   
   if( !result )
-    return 0;
+    return -1;
 
   RVLDecompressStream stream( compressedData, actual );
   DiskTermData* diskTermData = ::disktermdata_decompress( stream,
@@ -692,46 +697,73 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInf
                                             TermRecorder& oldFrequentTermsRecorder,
                                             HashTable<int, int>* oldInfrequentHashTable,
                                             TermRecorder& newFrequentTermsRecorder,
-                                            TermRecorder& newlyInfrequentTermsRecorder,
+                                            Index* index,
                                             TermBitmap* bitmap )
 {
-  // already have the bitmap, the recorder.  Want to make a translator
+  int newTermCount = _corpus.uniqueTerms;
+  int oldTermCount = index->uniqueTermCount();
+  int becameInfrequent = 0;
+  int becameFrequent = 0;
 
   // 1. map frequent terms to frequent terms
   std::vector<int>* frequent = new std::vector<int>;
 
   std::vector< std::pair<const char*, int> > missing;
   oldFrequentTermsRecorder.sort();
-  oldFrequentTermsRecorder.buildMap( *frequent, newFrequentTermsRecorder, &missing );
+  newFrequentTermsRecorder.sort();
 
-  // 2. map frequent terms to infrequent terms
-  for( int i=0; i<missing.size(); i++ ) {
-    int missingTerm = missing[i].second;
-    if( frequent->size() <= missingTerm ) 
-      frequent->resize( missingTerm+1, -1 );
-    (*frequent)[missingTerm] = _lookupTermID( newInfrequentTerms, missing[i].first );
+  // 2. map old frequent terms to new infrequent (or frequent) terms
+  if( frequent->size() == 0 )
+    frequent->resize(1);
+  (*frequent)[0] = 0;
+
+  std::vector< std::pair< size_t, int > >& pairs = oldFrequentTermsRecorder.pairs();
+
+  for( int i=0; i<pairs.size(); i++ ) {
+    int missingTermID = pairs[i].second;
+    const char* missingTerm = oldFrequentTermsRecorder.buffer().front() + pairs[i].first;
+
+    if( frequent->size() <= missingTermID ) 
+      frequent->resize( missingTermID+1, -1 );
+
+    int mapping = _lookupTermID( newFrequentTerms, missingTerm );
+
+    if( mapping < 0 ) {
+      mapping = _lookupTermID( newInfrequentTerms, missingTerm );
+      assert( mapping > 0 );
+      mapping += _isFrequentCount;
+      becameInfrequent++;
+    }
+
+    assert( mapping > 0 );
+    (*frequent)[missingTermID] = mapping;
+
+    assert( missingTermID <= oldTermCount );
+    assert( mapping <= newTermCount );
   }
 
-  // 3. map infrequent terms to frequent terms
-  newlyInfrequentTermsRecorder.sort();
-  std::vector< std::pair< const char*, int > >& newlyInfrequentPairs = newlyInfrequentTermsRecorder.pairs();
+  // 3. map old infrequent terms to new frequent terms
+  std::vector< std::pair< size_t, int > >& newlyFrequentPairs = newFrequentTermsRecorder.pairs();
 
-  for( int i=0; i<newlyInfrequentPairs.size(); i++ ) {
+  for( int i=0; i<newlyFrequentPairs.size(); i++ ) {
     // lookup newlyInfrequentTerms[i]
-    int oldTermID = newlyInfrequentPairs[i].second;
-    int newTermID = _lookupTermID( newFrequentTerms, newlyInfrequentPairs[i].first );
+    const char* term = newlyFrequentPairs[i].first + newFrequentTermsRecorder.buffer().front();
+    int newTermID = _lookupTermID( newFrequentTerms, term ) + _isFrequentCount;
+    int oldTermID = newlyFrequentPairs[i].second; 
     oldInfrequentHashTable->insert( oldTermID, newTermID );
+    becameFrequent++;
+
+    assert( oldTermID <= oldTermCount );
+    assert( newTermID <= newTermCount );
   }
 
-  // 4. infrequent to infrequent is easy--bitmap takes care of it
-  //    just get the appropriate counts from the maps
-  // new frequent count = previouslyFrequent - becameInfrequent + becameFrequent
-
-  int oldFrequentCount = frequent->size();
-  int newFrequentCount = frequent->size() - missing.size() + oldInfrequentHashTable->size();
+  int oldFrequentCount = oldFrequentTermsRecorder.pairs().size();
+  int newFrequentCount = oldFrequentCount - becameInfrequent + becameFrequent;
 
   return new TermTranslator( oldFrequentCount,
                              newFrequentCount,
+                             oldTermCount,
+                             newTermCount,
                              frequent,
                              oldInfrequentHashTable,
                              bitmap );
@@ -748,7 +780,6 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
   // have to grab a list of all the old frequent terms first--how is this done?
   VocabularyIterator* vocabulary = context->index->frequentVocabularyIterator();
   indri::index::Index* index = context->index;
-  int documentsWritten = 0;
   
   vocabulary->startIteration();
 
@@ -768,7 +799,7 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
                                                      *context->oldFrequent,
                                                      context->oldInfrequent,
                                                      *context->newlyFrequent,
-                                                     *context->newlyInfrequent,
+                                                     index,
                                                      context->bitmap );
   iterator->startIteration();
   TermList writeList;
@@ -782,21 +813,30 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
     TermList* list = iterator->currentEntry();
     assert( list );
 
+    int currentTerm;
+    int translated;
+
     // copy and translate terms
     for( int i=0; i<list->terms().size(); i++ ) {
-      int currentTerm = list->terms()[i];
-      int translated = (*translator)( currentTerm );
+      currentTerm = list->terms()[i];
+      assert( currentTerm >= 0 );
+      assert( currentTerm <= index->uniqueTermCount() );
+      translated = (*translator)( currentTerm );
+      assert( translated > 0 || (translated == 0 && currentTerm == 0) );
 
       writeList.addTerm( translated );
     }
 
     // copy field data
-    for( int i=0; i<list->fields().size(); i++ ) {
-      writeList.addField( list->fields()[i] );
+    int fieldCount = list->fields().size();
+    const greedy_vector<indri::index::FieldExtent>& fields = list->fields();
+
+    for( int i=0; i<fieldCount; i++ ) {
+      writeList.addField( fields[i] );
     }
   
     // record the start position
-    int writeStart = outputBuffer.position();
+    size_t writeStart = outputBuffer.position();
     UINT32 length = 0;
 
     // write the list, leaving room for a length count
@@ -804,18 +844,22 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
     writeList.write( outputBuffer );
 
     // record the end position, compute length
-    int writeEnd = outputBuffer.position();
+    size_t writeEnd = outputBuffer.position();
     length = writeEnd - (writeStart + sizeof(UINT32));
 
     // store length
+    assert( outputBuffer.position() >= (sizeof(UINT32) + length + writeStart) );
     memcpy( outputBuffer.front() + writeStart, &length, sizeof(UINT32) );
+    assert( dataIterator );
 
     if( outputBuffer.position() > 128*1024 ) {
-      directOutput->write( outputBuffer.front(), outputBuffer.size() );
+      directOutput->write( outputBuffer.front(), outputBuffer.position() );
       outputBuffer.clear();
     }
 
     // get a copy of the document data
+    assert( dataIterator );
+    assert( !dataIterator->finished() );
     indri::index::DocumentData documentData = *dataIterator->currentEntry();
 
     // store offset information
@@ -824,20 +868,17 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
 
     dataOutput->write( &documentData, sizeof(DocumentData) );
     int termLength = documentData.indexedLength;
-    assert( termLength > 0 );
+    assert( termLength >= 0 );
     lengthsOutput->write( &termLength, sizeof(UINT32) );
     
     iterator->nextEntry();
     dataIterator->nextEntry();
-    documentsWritten++;
   }
-
-  //assert( documentsWritten == _corpus.totalDocuments );
 
   delete iterator;
   delete dataIterator;
   delete translator;
-  directOutput->write( outputBuffer.front(), outputBuffer.size() );
+  directOutput->write( outputBuffer.front(), outputBuffer.position() );
   directOutput->flush();
   lengthsOutput->flush();
   outputBuffer.clear();

@@ -36,6 +36,7 @@ namespace indri {
       const char* _list;
       const char* _listEnd;
       bool _numeric;
+      bool _finished;
 
     public:
       void reset( const greedy_vector< DocExtentListMemoryBuilderSegment, 4 >& lists, bool numeric );
