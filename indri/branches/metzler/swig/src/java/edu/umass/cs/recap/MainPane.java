@@ -3,8 +3,6 @@ import java.util.Vector;
 
 import javax.swing.JSplitPane;
 
-import edu.umass.cs.indri.QueryEnvironment;
-
 /*
  * Created on Sep 28, 2004
  *
@@ -18,21 +16,21 @@ import edu.umass.cs.indri.QueryEnvironment;
  */
 public class MainPane extends JSplitPane implements MainPaneUpdater {
 
-	private QueryEnvironment indri = null;
+	private RetrievalEngine retEngine = null;
 	
 	private InfoPane infoPane = null;
 	private DocList docList = null;
 
 	private Vector docIDs = null;
 	
-	public MainPane( QueryEnvironment indri ) {
+	public MainPane( RetrievalEngine retEngine ) {
 		super( JSplitPane.HORIZONTAL_SPLIT );
 		
-		this.indri = indri;
+		this.retEngine = retEngine;
 		
-		docIDs = getDocIDs();
+		docIDs = retEngine.getDocIDs();
 		
-		infoPane = new InfoPane( indri, this );
+		infoPane = new InfoPane( retEngine, this );
 		docList = new DocList( docIDs, this );
 		
 		setLeftComponent( docList );
@@ -42,26 +40,7 @@ public class MainPane extends JSplitPane implements MainPaneUpdater {
 	public void init() {
 		docList.setSelectedIndex( 0 );
 	}
-	
-	private Vector getDocIDs() {
-		Vector ret = new Vector();
-
-		// TODO: make this work for collections
-		//       with numDocs > MAX_INT
-		int numDocs = (int)indri.documentCount();
-		
-		int [] ids = new int[ numDocs ];
-		for( int i = 0; i < numDocs; i++ )
-			ids[i] = i+1;
-		
-		String [] docIDs = indri.documentMetadata( ids, "docno" );
-		
-		for( int i = 0; i < numDocs; i++ )
-			ret.add( new DocInfo( docIDs[i], i+1 ) );
-		
-		return ret;
-	}
-		
+			
 	public void setSelectedDoc( DocInfo doc ) {
 		docList.setSelectedDoc( doc );
 	}

@@ -17,7 +17,6 @@ public class Recap extends JFrame {
 	
 	private final String VERSION = "0.1";
 	
-	private QueryEnvironment indri = null;
 	private MainPane mainPane = null;
 	
 	public Recap() {
@@ -27,10 +26,14 @@ public class Recap extends JFrame {
 	
 	public void init( String [] args ) {
 		// create an Indri interface
-		indri = new QueryEnvironment();
+		QueryEnvironment indri = new QueryEnvironment();
+		
+		// command line mode object, if required
+		CommandLineMode clm = null;
 		
 		// parse the command line arguments
 		boolean addedIndex = false;
+		boolean interactive = true;
 
 		if( args.length == 0 ) {
 			
@@ -51,12 +54,18 @@ public class Recap extends JFrame {
 					System.out.println( "Added server " + nextArg + "...");
 					addedIndex = true;
 				}
+				else if( curArg.equals( "-commandline") ) {
+					interactive = false;
+					String nextArg = args[++i];
+					clm = new CommandLineMode( nextArg );
+				}
 				else {
 					System.err.println( "Unrecognized argument: " + curArg );
 				}
 			}
 			catch( Exception e ) {
-				System.err.println( "Malformed argument:" + curArg );
+				System.err.println( "An error occurred while parsing argument: " + curArg + " [" + e.getMessage() + "]" );
+				return;
 			}
 		}
 		
@@ -64,19 +73,27 @@ public class Recap extends JFrame {
 			System.err.println( "Must specify at least one index or server!" );
 			return;
 		}
-		
-		// display the program window
-		mainPane = new MainPane( indri );
-		setContentPane( mainPane );
 
-		setSize( getMaximumSize() );
-		setVisible( true );
+		// create the retrieval engine
+		RetrievalEngine retEngine = new RetrievalEngine( indri );
+
+		if( interactive ) { // interactive mode
+			// setup and display the application window
+			mainPane = new MainPane( retEngine );
+			setContentPane( mainPane );
+
+			setSize( getMaximumSize() );
+			setVisible( true );
 		
-		mainPane.init();		
+			mainPane.init();
+		}
+		else { // command line mode
+			clm.run( retEngine );
+		}
 	}
 
 	public static void main(String [] args) {
 		Recap d = new Recap();
-		d.init( args );
+		d.init( args ); // parse command line options
 	}
 }
