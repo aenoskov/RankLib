@@ -58,6 +58,7 @@
 #include "indri/Parameters.hpp"
 #include "indri/Transformation.hpp"
 #include "indri/MemoryIndex.hpp"
+#include "indri/DiskIndex.hpp"
 #include <string>
 
 /*! Encapsulates document manager, index, and field indexes. Provides access 
@@ -129,6 +130,9 @@ public:
   static bool exists( const std::string& path );
   /// Close the repository
   void close();
+
+  /// Indexes in this repository
+  std::vector<indri::index::Index*> indexes();
 };
 
 #endif // INDRI_REPOSITORY_HPP

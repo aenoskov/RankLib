@@ -64,6 +64,7 @@
 #include "indri/ParsedDocument.hpp"
 #include "indri/Repository.hpp"
 #include "indri/QueryAnnotation.hpp"
+#include "lemur/IndexTypes.hpp"
 
 /*! <p>Principal class for interacting with Indri indexes during retrieval. 
   Provides the API for opening one or more Repository servers, either local

@@ -133,6 +133,10 @@ int OrNode::nextCandidateDocument() {
   return nextCandidate;
 }
 
+void OrNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}
+
 const std::string& OrNode::getName() const {
   return _name;
 }

@@ -10,6 +10,7 @@
 
 #include "indri/indri-platform.h"
 #include "indri/Mutex.hpp"
+#include <string>
 
 class File {
 private:

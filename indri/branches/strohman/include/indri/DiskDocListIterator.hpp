@@ -22,8 +22,6 @@ namespace indri {
       SequentialReadBuffer* _file;
       UINT64 _startOffset;
       UINT64 _endOffset;
-
-      bool _hasSkips;
       bool _hasTopdocs;
 
       greedy_vector<TopDocument> _topdocs;
@@ -34,17 +32,17 @@ namespace indri {
       void _readTopdocs();
 
     public:
-      DiskDocListIterator( SequentialReadBuffer* buffer, UINT64 startOffset, UINT64 endOffset );
+      DiskDocListIterator( SequentialReadBuffer* buffer, UINT64 startOffset );
       ~DiskDocListIterator();
-      void setEndpoints( UINT64 startOffset, UINT64 endOffset );
+      void setStartOffset( UINT64 startOffset );
 
-      const greedy_vector<TopDocument>& topDocuments() = 0;
+      const greedy_vector<TopDocument>& topDocuments();
 
-      void startIteration() = 0;
-      bool nextEntry() = 0;
-      bool nextEntry( int documentID ) = 0;
-      DocumentData* currentEntry() = 0;
-      bool finished() = 0;
+      void startIteration();
+      bool nextEntry();
+      bool nextEntry( int documentID );
+      DocumentData* currentEntry();
+      bool finished();
     };
   }
 }

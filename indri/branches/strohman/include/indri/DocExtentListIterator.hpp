@@ -10,6 +10,7 @@
 
 #include "Extent.hpp"
 #include "indri/indri-platform.h"
+#include "greedy_vector"
 
 namespace indri {
   namespace index {

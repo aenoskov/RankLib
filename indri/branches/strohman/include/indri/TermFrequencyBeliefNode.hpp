@@ -84,6 +84,7 @@ public:
 
   const TopdocsIndex::TopdocsList* getTopdocsList() const;
   int nextCandidateDocument();
+  void indexChanged( indri::index::Index& index );
   double maximumBackgroundScore();
   double maximumScore();
   const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );

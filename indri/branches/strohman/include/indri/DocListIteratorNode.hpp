@@ -55,17 +55,20 @@
 #ifndef INDRI_DOCLISTITERATORNODE_HPP
 #define INDRI_DOCLISTITERATORNODE_HPP
 
-#include "indri/DocPositionInfoList.hpp"
+#include "indri/DocListIterator.hpp"
 #include "indri/ListIteratorNode.hpp"
+#include "indri/Extent.hpp"
+#include "greedy_vector"
+#include <string>
 
 class DocListIteratorNode : public ListIteratorNode {
 private:
-  DocPositionInfoList* _list;
+  indri::index::DocListIterator* _list;
   greedy_vector<Extent> _extents;
   std::string _name;
 
 public:
-  DocListIteratorNode( const std::string& name, DocPositionInfoList* list );
+  DocListIteratorNode( const std::string& name, indri::index::DocListIterator* list );
 
   int nextCandidateDocument();
   void prepare( int documentID );
