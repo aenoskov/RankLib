@@ -2156,6 +2156,111 @@ namespace indri {
       }
     };
 
+    class FixedPassage : public ScoredExtentNode {
+    private:
+      ScoredExtentNode* _child;
+      int _windowSize;
+      int _increment;
+
+    public:
+      FixedPassage( Unpacker& unpacker ) {
+        _child = unpacker.getScoredExtentNode("child");
+        _windowSize = unpacker.getInteger("windowSize");
+        _increment = unpacker.getInteger("increment");
+      }
+
+      FixedPassage( ScoredExtentNode* child, int windowSize, int increment ) :
+        _child(child),
+        _windowSize(windowSize),
+        _increment(increment)
+      {
+      }
+
+      std::string typeName() const {
+        return "FixedPassage";
+      }
+
+      std::string queryText() const {
+        std::stringstream qtext;
+        // this extent restriction is almost certainly because of some #combine or #max operator
+        // in the _child position.  We look for the first parenthesis (e.g. #combine(dog cat)) and
+        // insert the brackets in.
+        
+        std::string childText = _child->queryText();
+        std::string::size_type pos = childText.find( '(' );
+
+        if( pos != std::string::npos ) {
+          qtext << childText.substr(0,pos) 
+                << "[passage"
+                << _windowSize
+                << ":"
+                << _increment
+                << "]"
+                << childText.substr(pos);
+        } else {
+          // couldn't find a parenthesis, so we'll tack the [field] on the front
+          qtext << "[passage"
+                << _windowSize
+                << ":"
+                << _increment
+                << "]"
+                << childText;
+        }
+
+        return qtext.str();
+      } 
+
+      ScoredExtentNode* getChild() {
+        return _child;
+      }
+
+      int getWindowSize() {
+        return _windowSize;
+      }
+
+      int getIncrement() {
+        return _increment;
+      }
+
+      void setChild( ScoredExtentNode* child ) {
+        _child = child;
+      }
+
+      void setWindowSize( int windowSize ) {
+        _windowSize = windowSize;
+      }
+
+      void setIncrement( int increment ) {
+        _increment = increment;
+      }
+
+      void pack( Packer& packer ) {
+        packer.before(this);
+        packer.put("child", _child);
+        packer.put("increment", _increment);
+        packer.put("windowSize", _windowSize);
+        packer.after(this);
+      }
+
+      void walk( Walker& walker ) {
+        walker.before(this);
+        _child->walk(walker);
+        walker.after(this);
+      }
+
+      Node* copy( Copier& copier ) {
+        copier.before(this);
+
+        ScoredExtentNode* duplicateChild = dynamic_cast<indri::lang::ScoredExtentNode*>(_child->copy(copier));
+        ExtentRestriction* duplicate = new ExtentRestriction( duplicateChild,
+                                                              _windowSize,
+                                                              _increment );
+        duplicate->setNodeName( nodeName() );
+        
+        return copier.after(this, duplicate);
+      }
+    };
+
     class FilterNode : public ScoredExtentNode {
     private:
       ScoredExtentNode* _child;

@@ -81,6 +81,7 @@
 #include "indri/MaxNode.hpp"
 #include "indri/PriorNode.hpp"
 #include "indri/ExtentRestrictionNode.hpp"
+#include "indri/FixedPassageNode.hpp"
 #include "indri/FilterNode.hpp"
 #include "indri/NullListNode.hpp"
 #include "indri/TermScoreFunctionFactory.hpp"
@@ -154,6 +155,10 @@ void InferenceNetworkBuilder::after( indri::lang::IndexTerm* term ) {
   }
 }
 
+//
+// Field
+//
+
 void InferenceNetworkBuilder::after( indri::lang::Field* field ) {
   if( _nodeMap.find( field ) == _nodeMap.end() ) {
     indri::index::FieldListIterator* iterator = 0;
@@ -167,6 +172,10 @@ void InferenceNetworkBuilder::after( indri::lang::Field* field ) {
   }
 }
 
+//
+// ExtentRestriction
+//
+
 void InferenceNetworkBuilder::after( indri::lang::ExtentRestriction* erNode ) {
   if( _nodeMap.find( erNode ) == _nodeMap.end() ) {
     BeliefNode* childNode = dynamic_cast<BeliefNode*>(_nodeMap[erNode->getChild()]);
@@ -178,6 +187,27 @@ void InferenceNetworkBuilder::after( indri::lang::ExtentRestriction* erNode ) {
   }
 }
 
+//
+// FixedPassage
+//
+
+void InferenceNetworkBuilder::after( indri::lang::FixedPassage* fpNode ) {
+  if( _nodeMap.find( fpNode ) == _nodeMap.end() ) {
+    BeliefNode* childNode = dynamic_cast<BeliefNode*>(_nodeMap[fpNode->getChild()]);
+    FixedPassageNode* fixedPassage = new FixedPassageNode( fpNode->nodeName(),
+                                                           childNode,
+                                                           fpNode->getWindowSize(),
+                                                           fpNode->getIncrement() );
+
+    _network->addBeliefNode( fixedPassage );
+    _nodeMap[fpNode] = fixedPassage;
+  }
+}
+
+//
+// ExtentAnd
+//
+
 void InferenceNetworkBuilder::after( indri::lang::ExtentAnd* extentAnd ) {
   if( _nodeMap.find( extentAnd ) == _nodeMap.end() ) {
     std::vector<ListIteratorNode*> translation = _translate<ListIteratorNode>( extentAnd->getChildren() );
@@ -188,6 +218,10 @@ void InferenceNetworkBuilder::after( indri::lang::ExtentAnd* extentAnd ) {
   }
 }
 
+//
+// ExtentOr
+//
+
 void InferenceNetworkBuilder::after( indri::lang::ExtentOr* extentOr ) {
   if( _nodeMap.find( extentOr ) == _nodeMap.end() ) {
     std::vector<ListIteratorNode*> translation = _translate<ListIteratorNode>( extentOr->getChildren() );
@@ -197,6 +231,10 @@ void InferenceNetworkBuilder::after( indri::lang::ExtentOr* extentOr ) {
     _nodeMap[extentOr] = extentOrNode;
   }
 }
+
+//
+// ExtentInside
+//
 
 void InferenceNetworkBuilder::after( indri::lang::ExtentInside* extentInside ) {
   if( _nodeMap.find( extentInside ) == _nodeMap.end() ) {

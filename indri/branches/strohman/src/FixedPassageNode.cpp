@@ -45,56 +45,48 @@
   ==========================================================================
 */
 
+//
+// FixedPassageNode
+//
+// 23 February 2005 -- tds
+//
 
-//
-// ExtentRestrictionNode
-//
-// 6 July 2004 -- tds
-//
-
-#include "indri/ExtentRestrictionNode.hpp"
+#include "indri/FixedPassageNode.hpp"
 #include "indri/Annotator.hpp"
 #include "lemur/lemur-compat.hpp"
 
-ExtentRestrictionNode::ExtentRestrictionNode( const std::string& name, BeliefNode* child, ListIteratorNode* field ) :
+FixedPassageNode::FixedPassageNode( const std::string& name, BeliefNode* child, int windowSize, int increment ) :
   _name(name),
   _child(child),
-  _field(field)
+  _windowSize(windowSize),
+  _increment(increment)
 {
 }
 
-int ExtentRestrictionNode::nextCandidateDocument() {
+int FixedPassageNode::nextCandidateDocument() {
   return _child->nextCandidateDocument();
 }
 
-double ExtentRestrictionNode::maximumBackgroundScore() {
+double FixedPassageNode::maximumBackgroundScore() {
   return INDRI_TINY_SCORE;
 }
 
-double ExtentRestrictionNode::maximumScore() {
+double FixedPassageNode::maximumScore() {
   return INDRI_HUGE_SCORE;
 }
 
-const greedy_vector<ScoredExtentResult>& ExtentRestrictionNode::score( int documentID, int begin, int end, int documentLength ) {
+const greedy_vector<ScoredExtentResult>& FixedPassageNode::score( int documentID, int begin, int end, int documentLength ) {
   // we're going to run through the field list, etc.
-  greedy_vector<Extent>::const_iterator fieldEnd = _field->extents().end();
-  greedy_vector<Extent>::const_iterator fieldBegin = _field->extents().begin();
-  greedy_vector<Extent>::const_iterator iter;
-
   _scores.clear();
 
-  for( iter = fieldBegin; iter != fieldEnd; iter++ ) {
-    if( iter->end < begin )
-      continue; // this one isn't relevant to our cause
+  // round down to find where the passage starts
+  int beginPassage = (begin / _increment) * _increment;
 
-    if( end < iter->begin )
-      break; // we've passed all the relevant fields
+  for( ; beginPassage < end; beginPassage += _increment ) {
+    int endPassage = beginPassage + _windowSize;
 
-    if( iter->end - iter->begin == 0 )
-      continue; // this field has no text in it
-
-    int scoreBegin = lemur_compat::max( iter->begin, begin );
-    int scoreEnd = lemur_compat::min( iter->end, end );
+    int scoreBegin = lemur_compat::max( beginPassage, begin );
+    int scoreEnd = lemur_compat::min( endPassage, end );
 
     const greedy_vector<ScoredExtentResult>& childResults = _child->score( documentID, scoreBegin, scoreEnd, documentLength );
 
@@ -107,40 +99,32 @@ const greedy_vector<ScoredExtentResult>& ExtentRestrictionNode::score( int docum
   return _scores;
 }
 
-void ExtentRestrictionNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
+void FixedPassageNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   annotator.add(this, documentID, begin, end);
-  // we're going to run through the field list, etc.
-  greedy_vector<Extent>::const_iterator fieldEnd = _field->extents().end();
-  greedy_vector<Extent>::const_iterator fieldBegin = _field->extents().begin();
-  greedy_vector<Extent>::const_iterator iter;
 
-  for( iter = fieldBegin; iter != fieldEnd; iter++ ) {
-    if( iter->end < begin )
-      continue; // this one isn't relevant to our cause
+  // round down to find where the passage starts
+  int beginPassage = (begin / _increment) * _increment;
 
-    if( end < iter->begin )
-      break; // we've passed all the relevant fields
+  for( ; beginPassage < end; beginPassage += _increment ) {
+    int endPassage = beginPassage + _windowSize;
 
-    if( iter->end - iter->begin == 0 )
-      continue; // this field has no text in it
-
-    int scoreBegin = lemur_compat::max( iter->begin, begin );
-    int scoreEnd = lemur_compat::min( iter->end, end );
+    int scoreBegin = lemur_compat::max( beginPassage, begin );
+    int scoreEnd = lemur_compat::min( endPassage, end );
 
     _child->annotate( annotator, documentID, scoreBegin, scoreEnd );
   }
 }
 
-bool ExtentRestrictionNode::hasMatch( int documentID ) {
+bool FixedPassageNode::hasMatch( int documentID ) {
   return _child->hasMatch( documentID );
 }
 
 
-const std::string& ExtentRestrictionNode::getName() const {
+const std::string& FixedPassageNode::getName() const {
   return _name;
 }
 
-void ExtentRestrictionNode::indexChanged( indri::index::Index& index ) {
+void FixedPassageNode::indexChanged( indri::index::Index& index ) {
   // do nothing
 }
 

@@ -227,6 +227,9 @@
 				RelativePath=".\FilterRequireNode.cpp">
 			</File>
 			<File
+				RelativePath=".\FixedPassageNode.cpp">
+			</File>
+			<File
 				RelativePath=".\HTMLParser.cpp">
 			</File>
 			<File
@@ -640,6 +643,9 @@
 				RelativePath="..\include\indri\FilterRequireNode.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\FixedPassageNode.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\FrequencyListCopier.hpp">
 			</File>
 			<File
@@ -802,6 +808,9 @@
 				RelativePath="..\include\indri\QueryEnvironment.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\QuerySpec.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\RawScorerNodeExtractor.hpp">
 			</File>
 			<File
@@ -812,6 +821,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\ReadersWritersLock.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\ref_ptr.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\Repository.hpp">
