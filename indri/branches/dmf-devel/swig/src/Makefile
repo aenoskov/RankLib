@@ -17,7 +17,7 @@ JSRCUI=java/edu/umass/cs/indri/ui
 JAVASRC = $(notdir $(wildcard $(JSRC)/*.java))
 JAVASRCUI = $(notdir $(wildcard $(JSRCUI)/*.java))
 ALLSRC= $(JAVASRC) $(JAVASRCUI)
-PROPS = $(patsubst %,$(OUTDIRPROP)/%, $(notdir $(wildcard $(JSRCUI)/properties/*.html)))
+PROPS = $(patsubst %,$(OUTDIRPROP)/%, $(notdir $(wildcard $(JSRCUI)/properties/*)))
 INTERFACES = $(wildcard interface/*.i)
 JAVAOBJ = $(patsubst %,$(OUTDIR)/%, $(JAVASRC:.java=.class)) $(patsubst %,$(OUTDIRUI)/%, $(JAVASRCUI:.java=.class))
 SOLIB=$(OBJ)/java/libindri.so
