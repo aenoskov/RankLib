@@ -33,15 +33,18 @@ void indri::index::DiskIndex::_readManifest( const std::string& path ) {
 
   if( manifest.exists("fields") ) {
     Parameters fields = manifest["fields"];
-    Parameters field = fields["field"];
 
-    for( int i=0; i<fields.size(); i++ ) {
-      bool numeric = field[i].get( "isNumeric", false );
-      int documentCount = field[i].get("total-documents", 0 );
-      INT64 totalCount = field[i].get("total-terms", INT64(0) );
-      std::string name = field[i].get( "name", "" );
+    if( manifest.exists("field") ) {
+      Parameters field = fields["field"];
 
-      _fieldData.push_back( FieldStatistics( name, numeric, totalCount, documentCount ) );
+      for( int i=0; i<fields.size(); i++ ) {
+        bool numeric = field[i].get( "isNumeric", false );
+        int documentCount = field[i].get("total-documents", 0 );
+        INT64 totalCount = field[i].get("total-terms", INT64(0) );
+        std::string name = field[i].get( "name", "" );
+
+        _fieldData.push_back( FieldStatistics( name, numeric, totalCount, documentCount ) );
+      }
     }
   }
 }
