@@ -57,6 +57,7 @@
 
 #include "lemur/lemur-platform.h"
 #include "lemur/lemur-compat.hpp"
+#include "indri/indri-platform.h"
 #include <string>
 
 class NetworkStream {
