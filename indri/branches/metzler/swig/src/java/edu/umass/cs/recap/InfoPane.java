@@ -9,12 +9,16 @@ import java.awt.event.MouseListener;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTextPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 
+import edu.umass.cs.indri.ParsedDocument;
 import edu.umass.cs.indri.QueryAnnotation;
 
 /*
@@ -26,7 +30,7 @@ import edu.umass.cs.indri.QueryAnnotation;
  * @author Don Metzler
  *
  */
-public class InfoPane extends JSplitPane implements ActionListener, ChangeListener, MouseListener {
+public class InfoPane extends JSplitPane implements ActionListener, ChangeListener, MouseListener, HyperlinkListener {
 	
 	private RetrievalEngine retEngine = null;
 	
@@ -67,6 +71,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		queryPanel.getUpdateTimelineButton().addActionListener( this );
 		
 		tlPanel.addMouseListener( this );
+		tlPanel.addActionListeners( this );
 		setResizeWeight( 0.8 );
 	}
 	
@@ -76,6 +81,11 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 
 	// runs an "explore" query, scores documents, and updates appropriate on-screen info
 	private void runExploreQuery( String query ) {
+		if( query == null || query.equals("") ) {
+			this.showErrorDialog( "Unable to evaluate empty or null query!" );
+			return;
+		}
+
 		dvPane.clearTabs();		
 		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
 
@@ -86,6 +96,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		// update DocViewPane
 		//dvPane.addMatches( viewableResults );
 		dvPane.displayExplorationResults( annotation, viewableResults );
+		dvPane.getResultPane().addHyperlinkListener( this );
 		dvPane.displayHighlightedDoc( ( annotation.getResults()[0] ).document );
 		
 		// update TimelinePanel
@@ -102,6 +113,11 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		
 	// runs an "analyze" query, scores documents, and updates appropriate on-screen info
 	private void runAnalyzeQuery( String query ) {
+		if( query == null || query.equals("") ) {
+			showErrorDialog( "Unable to evaluate empty or null query!");
+			return;
+		}
+		
 		dvPane.clearTabs();
 		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
 
@@ -208,5 +224,60 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			
 			repaint();
 		}
+		else if( src == tlPanel.getPreviousDocButton() ) {
+			ScoredDocInfo info = tlPanel.getPreviousDoc();
+			DocInfo doc = new DocInfo( info.docName, info.docID );
+			tlPanel.setCurrent( info.docName );
+			dvPane.setSelectedDoc( doc );
+			if( queryPanel.getMode().equals( "explore" ) )
+				dvPane.displayHighlightedDoc( info.docID );
+			repaint();
+		}
+		else if( src == tlPanel.getNextDocButton() ) {
+			ScoredDocInfo info = tlPanel.getNextDoc();
+			DocInfo doc = new DocInfo( info.docName, info.docID );
+			tlPanel.setCurrent( info.docName );
+			dvPane.setSelectedDoc( doc );
+			if( queryPanel.getMode().equals( "explore" ) )
+				dvPane.displayHighlightedDoc( info.docID );
+			repaint();
+		}
+	}
+
+	// process a hyperlink click
+	public void hyperlinkUpdate(HyperlinkEvent e) {		
+		if( e.getEventType() == HyperlinkEvent.EventType.ACTIVATED ) {
+			StringTokenizer tok = new StringTokenizer( e.getDescription(), ":" );
+			String docName = tok.nextToken();
+			String linkType = tok.nextToken();
+			int docID = Integer.parseInt( tok.nextToken() );
+			dvPane.displayHighlightedDoc( docID );
+			if( linkType.equals( "extent" ) ) {				
+				int begin = Integer.parseInt( tok.nextToken() );
+				int end = Integer.parseInt( tok.nextToken() );
+				highlightExtent( docID, begin, end );
+			}
+			tlPanel.setCurrent( docName );
+			repaint();
+		}
+	}
+	
+	private void highlightExtent( int docID, int begin, int end ) {
+		JTextPane docTextPane = dvPane.getDocTextPane();
+		ParsedDocument doc = retEngine.getParsedDocument( docID );				
+		int startPos = doc.positions[ begin ].begin;
+		int endPos = doc.positions[ end - 1 ].end;
+		int curPos = docTextPane.getCaretPosition();
+		docTextPane.grabFocus();
+		if( curPos > endPos )
+			docTextPane.setCaretPosition( startPos );
+		else
+			docTextPane.setCaretPosition( endPos );
+		docTextPane.setCaretPosition( startPos );
+		docTextPane.moveCaretPosition( endPos );
+	}
+	
+	protected void showErrorDialog( String msg ) {
+		JOptionPane.showMessageDialog( this, msg, "Error", JOptionPane.ERROR_MESSAGE );
 	}
 }

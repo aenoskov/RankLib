@@ -48,7 +48,7 @@ public class RetrievalEngine {
 	public RetrievalEngine( QueryEnvironment indri ) {
 		this.indri = indri;
 		this.cache = new RecapCache();
-		this.docFontSize = 12; 		
+		this.docFontSize = 12;
 	}
 	
 	// runs a query with the given parameters
@@ -61,7 +61,8 @@ public class RetrievalEngine {
 		
 		Vector viewableResults = new Vector();
 		for( int i = 0; i < results.length; i++ ) {
-			ScoredDocInfo info = new ScoredDocInfo( results[i].document, results[i].score, new Vector() );
+			ScoredDocInfo info = new ScoredDocInfo( results[i].document, results[i].score, 
+					                                results[i].begin, results[i].end, new Vector() );
 			viewableResults.add( info );
 		}
 		
@@ -73,8 +74,8 @@ public class RetrievalEngine {
 	// runs a query with the given parameters
 	public Vector runQuery( String query, String queryOp, String queryExtent, int numResults ) {
 		Vector queries = null;
-		Vector allScores = new Vector();		
-	
+		Vector allScores = new Vector();
+		
 		if( queryExtent.equals( "document" ) ) { // no extent restriction
 			queryExtent = "";
 		}
@@ -146,7 +147,7 @@ public class RetrievalEngine {
 			for( int i = 0; i < queryScores.length; i++ ) {
 				ScoredExtentResult r = (ScoredExtentResult)queryScores[i];
 				Integer docNum = new Integer( r.document );
-				candidateDocs.put( docNum, new ScoredDocInfo( docNum.intValue(), 0.0, new Vector() ) );
+				candidateDocs.put( docNum, new ScoredDocInfo( docNum.intValue(), 0.0, 0, 0, new Vector() ) );
 			}			
 		}
 

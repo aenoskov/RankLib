@@ -1,11 +1,15 @@
 package edu.umass.cs.recap;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Shape;
+import java.awt.event.ActionListener;
 import java.awt.geom.Ellipse2D;
 import java.util.Vector;
 
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JPanel;
 /*
  * Created on Nov 9, 2004
@@ -47,10 +51,23 @@ public class TimelinePanel extends JPanel {
 	
 	private double maxScore = Double.MIN_VALUE;
 	
+	// previous and next buttons
+	private JButton previousDocButton = null;
+	private JButton nextDocButton = null;
+	
 	public TimelinePanel () {
 		ovals = new Vector();
+		
+		ImageIcon nextButtonIcon = new ImageIcon("edu/umass/cs/recap/images/next.gif");
+		ImageIcon previousButtonIcon = new ImageIcon("edu/umass/cs/recap/images/previous.gif");
+		previousDocButton = new JButton( previousButtonIcon );		
+		previousDocButton.setMargin( new Insets(0,0,0,0) );
+		nextDocButton = new JButton( nextButtonIcon );
+		nextDocButton.setMargin( new Insets(0,0,0,0) );
+		add( previousDocButton );
+		add( nextDocButton );
 	}
-	
+		
 	public void setResults( Vector res ) {
 		this.results = res;
 		init();
@@ -68,6 +85,43 @@ public class TimelinePanel extends JPanel {
 		}
 	}
 	
+	public ScoredDocInfo getNextDoc() {
+		int best = Integer.MAX_VALUE;
+		ScoredDocInfo bestInfo = currentInfo;
+		int curDays = dateToInt( currentInfo.year, currentInfo.month, currentInfo.date );
+		for( int i = 0; i < results.size(); i++ ) {
+			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
+			int tmpDays = dateToInt( info.year, info.month, info.date );
+			if( tmpDays - curDays > 0 && tmpDays - curDays < best ) {
+				best = tmpDays - curDays;
+				bestInfo = info;
+			}
+		}
+		
+		return bestInfo;
+	}
+
+	public ScoredDocInfo getPreviousDoc() {
+		int best = Integer.MAX_VALUE;
+		ScoredDocInfo bestInfo = currentInfo;
+		int curDays = dateToInt( currentInfo.year, currentInfo.month, currentInfo.date );
+		for( int i = 0; i < results.size(); i++ ) {
+			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
+			int tmpDays = dateToInt( info.year, info.month, info.date );
+			if( curDays - tmpDays > 0 && curDays - tmpDays < best ) {
+				best = curDays - tmpDays;
+				bestInfo = info;
+			}
+		}
+		
+		return bestInfo;
+	}
+
+		
+	private int dateToInt( int year, int month, int date ) {
+		return year*12*31 + month*31 + date;
+	}
+		
 	private void init() {
 		minYear = Integer.MAX_VALUE;
 		minDate = 32;
@@ -79,33 +133,28 @@ public class TimelinePanel extends JPanel {
 		
 		maxScore = -100000.0;
 		
+		int minDays = Integer.MAX_VALUE;
+		int maxDays = Integer.MIN_VALUE;
 		for( int i = 0; i < results.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
-			int curMonth = info.month;
-			int curDate = info.date;
-			int curYear = info.year;
-			if( curYear < minYear ||
-				( curYear == minYear &&
-				( curMonth < minMonth ||
-				( curMonth == minMonth && curDate < minDate ) ) ) ) { 
-				minMonth = curMonth;
-				minDate = curDate;
-				minYear = curYear;
+			int curDays = dateToInt( info.year, info.month, info.date );
+			if( curDays < minDays ) {
+				minMonth = info.month;
+				minDate = info.date;
+				minYear = info.year;
+				minDays = curDays;
 			}
-			if( curYear > maxYear ||
-				( curYear == maxYear &&
-				( curMonth > maxMonth ||
-				( curMonth == maxMonth && curDate > maxDate ) ) ) ) { 
-				maxMonth = curMonth;
-				maxDate = curDate;
-				maxYear = curYear;
+			if( curDays > maxDays ) {
+				maxMonth = info.month;
+				maxDate = info.date;
+				maxYear = info.year;
+				maxDays = curDays;
 			}
-			//System.out.println("score="+info.score+",maxScore="+maxScore);
 			if( info.score > maxScore )
 				maxScore = info.score;
 		}
-				
-		//System.out.println("minYear="+minYear+",maxYear="+maxYear+",maxScore="+maxScore);
+		
+		maxMonth++;
 	}
 	
 	// actually draw the timeline
@@ -125,9 +174,9 @@ public class TimelinePanel extends JPanel {
 				    width-HORIZONTAL_INSET, midY);
 		
 		// width that each type of segment takes up
-		int numMonths = 12 * ( maxYear - minYear ) - minMonth + maxMonth + 1;
-		int monthWidth = (int)( ( width - 2.0*HORIZONTAL_INSET ) / ( 1.0*numMonths ) );
-		int dayWidth = (int)Math.ceil( monthWidth / 31.0 );
+		int numMonths = 12 * ( maxYear - minYear ) - minMonth + maxMonth;
+		double monthWidth = ( width - 2.0*HORIZONTAL_INSET ) / ( 1.0*numMonths );
+		double dayWidth = monthWidth / 31.0 ;
 		
 		// draw documents on axis
 		for( int i = 0; i < results.size(); i++ ) {
@@ -135,7 +184,7 @@ public class TimelinePanel extends JPanel {
 			
 			// find where we should put this document
 			int monthOffset = 12 * ( info.year - minYear ) - minMonth + info.month;
-			int xPos = HORIZONTAL_INSET + monthOffset*monthWidth + (info.date - 1)*dayWidth;
+			int xPos = HORIZONTAL_INSET + (int)( monthOffset*monthWidth ) + (int)( (info.date - 1)*dayWidth );
 		
 			int size = MIN_SIZE + (int)(( MAX_SIZE - MIN_SIZE )* ( Math.exp( info.score ) / Math.exp( maxScore ) ) );
 
@@ -143,7 +192,7 @@ public class TimelinePanel extends JPanel {
 			ovals.add( new Ellipse2D.Double( xPos-size, midY-size, 2*size, 2*size ) );
 
 			// make sure we're actually on the screen
-			if( xPos-size < HORIZONTAL_INSET || xPos+size > width - HORIZONTAL_INSET )
+			if( xPos < HORIZONTAL_INSET || xPos > width - HORIZONTAL_INSET )
 				continue;
 
 			if( info == currentInfo ) {
@@ -165,9 +214,9 @@ public class TimelinePanel extends JPanel {
 		int curYear = minYear + 1;
 		if( minMonth == 1 ) // the first tick we draw will be a year tick
 			curYear = minYear;
-		int xPos = HORIZONTAL_INSET;
 		for( int curMonth = 0; curMonth <= numMonths; curMonth++ ) {
 			g.setColor( Color.black );
+			int xPos = HORIZONTAL_INSET + (int)( curMonth*monthWidth ); 
 			if( ( minMonth + curMonth - 1 ) % 12 == 0 ) {
 				g.drawLine( xPos, midY-YEAR_TICK_SIZE, xPos, midY+YEAR_TICK_SIZE );
 				g.setColor( Color.blue );
@@ -176,7 +225,6 @@ public class TimelinePanel extends JPanel {
 			}
 			else
 				g.drawLine( xPos, midY-MONTH_TICK_SIZE, xPos, midY+MONTH_TICK_SIZE );
-			xPos += monthWidth;
 		}
  	}
 	
@@ -206,5 +254,18 @@ public class TimelinePanel extends JPanel {
 	public void setEndDate( int month, int year ) {
 		maxMonth = month;
 		maxYear = year;
+	}
+	
+	public void addActionListeners( ActionListener listener ) {
+		previousDocButton.addActionListener( listener );
+		nextDocButton.addActionListener( listener );
+	}
+	
+	public JButton getPreviousDocButton() {
+		return previousDocButton;
+	}
+	
+	public JButton getNextDocButton() {
+		return nextDocButton;
 	}
 }
