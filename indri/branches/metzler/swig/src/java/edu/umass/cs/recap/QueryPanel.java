@@ -1,5 +1,8 @@
 package edu.umass.cs.recap;
 import java.awt.GridLayout;
+import java.awt.event.ActionListener;
+import java.util.EventListener;
+import java.util.Hashtable;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -7,8 +10,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.event.ChangeListener;
 /*
  * Created on Nov 2, 2004
  *
@@ -31,6 +36,8 @@ public class QueryPanel extends JPanel {
 	private JTextField startDate = null;
 	private JTextField endDate = null;
 	private JButton updateTimelineButton = null;
+
+	private JSlider slider = null;
 	
 	public QueryPanel() {
 		queryLabel = new JLabel( "Query:" );
@@ -67,10 +74,26 @@ public class QueryPanel extends JPanel {
 		
 		queryScrollPane.getViewport().setView( queryTextArea );
 		
+		// slider
+		slider = new JSlider( JSlider.HORIZONTAL, 0, 100, 0 );
+		
+		Hashtable labelTable = new Hashtable();
+		labelTable.put( new Integer( 0 ), new JLabel("All") );
+		labelTable.put( new Integer( 50 ), new JLabel("Partial") );
+		labelTable.put( new Integer( 100 ), new JLabel("Exact") );
+		slider.setLabelTable( labelTable );
+		
+		//slider.setMajorTickSpacing(10);
+		//slider.setMinorTickSpacing(1);
+		//slider.setPaintTicks(true);
+		slider.setPaintLabels(true);
+		slider.setVisible( true );
+		
 		add( queryLabel );
 		add( queryScrollPane );
 		//add( runQueryButton );
 		add( subPanel );
+		add( slider );
 	}
 	
 	public String getQueryText() {
@@ -81,18 +104,10 @@ public class QueryPanel extends JPanel {
 		queryTextArea.setText( query );
 	}
 
-	public JButton getRunQueryButton() {
-		return runQueryButton;
+	public double getThreshold() {
+		return ( 1.0*slider.getValue() / slider.getMaximum() );
 	}
-
-	public JButton getClearQueryButton() {
-		return clearQueryButton;
-	}
-
-	public JButton getUpdateTimelineButton() {
-		return updateTimelineButton;
-	}
-			
+	
 	public String getTimelineStartDate() {
 		return startDate.getText();
 	}
@@ -116,4 +131,20 @@ public class QueryPanel extends JPanel {
 			return "analyze";
 		return null; // if, somehow, neither radio button is selected
 	}
+
+	// registers all EventListeners used in this class 
+	public void addListeners( EventListener listener ) {
+		// action listeners
+		runQueryButton.addActionListener( (ActionListener)listener );
+		clearQueryButton.addActionListener( (ActionListener)listener );
+		updateTimelineButton.addActionListener( (ActionListener)listener );
+		
+		// change listeners
+		slider.addChangeListener( (ChangeListener)listener );
+	}
+
+	public void setSliderEnabled( boolean b ) {
+		slider.setEnabled( b );
+	}
+	
 }

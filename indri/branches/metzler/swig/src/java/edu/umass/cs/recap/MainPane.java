@@ -65,7 +65,7 @@ public class MainPane extends JPanel implements ActionListener {
 		}
 		else if( label.equals( "About...") ) {			
 			JOptionPane.showMessageDialog( this,
-				    "RECAP is the result of a collaborative effort involving:\n\nYaniv Bernstein (RMIT)\nW. Bruce Croft (UMass)\nDonald Metzler (UMass)\nAllistair Moffat (U. of Melbourne)\nJustin Zobel (RMIT)\n\nCode developed by Donald Metzler",
+				    "RECAP is the result of a collaborative effort involving:\n\nYaniv Bernstein (RMIT)\nW. Bruce Croft (UMass)\nDonald Metzler (UMass)\nAlistair Moffat (U. of Melbourne)\nJustin Zobel (RMIT)\n\nCode developed by Donald Metzler",
 				    "About...",
 				    JOptionPane.INFORMATION_MESSAGE,
 				    new ImageIcon("edu/umass/cs/recap/images/recap.png"));		

@@ -17,7 +17,7 @@ import edu.umass.cs.indri.QueryEnvironment;
  */
 public class Recap extends JFrame {
 	
-	private final String VERSION = "0.4";
+	private final String VERSION = "0.5";
 	
 	private MainPane mainPane = null;
 	
@@ -34,6 +34,9 @@ public class Recap extends JFrame {
 		// command line mode object, if required
 		CommandLineMode clm = null;
 		
+		// create the retrieval engine
+		RetrievalEngine retEngine = new RetrievalEngine( indri );
+		
 		// parse the command line arguments
 		boolean interactive = true;
 
@@ -42,12 +45,12 @@ public class Recap extends JFrame {
 			try {
 				if( curArg.equals( "-index" ) ) {
 					String nextArg= args[++i];
-					indri.addIndex( nextArg );
+					retEngine.addIndex( nextArg );
 					System.out.println( "Added index " + nextArg + "...");
 				}
 				else if( curArg.equals( "-server" ) ) {
 					String nextArg= args[++i];
-					indri.addServer( nextArg );
+					retEngine.addServer( nextArg );
 					System.out.println( "Added server " + nextArg + "...");
 				}
 				else if( curArg.equals( "-commandline") ) {
@@ -65,9 +68,6 @@ public class Recap extends JFrame {
 			}
 		}
 		
-		// create the retrieval engine
-		RetrievalEngine retEngine = new RetrievalEngine( indri );
-
 		if( interactive ) { // interactive mode
 			// get the screen size
 			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();

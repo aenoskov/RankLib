@@ -38,6 +38,12 @@ public class QuickFindScrollPane extends JScrollPane implements MouseListener {
 		this.addMouseListener( this );
 	}
 
+	public void setMatches( Vector matches ) {		
+		this.matches = matches;
+		border = new QuickFindBorder( matches, byteLength ); 
+		this.setBorder( border );
+	}
+	
 	public void mouseClicked(MouseEvent event) {
 		Point p = event.getPoint();
 		

@@ -32,7 +32,7 @@ public class QuickFindBorder extends EmptyBorder {
 		this.matches = matches;
 		this.byteLength = byteLength;
 	}
-	
+		
 	public boolean isBorderOpaque() {
 		return true;
 	}
@@ -42,7 +42,7 @@ public class QuickFindBorder extends EmptyBorder {
 		for( int i = 0; i < matches.size(); i++ ) {
 			Match m = (Match)matches.elementAt(i);
 			// this ensures we don't mark the same match twice
-			if( lastMatch != null && m.compareTo( lastMatch ) == 0 )
+			if( lastMatch != null && m.extentCompareTo( lastMatch ) == 0 )
 				continue;
 			int top = (int)(height*m.begin/(byteLength*1.0));
 			int bottom = (int)(height*m.end/(byteLength*1.0));

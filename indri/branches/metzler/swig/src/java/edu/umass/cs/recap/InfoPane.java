@@ -9,8 +9,10 @@ import java.awt.event.MouseListener;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSlider;
 import javax.swing.JSplitPane;
 import javax.swing.JTextPane;
 import javax.swing.event.ChangeEvent;
@@ -65,9 +67,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		dvPane.getDocTextPane().addMouseListener( this );
 		dvPane.getMatchPane().addChangeListener( this );
 
-		queryPanel.getRunQueryButton().addActionListener( this );
-		queryPanel.getClearQueryButton().addActionListener( this );
-		queryPanel.getUpdateTimelineButton().addActionListener( this );
+		queryPanel.addListeners( this );
+		queryPanel.setSliderEnabled( false );
 		
 		tlPanel.addMouseListener( this );
 		tlPanel.addActionListeners( this );
@@ -140,7 +141,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		Vector viewableResults = retEngine.runQuery( query, simMeasure, queryExtent, numAnalyzeResults );
 				
 		// update DocViewPane
-		dvPane.addMatches( viewableResults );
+		dvPane.setAnalyzeResults( viewableResults );
 		
 		// update TimelinePanel
 		tlPanel.setResults( viewableResults );
@@ -170,12 +171,49 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		numAnalyzeResults = results;
 	}
 	
-	public void stateChanged( ChangeEvent e ) {		
-		if( dvPane != null && dvPane.getMatchPane().getSelectedIndex() != -1 ) {
+	public void stateChanged( ChangeEvent e ) {
+		// slider changed
+		double threshold = queryPanel.getThreshold();
+		if( e.getSource() instanceof JSlider ) {			
+			Vector results = dvPane.getCurAnalyzeResults();
+			if( results.size() == 0 )
+				return;
+			boolean [] b = new boolean[ results.size() ];
+			for( int i = 0; i < results.size(); i++ ) {
+				RecapStyledDocument doc = (RecapStyledDocument)results.elementAt( i );
+				doc.applySentenceMatchThreshold( threshold );
+				if( doc.getViewableSentenceMatches().size() == 0 )
+					b[ i ] = false;
+				else
+					b[ i ] = true;
+			}
+				
+			dvPane.setViewableAnalyzeResults( b );
+			tlPanel.setViewableResults( b );
+			repaint();
+			
+			JTextPane pane = dvPane.getResultPane();
+			if( pane != null && pane.getDocument() instanceof RecapStyledDocument ) {
+				RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();
+				//doc.applySentenceMatchThreshold( threshold );
+				dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
+			}
+		}
+		// otherwise it must've been a tab click in the DocViewPane
+		else if( dvPane != null && dvPane.getMatchPane().getSelectedIndex() != -1 ) {
 			String curDoc = dvPane.getMatchPane().getTitleAt( dvPane.getMatchPane().getSelectedIndex() );
+			if( getMode().equals( "analyze") ) {
+				JTextPane pane = dvPane.getResultPane();
+				if( pane != null && pane.getDocument() instanceof RecapStyledDocument ) {
+					RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();
+					//doc.applySentenceMatchThreshold( threshold );
+					dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
+				}
+			}
 			tlPanel.setCurrent( curDoc );
 			repaint();
 		}
+
 	}
 
 	public void mouseClicked( MouseEvent e ) {
@@ -193,9 +231,10 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 					repaint();
 				}
 				else { // 2+ clicks => analyze document
-					//updater.setSelectedDoc( doc );
+					//updater.setSelectedDoc( doc );					
+					dvPane.setSelectedDoc( doc );
 					if( getMode().equals( "analyze" ) )
-						displayDoc( doc );
+						dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
 				}
 			}
 		}
@@ -209,28 +248,37 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		Object src = e.getSource();
 		if( src == dvPane.getDocTextPane() ) {
 			JTextPane pane = dvPane.getDocTextPane();
+			RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();			
 			String queryText = pane.getSelectedText();
 			if( queryText != null && !queryText.trim().equals("") )
 				queryPanel.setQueryText( pane.getSelectedText() );
+			doc.setHighlight( pane.getSelectionStart(), pane.getSelectionEnd() );
 		}
 	}
 
 	// required for ActionListener
 	public void actionPerformed( ActionEvent e ) {
-		Object src = e.getSource();
-		if( src == queryPanel.getRunQueryButton() ) {
+		// TODO: change this so all matches are based on buttonName
+		JButton src = (JButton)e.getSource();
+		String buttonText = src.getLabel();
+		String buttonName = src.getName();
+		if( buttonText.equals( "Run query" ) ) {
 			String mode = getMode();
-			if( mode.equals( "explore" ) )
+			if( mode.equals( "explore" ) ) {
 				runExploreQuery( queryPanel.getQueryText() );
-			else if( mode.equals( "analyze" ) )
+				queryPanel.setSliderEnabled( false );
+			}
+			else if( mode.equals( "analyze" ) ) {
 				runAnalyzeQuery( queryPanel.getQueryText() );
+				queryPanel.setSliderEnabled( true );
+			}
 			else
 				System.err.println( "ERROR -- invalid search mode!" );
 		}
-		else if( src == queryPanel.getClearQueryButton() ) {
+		else if( buttonText.equals( "Clear query" ) ) {
 			queryPanel.setQueryText("");
 		}
-		else if( src == queryPanel.getUpdateTimelineButton() ) {
+		else if( buttonText.equals( "Update timeline" ) ) {
 			String startDate = queryPanel.getTimelineStartDate();
 			String endDate = queryPanel.getTimelineEndDate();
 			
@@ -257,8 +305,10 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				showErrorDialog( "Dates must be in MM/YYYY format!" );
 			}
 		}
-		else if( src == tlPanel.getPreviousDocButton() ) {
+		else if( buttonName.equals( "tlPrev" ) ) {
 			ScoredDocInfo info = tlPanel.getPreviousDoc();
+			if( info == null )
+				return;
 			DocInfo doc = new DocInfo( info.docName, info.docID );
 			tlPanel.setCurrent( info.docName );
 			dvPane.setSelectedDoc( doc );
@@ -266,14 +316,23 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				dvPane.displayHighlightedDoc( info.docID );
 			repaint();
 		}
-		else if( src == tlPanel.getNextDocButton() ) {
+		else if( buttonName.equals( "tlNext" ) ) { 
 			ScoredDocInfo info = tlPanel.getNextDoc();
+			if( info == null )
+				return;
 			DocInfo doc = new DocInfo( info.docName, info.docID );
 			tlPanel.setCurrent( info.docName );
 			dvPane.setSelectedDoc( doc );
 			if( getMode().equals( "explore" ) )
 				dvPane.displayHighlightedDoc( info.docID );
 			repaint();
+		}
+		else if( buttonName.equals( "tlAnalyze" ) ) {			
+			ScoredDocInfo info = tlPanel.getCurrentDoc();
+			if( info == null )
+				return;
+			if( getMode().equals( "analyze") )				
+				dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
 		}
 	}
 
@@ -316,5 +375,5 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	
 	protected void showErrorDialog( String msg ) {		
 		JOptionPane.showMessageDialog( this, msg, "Error", JOptionPane.ERROR_MESSAGE );
-	}
+	}	
 }
