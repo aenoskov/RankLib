@@ -74,7 +74,9 @@ private:
   Buffer buffer;
   ObjectHandler<ParsedDocument>* _handler;
 
+protected:
   void addSentenceTag( ParsedDocument* document, int begin, int end );
+  int numSentences;
 
 public:
   ParsedDocument* transform( ParsedDocument* document );

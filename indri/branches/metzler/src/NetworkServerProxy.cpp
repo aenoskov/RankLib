@@ -264,6 +264,42 @@ public:
 };
 
 //
+// NetworkServerProxyDocumentIDsResponse
+//
+
+class NetworkServerProxyDocumentIDsResponse : public QueryServerDocumentIDsResponse {
+public:
+  std::vector<DOCID_T> _documentIDs;
+  NetworkMessageStream* _stream;
+  bool _readResponse;
+
+public:
+  NetworkServerProxyDocumentIDsResponse( NetworkMessageStream* stream ) 
+    :
+    _stream(stream),
+    _readResponse(false)
+  {
+  }
+
+  std::vector<DOCID_T>& getResults() {
+    if( !_readResponse ) {
+      XMLReplyReceiver r;
+      r.wait( _stream );
+
+      const XMLNode* reply = r.getReply();
+      const std::vector<XMLNode*>& children = reply->getChildren();
+      
+      for( size_t i=0; i<children.size(); i++ ) {
+        XMLNode* child = children[i];
+        _documentIDs.push_back( string_to_i64( child->getValue() ) );
+      }
+    }
+
+    return _documentIDs;
+  }
+};
+
+//
 // NetworkServerProxy code
 //
 
@@ -288,6 +324,10 @@ QueryServerResponse* NetworkServerProxy::runQuery( std::vector<indri::lang::Node
   return new NetworkServerProxyResponse( _stream );
 }
 
+//
+// documentMetadata
+//
+
 QueryServerMetadataResponse* NetworkServerProxy::documentMetadata( const std::vector<int>& documentIDs, const std::string& attributeName ) {
   XMLNode* request = new XMLNode( "document-metadata" );
   XMLNode* field = new XMLNode( "field", attributeName );
@@ -307,6 +347,10 @@ QueryServerMetadataResponse* NetworkServerProxy::documentMetadata( const std::ve
   return new NetworkServerProxyMetadataResponse( _stream );
 }
 
+//
+// documents
+//
+
 QueryServerDocumentsResponse* NetworkServerProxy::documents( const std::vector<int>& documentIDs ) {
   XMLNode* docRequest = new XMLNode( "documents" );
 
@@ -319,6 +363,61 @@ QueryServerDocumentsResponse* NetworkServerProxy::documents( const std::vector<i
   return new NetworkServerProxyDocumentsResponse( _stream );
 }
 
+//
+// documentsFromMetadata
+//
+
+QueryServerDocumentsResponse* NetworkServerProxy::documentsFromMetadata( const std::string& attributeName, const std::vector<std::string>& attributeValues ) {
+  XMLNode* docRequest = new XMLNode( "documents-from-metadata" );
+
+  // store the attribute name
+  docRequest->addChild( new XMLNode( "attributeName", attributeName ) );
+
+  // serialize the attributeValues (in a tree called "attributeValues", with members called "attributeValue")
+  XMLNode* attributeValuesNode = new XMLNode( "attributeValues" );
+  for( unsigned int i=0; i<attributeValues.size(); i++ ) {
+    attributeValuesNode->addChild( new XMLNode( "attributeValue", attributeValues[i] ) );
+  }
+  docRequest->addChild( attributeValuesNode );
+
+  // request the documents
+  _stream->request( docRequest );
+  delete docRequest;
+
+  return new NetworkServerProxyDocumentsResponse( _stream );
+}
+
+//
+// documentIDsFromMetadata
+//
+
+QueryServerDocumentIDsResponse* NetworkServerProxy::documentIDsFromMetadata( const std::string& attributeName, const std::vector<std::string>& attributeValues ) {
+  XMLNode* docRequest = new XMLNode( "docids-from-metadata" );
+ 
+  _stream->request( docRequest );
+  delete docRequest;
+
+  // store the attribute name
+  docRequest->addChild( new XMLNode( "attributeName", attributeName ) );
+
+  // serialize the attributeValues (in a tree called "attributeValues", with members called "attributeValue")
+  XMLNode* attributeValuesNode = new XMLNode( "attributeValues" );
+  for( unsigned int i=0; i<attributeValues.size(); i++ ) {
+    attributeValuesNode->addChild( new XMLNode( "attributeValue", attributeValues[i] ) );
+  }
+  docRequest->addChild( attributeValuesNode );
+
+  // request the documents
+  _stream->request( docRequest );
+  delete docRequest;
+
+  return new NetworkServerProxyDocumentIDsResponse( _stream );
+}
+
+//
+// termCount
+//
+
 INT64 NetworkServerProxy::termCount() {
   std::auto_ptr<XMLNode> request( new XMLNode( "term-count" ) );
   _stream->request( request.get() );
@@ -329,6 +428,10 @@ INT64 NetworkServerProxy::termCount() {
   XMLNode* reply = r.getReply();
   return string_to_i64( reply->getValue() );
 }
+
+//
+// termCount
+//
 
 INT64 NetworkServerProxy::termCount( const std::string& term ) {
   std::auto_ptr<XMLNode> request( new XMLNode( "term-count-text", term ) );
