@@ -38,6 +38,9 @@ public:
   QueryServerDocumentsResponse* documents( const std::vector<int>& documentIDs );
   QueryServerMetadataResponse* documentMetadata( const std::vector<int>& documentIDs, const std::string& attributeName );
 
+  QueryServerDocumentIDsResponse* documentIDsFromMetadata( const std::string& attributeName, const std::vector<std::string>& attributeValues );
+  QueryServerDocumentsResponse* documentsFromMetadata( const std::string& attributeName, const std::vector<std::string>& attributeValues );
+
   // terms -- implemented (but not on stub)
   INT64 termCount();
   INT64 termCount( int term );

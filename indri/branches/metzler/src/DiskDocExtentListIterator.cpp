@@ -61,7 +61,7 @@ void indri::index::DiskDocExtentListIterator::startIteration() {
 
   // read in the first entry
   _readSkip();
-  _readEntry();
+  nextEntry();
 }
 
 //

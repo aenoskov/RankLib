@@ -1,51 +1,3 @@
-/*==========================================================================
-  Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
-
-  Use of the Lemur Toolkit for Language Modeling and Information Retrieval
-  is subject to the terms of the software license set forth in the LICENSE
-  file included with this software, and also available at
-  http://www.cs.cmu.edu/~lemur/license.html 
-  as well as the conditions below.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in
-  the documentation and/or other materials provided with the
-  distribution.
-
-  3. The names "Indri", "Center for Intelligent Information Retrieval", 
-  "CIIR", and "University of Massachusetts" must not be used to
-  endorse or promote products derived from this software without
-  prior written permission. To obtain permission, contact
-  indri-info@ciir.cs.umass.edu.
-
-  4. Products derived from this software may not be called "Indri" nor 
-  may "Indri" appear in their names without prior written permission of 
-  the University of Massachusetts. To obtain permission, contact 
-  indri-info@ciir.cs.umass.edu.
-
-  THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY OF MASSACHUSETTS AND OTHER
-  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
-  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-  FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-  THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-  DAMAGE.
-  ==========================================================================
-*/
-
-
 //
 // SentenceSegmenterTransformation
 //
@@ -56,7 +8,7 @@
 #include "indri/SentenceSegmenterTransformation.hpp"
 
 ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* document ) {
-  int numSentences = 0;
+  numSentences = 0;
   buffer.clear();
 
   int numTerms = document->positions.size();
@@ -92,36 +44,38 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
       nextTerm = "";
     }
 
-    //std::cout << curTerm << std::endl;
+    //std::cout << "curTerm = " << curTerm << std::endl;
 
     int curTermLength = curTerm.length();
     char lastChar = '\0';
-	while( curTermLength > 0 ) {
+    while( curTermLength > 0 ) {
       char tmpChar = curTerm[ curTermLength - 1 ];
-	  if( tmpChar != '\"' && tmpChar != '\'' && tmpChar != '`' || tmpChar != ' ' &&
-		  tmpChar != '<'  && tmpChar != '>')
-		lastChar = tmpChar;
-	  curTermLength--;
-	}
+      if( tmpChar != '\"' && tmpChar != '\'' && tmpChar != '`' && tmpChar != ' ' &&
+	  tmpChar != '<'  && tmpChar != '>') {
+	lastChar = tmpChar;
+	break;
+      }
+      curTermLength--;
+    }
 
     if( lastChar == '?' || lastChar == '!' || lastChar == ';' ) {
       addTag = true;
     }
     else if( lastChar == '.' ) {
       // next word is lowercase => not sentence boundary
-	  if( nextTerm.length() > 0 && nextTerm[0] < 'A' || nextTerm[0] > 'Z' ) {
-		addTag = false;
+      if( nextTerm.length() > 0 && nextTerm[0] < 'A' || nextTerm[0] > 'Z' ) {
+	addTag = false;
       }
       // current term uppercase and contains more than 1 '.' => not sentence boundary
       else if( curTerm[0] >= 'A' && curTerm[0] <= 'Z' && curTerm.find( ".", 0 ) < curTerm.length()-1 ) {
-		addTag = false;
+	addTag = false;
       }
       // current term uppercase and shorter than 5 characters => not sentence boundary
       else if( curTerm[0] >= 'A' && curTerm[0] <= 'Z' && curTerm.length() < 5 ) {
-		addTag = false;
+	addTag = false;
       }
       else 
-		addTag = true;
+	addTag = true;
     }
     else {
       addTag = false;
@@ -132,9 +86,8 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
     if( addTag ) {
       //std::cout << "SENTENCE = " << sentence << std::endl;
       //sentence = "";
-	  addSentenceTag( document, sentenceBegin, i + 1 );
-	  numSentences++;
-
+      addSentenceTag( document, sentenceBegin, i + 1 );
+      
       sentenceBegin = i + 1; // new beginning of sentence position
     }
 
@@ -143,10 +96,8 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
   }
 
   // add tag to enclose the remaining data (if any)
-  if( numTerms - sentenceBegin > 0 ) {
+  if( numTerms - sentenceBegin > 0 )
     addSentenceTag( document, sentenceBegin, numTerms );
-	numSentences++;
-  }
 
   // add metadata about the number of
   // sentences in this document
@@ -174,9 +125,11 @@ void SentenceSegmenterTransformation::addSentenceTag( ParsedDocument* document, 
   assert( tag.begin <= tag.end );
   assert( tag.begin <= document->terms.size() );
   assert( tag.end   <= document->terms.size() );
-
-  if( MIN_SENTENCE_TOKENS < ( begin - end ) && ( begin - end ) < MAX_SENTENCE_TOKENS )
-	document->tags.push_back( tag );
+  
+  if( MIN_SENTENCE_TOKENS < ( end - begin ) && ( end - begin ) < MAX_SENTENCE_TOKENS ) {
+    document->tags.push_back( tag );
+    numSentences++;
+  }
 }
 
 
