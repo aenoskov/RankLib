@@ -8,7 +8,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Ellipse2D;
+import java.util.ArrayList;
 import java.util.EventListener;
+import java.util.HashMap;
 import java.util.Vector;
 
 import javax.swing.ImageIcon;
@@ -78,6 +80,11 @@ public class TimelinePanel extends JPanel {
 	private JPopupMenu popup = null;
 	private JMenuItem resetPopupItem = null;
 	
+	// hashmap of 'sources' contained in results
+	private HashMap sources = null;
+	private ArrayList sourceNames = null;
+	private boolean showSourcePaths = true;
+	
 	public TimelinePanel () {
 		ovals = new Vector();
 		
@@ -107,6 +114,10 @@ public class TimelinePanel extends JPanel {
 		previousDocButton.setToolTipText( "Move to previous document");
 		analyzeButton.setToolTipText( "Analyze current document");
 		nextDocButton.setToolTipText( "Move to next document");
+		
+		// set up source hashmap
+		sources = new HashMap();
+		sourceNames = new ArrayList();
 	}
 		
 	public void setResults( Vector res ) {
@@ -196,6 +207,9 @@ public class TimelinePanel extends JPanel {
 		
 		minScore = Double.POSITIVE_INFINITY;
 		maxScore = Double.NEGATIVE_INFINITY;
+
+		sources.clear();
+		int sourceNum = 0;
 		
 		int minDays = Integer.MAX_VALUE;
 		int maxDays = Integer.MIN_VALUE;
@@ -218,6 +232,13 @@ public class TimelinePanel extends JPanel {
 				maxScore = info.score;
 			if( info.score < minScore )
 				minScore = info.score;
+			
+			String source = info.docName.substring( 0, 2 );
+			Object o = sources.get( source );
+			if( o == null ) {
+				sourceNames.add( source );
+				sources.put( source, new Integer( sourceNum++ ) );
+			}
 		}
 		
 		maxMonth++;
@@ -236,14 +257,24 @@ public class TimelinePanel extends JPanel {
 		int height = getHeight();
 		int midY = (int)(1.0*height/2.0);
 	
+		int sourceOffset = 0;
+		
 		// draw main horizontal axis
-		g.drawLine( HORIZONTAL_INSET, midY,
-				    width-HORIZONTAL_INSET, midY);
+		//g.drawLine( HORIZONTAL_INSET, midY,
+		//		    width-HORIZONTAL_INSET, midY);
 		
 		// width that each type of segment takes up
 		int numMonths = 12 * ( maxYear - minYear ) - minMonth + maxMonth;
 		double monthWidth = ( width - 2.0*HORIZONTAL_INSET ) / ( 1.0*numMonths );
 		double dayWidth = monthWidth / 31.0 ;
+
+		// draw tickmarks for every year / month
+		if( !showSourcePaths )
+			drawTickedLine( g, width, midY, numMonths, monthWidth, false, null );
+		else {
+			for( int i = 0; i < sources.size(); i++ )
+				drawTickedLine( g, width, midY + i*2*MAX_SIZE, numMonths, monthWidth, i == 0, (String)sourceNames.get( i ) );
+		}
 		
 		// draw documents on axis
 		for( int i = 0; i < results.size(); i++ ) {			
@@ -263,8 +294,14 @@ public class TimelinePanel extends JPanel {
 				size = (int)Math.ceil( m*info.score + b );
 			}			
 
+			// if we're showing the source paths then we must compute the source offset
+			if( showSourcePaths ) {
+				int sourceNum = ((Integer)sources.get( info.docName.substring( 0, 2 ) )).intValue();
+				sourceOffset = sourceNum*MAX_SIZE*2;
+			}
+			
 			// add oval for this document
-			ovals.add( new Ellipse2D.Double( xPos-size, midY-size, 2*size, 2*size ) );
+			ovals.add( new Ellipse2D.Double( xPos-size, midY-size + sourceOffset, 2*size, 2*size ) );
 
 			// make sure this document is viewable
 			if( viewable != null && !viewable[i] )
@@ -273,39 +310,22 @@ public class TimelinePanel extends JPanel {
 			// make sure we're actually on the screen
 			if( xPos < HORIZONTAL_INSET || xPos > width - HORIZONTAL_INSET )
 				continue;
-			
+						
 			if( info == currentInfo ) {
 				// TODO: make this into a "drawDoc" function
 				g.setColor( new Color( 0.0f, 1.0f, 0.0f, 1.0f ) );
-				g.fillOval(xPos-size, midY-size, 2*size, 2*size);
+				g.fillOval(xPos-size, midY-size + sourceOffset, 2*size, 2*size);
 				g.setColor( new Color( 0.0f, 1.0f, 0.0f, 1.0f ) );
-				g.drawOval(xPos-size, midY-size, 2*size, 2*size);
+				g.drawOval(xPos-size, midY-size + sourceOffset, 2*size, 2*size);
 			}
 			else {
 				g.setColor( new Color( 1.0f, 0.0f, 0.0f, 0.50f ) );
-				g.fillOval(xPos-size, midY-size, 2*size, 2*size);
+				g.fillOval(xPos-size, midY-size + sourceOffset, 2*size, 2*size);
 				g.setColor( new Color( 1.0f, 0.0f, 0.0f, 1.0f ) );
-				g.drawOval(xPos-size, midY-size, 2*size, 2*size);
+				g.drawOval(xPos-size, midY-size + sourceOffset, 2*size, 2*size);
 			}
 		}
-		
-		// draw tickmarks for every year / month
-		int curYear = minYear + 1;
-		if( minMonth == 1 ) // the first tick we draw will be a year tick
-			curYear = minYear;
-		for( int curMonth = 0; curMonth <= numMonths; curMonth++ ) {
-			g.setColor( Color.black );
-			int xPos = HORIZONTAL_INSET + (int)( curMonth*monthWidth ); 
-			if( ( minMonth + curMonth - 1 ) % 12 == 0 ) {
-				g.drawLine( xPos, midY-YEAR_TICK_SIZE, xPos, midY+YEAR_TICK_SIZE );
-				g.setColor( Color.blue );
-				g.drawString(""+curYear, xPos-15, midY-YEAR_TICK_SIZE);
-				curYear++;
-			}
-			else
-				g.drawLine( xPos, midY-MONTH_TICK_SIZE, xPos, midY+MONTH_TICK_SIZE );
-		}
-		
+				
 		// draw click-dragged region, if any
 		if( startDragPoint != null && endDragPoint != null ) {
 			g.setColor( new Color( 0.0f, 0.0f, 1.0f, 0.50f ) );
@@ -332,6 +352,35 @@ public class TimelinePanel extends JPanel {
 			dragEndYear = 0;
 		}
  	}
+
+	private void drawTickedLine( Graphics g, int width, int midY, int numMonths, double monthWidth, boolean drawDates, String sourceName ) {
+		int curYear = minYear + 1;
+		if( minMonth == 1 ) // the first tick we draw will be a year tick
+			curYear = minYear;
+		
+		// draw main axis
+		g.setColor( Color.black );
+		g.drawLine( HORIZONTAL_INSET, midY, width-HORIZONTAL_INSET, midY);
+
+		for( int curMonth = 0; curMonth <= numMonths; curMonth++ ) {
+			g.setColor( Color.black );
+			int xPos = HORIZONTAL_INSET + (int)( curMonth*monthWidth ); 
+			if( ( minMonth + curMonth - 1 ) % 12 == 0 ) {
+				g.drawLine( xPos, midY-YEAR_TICK_SIZE, xPos, midY+YEAR_TICK_SIZE );
+				if( drawDates ) {
+					g.setColor( Color.blue );
+					g.drawString(""+curYear, xPos-15, midY-YEAR_TICK_SIZE);
+				}
+				curYear++;
+			}
+			else
+				g.drawLine( xPos, midY-MONTH_TICK_SIZE, xPos, midY+MONTH_TICK_SIZE );
+		}
+		if( sourceName != null ) {
+			g.setColor( Color.blue );
+			g.drawString( sourceName, 0, midY );
+		}
+	}
 	
 	public ScoredDocInfo getDocAt( Point p ) {
 		ScoredDocInfo ret = null;
@@ -395,7 +444,7 @@ public class TimelinePanel extends JPanel {
 		init();
 		repaint();
 	}
-	
+		
 	// register EventListeners for this class
 	public void addListeners( EventListener listener ) {
 		previousDocButton.addActionListener( (ActionListener)listener );

@@ -344,16 +344,19 @@ public class RetrievalEngine {
 		}
 		
 		// arrays to fill in with data
-		String [] docNames = new String[ docs.size() ]; //indri.documentMetadata( ids, "docno" );
-		String [] docDates = new String[ docs.size() ]; //indri.documentMetadata( ids, "date" );
-		ParsedDocument [] parsedDocs = new ParsedDocument[ docs.size() ]; //indri.documents( ids );
+		String [] docNames = new String[ docs.size() ]; 
+		String [] docDates = new String[ docs.size() ]; 
+		ParsedDocument [] parsedDocs = new ParsedDocument[ docs.size() ];
 		
 		getMetadata( ids, docNames, docDates, parsedDocs );
 				
 		for( int i = 0; i < docs.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)docs.elementAt( i );
 			info.docName = docNames[ i ];
-			// TODO: is there a better way to do this??
+			info.date = Integer.parseInt(docDates[ i ].substring( 2, 4 ) );
+			info.month = Integer.parseInt(docDates[ i ].substring( 0, 2 ) );
+			info.year = Integer.parseInt(docDates[ i ].substring( 4, 8 ) );
+			/*// TODO: is there a better way to do this??
 			if( docNames[i].startsWith("WSJ") ) {
 				info.date = Integer.parseInt(docNames[i].substring(7,9));
 				info.month = Integer.parseInt(docNames[i].substring(5,7));
@@ -384,7 +387,7 @@ public class RetrievalEngine {
 				info.date = 1;
 				info.month = 1;
 				info.year = 1989;
-			}
+			}*/
 			//System.out.println(info);
 		}
 	}
@@ -512,7 +515,8 @@ public class RetrievalEngine {
 		}
 		
 		String [] tmpNames = indri.documentMetadata( missingIDs, "docno" );
-		String [] tmpDates = indri.documentMetadata( missingIDs, "date" );
+		//String [] tmpDates = indri.documentMetadata( missingIDs, "date" );
+		String [] tmpDates = indri.documentMetadata( missingIDs, "ciirdate" );
 		ParsedDocument [] tmpDocs = indri.documents( missingIDs );
 		
 		// fill in the missing values
