@@ -687,6 +687,49 @@ void Repository::_write() {
 }
 
 //
+// _trim
+//
+// Merge together recent indexes.
+//
+
+void Repository::_trim() {
+  // this is only legal if we're not readOnly
+  if( _readOnly )
+    return;
+
+  // grab a copy of the current state
+  index_state state = indexes();
+
+  if( state->size() == 0 )
+    return;
+
+  int lastDocumentCount = state->back()->documentCount();
+  int position = state->size()-2;
+
+  // move back until we find a really big index--don't merge with that one
+  for( ; position>=0; position-- ) {
+    int documentCount = (*state)[position]->documentCount();
+ 
+    if( documentCount > lastDocumentCount*1.5 ) {
+      position++;
+      break;
+    }
+
+    lastDocumentCount = documentCount;
+  }
+
+  // make a new MemoryIndex, cutting off the old one from updates
+  _addMemoryIndex();
+
+  // write out the last index
+  index_state substate = new std::vector<indri::index::Index*>;
+  substate->assign( state->begin() + position, state->end() );
+  state = 0;
+
+  _merge( substate );
+}
+
+//
 // _merge
 //
 // Merge the specified indexes together.

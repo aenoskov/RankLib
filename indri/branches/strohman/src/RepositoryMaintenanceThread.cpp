@@ -9,8 +9,7 @@
 #include "indri/Repository.hpp"
 #include "indri/ScopedLock.hpp"
 
-const UINT64 TIME_DELAY = 5*1000*1000;
-const UINT64 ACTIVE_DELAY = 1*1000*1000;
+const UINT64 TIME_DELAY = 15*1000*1000;
 
 //
 // maintenance_smoothed_load
@@ -38,10 +37,10 @@ static bool maintenance_should_merge( Repository::index_state& state, Repository
   bool significantQueryLoad = smoothedQueryLoad > 2;
   bool insignificantDocumentLoad = smoothedDocumentLoad < 1;
   int indexesToMerge = state->size(); 
-  bool needsMerge = indexesToMerge > 100;
+  bool needsMerge = indexesToMerge > 50;
   
   // extremely heuristic choice for when indexes should be merged:
-  //   when we have 100 indexes it makes sense to merge because we'll be out
+  //   when we have 50 indexes it makes sense to merge because we'll be out
   //   of file handles soon probably.  Otherwise, we merge if there seem to be
   //   a lot of queries relative to the amount of documents added; and this
   //   is all weighted by the number of indexes we have to merge.
@@ -85,6 +84,7 @@ UINT64 RepositoryMaintenanceThread::work() {
   // fetch current index state
   bool write = false;
   bool merge = false;
+  bool trim = false;
 
   {
     // lock the request queue
@@ -118,6 +118,10 @@ UINT64 RepositoryMaintenanceThread::work() {
         merge = true;
         break;
 
+      case TRIM:
+        trim = true;
+        break;
+
       case WRITE:
         write = true;
         break;
@@ -133,14 +137,13 @@ UINT64 RepositoryMaintenanceThread::work() {
 
   if( merge ) {
     _repository._merge();
+  } else if( trim ) {
+    _repository._trim();
   } else if( write ) {
     _repository._write();
   }
 
-  if( merge || write )
-    return ACTIVE_DELAY;
-  else
-    return TIME_DELAY;
+  return TIME_DELAY;
 }
 
 //
