@@ -440,7 +440,7 @@ bool Repository::exists( const std::string& path ) {
 // addDocument
 //
 
-void Repository::addDocument( ParsedDocument* document ) {
+int Repository::addDocument( ParsedDocument* document ) {
   if( _readOnly )
     LEMUR_THROW( LEMUR_RUNTIME_ERROR, "addDocument: Cannot add documents to a repository that is opened for read-only access." ); 
 
@@ -466,6 +466,7 @@ void Repository::addDocument( ParsedDocument* document ) {
   _collection->addDocument( documentID, document );
 
   _countDocumentAdd();
+  return documentID;
 }
 
 //
