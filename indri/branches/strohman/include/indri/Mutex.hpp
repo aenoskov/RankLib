@@ -29,6 +29,9 @@ private:
   pthread_mutex_t _mutex;
 #endif
 
+  // make copy construction private
+  explicit Mutex( Mutex& m ) {}
+
 public:
   Mutex() {
 #ifdef WIN32
@@ -40,7 +43,10 @@ public:
 
   ~Mutex() {
 #ifdef WIN32
-    ::CloseHandle( _mutex );
+    if( _mutex != INVALID_HANDLE_VALUE ) {
+      ::CloseHandle( _mutex );
+      _mutex = 0;
+    }
 #else
     pthread_mutex_destroy( &_mutex );
 #endif

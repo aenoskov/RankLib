@@ -52,10 +52,6 @@ indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::Fi
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
 
-  HashTable<const char*, int> _fieldLookup;
-  std::vector<FieldStatistics> _fieldData;
-  std::vector<indri::index::DocExtentListMemoryBuilder*> _fieldLists;
-
   for( size_t i=0; i<fields.size(); i++ ) {
     int fieldID = i+1;
 
@@ -459,7 +455,7 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   unsigned int indexedTerms = 0;
   greedy_vector<char*>& words = document.terms;
 
-  // assign a document ID -- TODO: check for off by one error here
+  // assign a document ID
   int documentID = _baseDocumentID + _corpusStatistics.totalDocuments;
   _corpusStatistics.totalDocuments++;
   
@@ -552,11 +548,11 @@ indri::index::DocListIterator* indri::index::MemoryIndex::docListIterator( const
 //
 
 indri::index::DocExtentListIterator* indri::index::MemoryIndex::fieldListIterator( int fieldID ) {
-  if( fieldID <= 0 || fieldID >= _fieldData.size() )
+  if( fieldID <= 0 || fieldID > _fieldData.size() )
     return 0;
   
   DocExtentListMemoryBuilder* builder = _fieldLists[fieldID-1];
-  return new DocExtentListMemoryBuilderIterator( *builder );
+  return builder->getIterator();
 }
 
 //
@@ -565,11 +561,11 @@ indri::index::DocExtentListIterator* indri::index::MemoryIndex::fieldListIterato
 
 indri::index::DocExtentListIterator* indri::index::MemoryIndex::fieldListIterator( const std::string& field ) {
   int fieldID = _fieldID( field );
-  if( fieldID <= 0 || fieldID >= _fieldData.size() )
+  if( fieldID <= 0 || fieldID > _fieldData.size() )
     return 0;
   
   DocExtentListMemoryBuilder* builder = _fieldLists[fieldID-1];
-  return new DocExtentListMemoryBuilderIterator( *builder );
+  return builder->getIterator();
 }
 
 //

@@ -1,3 +1,50 @@
+/*==========================================================================
+  Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
+
+  Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+  is subject to the terms of the software license set forth in the LICENSE
+  file included with this software, and also available at
+  http://www.cs.cmu.edu/~lemur/license.html 
+  as well as the conditions below.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+
+  1. Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+
+  2. Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in
+  the documentation and/or other materials provided with the
+  distribution.
+
+  3. The names "Indri", "Center for Intelligent Information Retrieval", 
+  "CIIR", and "University of Massachusetts" must not be used to
+  endorse or promote products derived from this software without
+  prior written permission. To obtain permission, contact
+  indri-info@ciir.cs.umass.edu.
+
+  4. Products derived from this software may not be called "Indri" nor 
+  may "Indri" appear in their names without prior written permission of 
+  the University of Massachusetts. To obtain permission, contact 
+  indri-info@ciir.cs.umass.edu.
+
+  THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY OF MASSACHUSETTS AND OTHER
+  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
+  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+  FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+  THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+  DAMAGE.
+  ==========================================================================
+*/
+
 
 //
 // DocExtentListMemoryBuilder
@@ -37,8 +84,8 @@ indri::index::DocExtentListMemoryBuilder::DocExtentListMemoryBuilder( bool numer
 //
 
 indri::index::DocExtentListMemoryBuilder::~DocExtentListMemoryBuilder() {
-  for( unsigned int i=0; i<_lists.size(); i++ ) {
-    delete _lists[i].first;
+  for( int i=0; i<_lists.size(); i++ ) {
+    delete[] _lists[i].base;
   }
 }
 
@@ -50,7 +97,18 @@ void indri::index::DocExtentListMemoryBuilder::_grow() {
   char* lastList = _list;
   char* lastListBegin = _listBegin;
   char* lastListEnd = _listEnd;
-  size_t documentCopyAmount = _documentPointer - lastList;
+  size_t documentCopyAmount = lastList - _documentPointer;
+
+  // fix data pointer of previous list
+  if( lastList != 0 ) {
+    if( _locationCountPointer ) {
+      _lists.back().data = _documentPointer;
+    } else {
+      _lists.back().data = lastList;
+    }
+
+    assert( _lists.back().data <= _lists.back().capacity );
+  }
 
   // actually add the new list
   unsigned int iterations = std::min<unsigned int>( GROW_TIMES, int(_lists.size()) );
@@ -60,15 +118,28 @@ void indri::index::DocExtentListMemoryBuilder::_grow() {
   _listBegin = _list;
   _listEnd = _list + newSize;
 
-  _lists.push_back( std::make_pair( _listBegin, _listEnd ) );
+  _lists.push_back( DocExtentListMemoryBuilderSegment( _listBegin, _listBegin, _listEnd ) );
 
   // if there's an unterminated document, we have to move it
   if( _locationCountPointer ) {
     memcpy( _list, _documentPointer, documentCopyAmount );
+    assert( memset( _documentPointer, 0xcd, lastListEnd - _documentPointer ) );
     // update the _locationCountPointer
-    _locationCountPointer = _listBegin + (_locationCountPointer - lastListBegin);
+    _locationCountPointer = _listBegin + (_locationCountPointer - _documentPointer);
     _list = _listBegin + documentCopyAmount;
+    _documentPointer = _listBegin;
+  } else {
+    _documentPointer = 0;
   }
+
+  assert( !_locationCountPointer || _listBegin < _locationCountPointer );
+  assert( !_locationCountPointer || _listEnd > _locationCountPointer );
+  assert( !_locationCountPointer || _list > _locationCountPointer );
+  assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
+  assert( _listEnd >= _list );
+  assert( !_documentPointer || _listBegin <= _documentPointer );
+  assert( !_documentPointer || _listEnd > _documentPointer );
+  assert( _lists.back().data <= _lists.back().capacity );
 }
 
 //
@@ -83,17 +154,28 @@ void indri::index::DocExtentListMemoryBuilder::_terminateDocument() {
   if( locationsSize > 1 ) {
     // have to move everything around to make room, because we need more than
     // one byte to store this length.
+    assert( _list > _locationCountPointer );
+    assert( _listEnd > _locationCountPointer );
+    assert( _listBegin < _locationCountPointer );
 
     memmove( _locationCountPointer + locationsSize,
              _locationCountPointer + 1,
              _list - _locationCountPointer - 1 );
+
+    _list += locationsSize - 1;
+    assert( _list <= _listEnd );
   }
 
   // we left one byte around for the location count for the common case
   RVLCompress::compress_int( _locationCountPointer, locations );
+  _documentFrequency++;
   _lastExtentFrequency = _extentFrequency;
   _locationCountPointer = 0;
-  _documentFrequency++;
+  _lastLocation = 0;
+  _documentPointer = 0;
+
+  assert( !_locationCountPointer );
+  assert( _list <= _listEnd );
 }
 
 //
@@ -101,24 +183,43 @@ void indri::index::DocExtentListMemoryBuilder::_terminateDocument() {
 //
 
 void indri::index::DocExtentListMemoryBuilder::_safeAddLocation( int documentID, int begin, int end, INT64 number ) {
+  assert( !_locationCountPointer || _listBegin < _locationCountPointer );
+  assert( !_locationCountPointer || _listEnd > _locationCountPointer );
+  assert( !_locationCountPointer || _list > _locationCountPointer );
+
+  bool hasPointer = _locationCountPointer ? true : false;
+  int lastdoc = _lastDocument;
+
+  // if this is a new document, put a document header in (and terminate the old one)
   if( _lastDocument != documentID ) {
-    _terminateDocument();
+    if( _locationCountPointer )
+      _terminateDocument();
     
     _documentPointer = _list;
     _list = RVLCompress::compress_int( _list, documentID - _lastDocument );
-    _locationCountPointer = _list;    
+    _locationCountPointer = _list;
+
+    // leave a byte for location of extent count
     _list++;
     _lastDocument = documentID;
+    _lastLocation = 0;
+    _lastExtentFrequency = _extentFrequency;
   }
 
   _list = RVLCompress::compress_int( _list, begin - _lastLocation );
   _list = RVLCompress::compress_int( _list, end - begin );
   _lastLocation = end;
+  _extentFrequency++;
 
   if( _numeric )
     _list = RVLCompress::compress_signed_longlong( _list, number );
 
-  _extentFrequency++;
+  assert( _locationCountPointer );
+  assert( _listBegin < _locationCountPointer );
+  assert( _listEnd > _locationCountPointer );
+  assert( _list > _locationCountPointer );
+  assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
+  assert( _listEnd >= _list );
 }
 
 //
@@ -157,13 +258,13 @@ void indri::index::DocExtentListMemoryBuilder::_growAddLocation( int documentID,
   bool terminateSpace = (RVLCompress::compressedSize( _extentFrequency - _lastExtentFrequency ) - 1) <= _listEnd - _list;
 
   // by terminating the document now, we save a document copy and a bit of space
-  if( documentMismatch && terminateSpace )
+  if( _locationCountPointer && terminateSpace && documentID != _lastDocument )
     _terminateDocument();
 
   // grow the list, adding space for a document if necessary
   _grow();
 
-  assert( newDataSize >= size_t(_listEnd - _list) );
+  assert( newDataSize <= size_t(_listEnd - _list) );
   _safeAddLocation( documentID, begin, end, number );
 }
 
@@ -173,6 +274,8 @@ void indri::index::DocExtentListMemoryBuilder::_growAddLocation( int documentID,
 
 void indri::index::DocExtentListMemoryBuilder::addLocation( int documentID, int begin, int end, INT64 number ) {
   size_t remaining = _listEnd - _list;
+  assert( _listEnd >= _list );
+  assert( remaining < (MIN_SIZE<<(GROW_TIMES+1)) );
 
   if( remaining >= PLENTY_OF_SPACE ) {
     // common case -- lots of memory; just compress the posting and shove it in
@@ -186,13 +289,16 @@ void indri::index::DocExtentListMemoryBuilder::addLocation( int documentID, int 
       _growAddLocation( documentID, begin, end, number, size );
     }
   }
+
+  assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
+  assert( _listEnd >= _list );
 }
 
 //
-// close
+// flush
 //
 
-void indri::index::DocExtentListMemoryBuilder::close() {
+void indri::index::DocExtentListMemoryBuilder::flush() {
   if( _locationCountPointer ) {
     // need to terminate document
     bool terminateSpace = (RVLCompress::compressedSize( _extentFrequency - _lastExtentFrequency ) - 1) <= _listEnd - _list;
@@ -201,6 +307,20 @@ void indri::index::DocExtentListMemoryBuilder::close() {
       _grow();
 
     _terminateDocument();
+  }
+
+  if( _lists.size() ) {
+    _lists.back().data = _list;
+    assert( _lists.back().data <= _lists.back().capacity );
+  }
+
+  assert( _documentPointer == 0 );
+  assert( _locationCountPointer == 0 );
+
+  for( int i=0; i<_lists.size(); i++ ) {
+    assert( _lists[i].base <= _lists[i].capacity );
+    assert( _lists[i].base <= _lists[i].data );
+    assert( _lists[i].data <= _lists[i].capacity );
   }
 }
 
@@ -238,3 +358,13 @@ int indri::index::DocExtentListMemoryBuilder::extentFrequency() const {
 int indri::index::DocExtentListMemoryBuilder::documentFrequency() const {
   return _documentFrequency;
 }
+
+//
+// getIterator
+//
+
+indri::index::DocExtentListMemoryBuilderIterator* indri::index::DocExtentListMemoryBuilder::getIterator() {
+  flush();
+  return new DocExtentListMemoryBuilderIterator( *this );
+}
+

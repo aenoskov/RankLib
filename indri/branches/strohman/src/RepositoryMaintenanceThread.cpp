@@ -81,13 +81,9 @@ UINT64 RepositoryMaintenanceThread::work() {
   }
 
   if( merge ) {
-    std::cout << "================= MERGING ====================" << std::endl;
     _repository._merge();
-    std::cout << "================= MERGE COMPLETE =============" << std::endl;
   } else if( write ) {
-    std::cout << "================= WRITING ====================" << std::endl;
     _repository._write();
-    std::cout << "================= WRITE COMPLETE =============" << std::endl;
   }
 
   return TIME_DELAY;

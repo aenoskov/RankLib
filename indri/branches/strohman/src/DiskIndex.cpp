@@ -33,12 +33,13 @@ void indri::index::DiskIndex::_readManifest( const std::string& path ) {
 
   if( manifest.exists("fields") ) {
     Parameters fields = manifest["fields"];
+    Parameters field = fields["field"];
 
     for( int i=0; i<fields.size(); i++ ) {
-      bool numeric = fields[i].get( "isNumeric", false );
-      int documentCount = fields[i].get("total-documents", 0 );
-      INT64 totalCount = fields[i].get("total-terms", INT64(0) );
-      std::string name = fields[i].get( "name", "" );
+      bool numeric = field[i].get( "isNumeric", false );
+      int documentCount = field[i].get("total-documents", 0 );
+      INT64 totalCount = field[i].get("total-terms", INT64(0) );
+      std::string name = field[i].get( "name", "" );
 
       _fieldData.push_back( FieldStatistics( name, numeric, totalCount, documentCount ) );
     }
@@ -79,6 +80,17 @@ void indri::index::DiskIndex::open( const std::string& base, const std::string& 
 
   _invertedFile.openRead( invertedFilePath );
   _directFile.openRead( directFilePath );
+
+  for( int field=1; field <= _fieldData.size(); field++ ) {
+    std::stringstream fieldFilename;
+    fieldFilename << "field" << field;
+    std::string fieldPath = Path::combine( path, fieldFilename.str() );
+
+    File* fieldFile = new File();
+    fieldFile->openRead( fieldPath );
+
+    _fieldFiles.push_back( fieldFile );
+  }
 }
 
 //
@@ -86,6 +98,8 @@ void indri::index::DiskIndex::open( const std::string& base, const std::string& 
 //
 
 void indri::index::DiskIndex::close() {
+  delete_vector_contents( _fieldFiles );
+
   _frequentStringToTerm.close();
   _infrequentStringToTerm.close();
 
@@ -200,7 +214,7 @@ std::string indri::index::DiskIndex::term( int termID ) {
 int indri::index::DiskIndex::documentLength( int documentID ) {
   int documentOffset = documentID - _documentBase;
 
-  if( documentOffset < 0 || _corpusStatistics.totalDocuments >= documentOffset ) 
+  if( documentOffset < 0 || _corpusStatistics.totalDocuments <= documentOffset ) 
     return 0;
 
   int length;
@@ -224,8 +238,13 @@ UINT64 indri::index::DiskIndex::documentCount() {
 
 UINT64 indri::index::DiskIndex::documentCount( const std::string& term ) {
   indri::index::DiskTermData* diskTermData = _fetchTermData( term.c_str() );
-  UINT64 count = diskTermData->termData->corpus.documentCount;
-  ::disktermdata_delete( diskTermData );
+  UINT64 count = 0;
+
+  if( diskTermData ) {
+    count = diskTermData->termData->corpus.documentCount;
+    ::disktermdata_delete( diskTermData );
+  }
+
   return count;
 }
 
@@ -283,8 +302,13 @@ int indri::index::DiskIndex::field( const std::string& fieldName ) {
 
 UINT64 indri::index::DiskIndex::termCount( const std::string& t ) {
   DiskTermData* diskTermData = _fetchTermData( t.c_str() );
-  UINT64 count = diskTermData->termData->corpus.totalCount;
-  ::disktermdata_delete( diskTermData );
+  UINT64 count = 0;
+
+  if( diskTermData ) { 
+    count = diskTermData->termData->corpus.totalCount;
+    ::disktermdata_delete( diskTermData );
+  }
+
   return count;
 }
 
@@ -295,8 +319,13 @@ UINT64 indri::index::DiskIndex::termCount( const std::string& t ) {
 UINT64 indri::index::DiskIndex::fieldTermCount( const std::string& f, const std::string& t ) {
   DiskTermData* diskTermData = _fetchTermData( t.c_str() );
   int index = field( f );
-  UINT64 count = diskTermData->termData->fields[index].totalCount;
-  ::disktermdata_delete( diskTermData );
+  UINT64 count = 0;
+
+  if( diskTermData && index ) {
+    count = diskTermData->termData->fields[index-1].totalCount;
+    ::disktermdata_delete( diskTermData );
+  }
+
   return count;
 }
 
@@ -306,7 +335,11 @@ UINT64 indri::index::DiskIndex::fieldTermCount( const std::string& f, const std:
 
 UINT64 indri::index::DiskIndex::fieldTermCount( const std::string& f ) {
   int index = field( f );
-  UINT64 count = _fieldData[index].totalCount;
+  UINT64 count = 0;
+
+  if( index )
+    count = _fieldData[index-1].totalCount;
+
   return count;
 }
 
@@ -316,7 +349,10 @@ UINT64 indri::index::DiskIndex::fieldTermCount( const std::string& f ) {
 
 UINT64 indri::index::DiskIndex::fieldDocumentCount( const std::string& f ) {
   int index = field( f );
-  UINT64 count = _fieldData[index].documentCount;
+  UINT64 count = 0;
+  
+  if( index )
+    count = _fieldData[index-1].documentCount;
   return count;
 }
 
@@ -327,8 +363,13 @@ UINT64 indri::index::DiskIndex::fieldDocumentCount( const std::string& f ) {
 UINT64 indri::index::DiskIndex::fieldDocumentCount( const std::string& f, const std::string& t ) {
   DiskTermData* diskTermData = _fetchTermData( t.c_str() );
   int index = field( f );
-  UINT64 count = diskTermData->termData->fields[index].documentCount;
-  ::disktermdata_delete( diskTermData );
+  UINT64 count = 0;
+
+  if( diskTermData && index ) {
+    count = diskTermData->termData->fields[index-1].documentCount;
+    ::disktermdata_delete( diskTermData );
+  }
+
   return count;
 }
 
@@ -393,8 +434,8 @@ indri::index::DocExtentListIterator* indri::index::DiskIndex::fieldListIterator(
     return 0;
   }
 
-  File& fieldFile = _fieldFiles[fieldID-1];
-  return new DiskDocExtentListIterator( new SequentialReadBuffer( fieldFile ), 0 );
+  File* fieldFile = _fieldFiles[fieldID-1];
+  return new DiskDocExtentListIterator( new SequentialReadBuffer( *fieldFile ), 0 );
 }
 
 //
@@ -407,8 +448,8 @@ indri::index::DocExtentListIterator* indri::index::DiskIndex::fieldListIterator(
   if( fieldID == 0 )
     return 0;
 
-  File& fieldFile = _fieldFiles[fieldID-1];
-  return new DiskDocExtentListIterator( new SequentialReadBuffer( fieldFile ), 0 );
+  File* fieldFile = _fieldFiles[fieldID-1];
+  return new DiskDocExtentListIterator( new SequentialReadBuffer( *fieldFile ), 0 );
 }
 
 //

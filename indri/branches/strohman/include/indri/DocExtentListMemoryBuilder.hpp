@@ -16,9 +16,21 @@
 
 namespace indri {
   namespace index {
+    struct DocExtentListMemoryBuilderSegment {
+      DocExtentListMemoryBuilderSegment( char* b, char* d, char* c ) {
+        base = b;
+        data = d;
+        capacity = c;
+      }
+
+      char* base;
+      char* data;
+      char* capacity;
+    };
+
     class DocExtentListMemoryBuilderIterator : public DocExtentListIterator {
-      const greedy_vector< std::pair<char*, char*>, 4 >* _lists;
-      greedy_vector< std::pair<char*, char*>, 4 >::const_iterator _current;
+      const greedy_vector< DocExtentListMemoryBuilderSegment, 4 >* _lists;
+      greedy_vector< DocExtentListMemoryBuilderSegment, 4 >::const_iterator _current;
       indri::index::DocExtentListIterator::DocumentExtentData _data;
       
       const char* _list;
@@ -26,8 +38,8 @@ namespace indri {
       bool _numeric;
 
     public:
-      void reset( const greedy_vector< std::pair<char*,char*>, 4 >& lists, bool numeric );
-      void reset( const class DocExtentListMemoryBuilder& builder );
+      void reset( const greedy_vector< DocExtentListMemoryBuilderSegment, 4 >& lists, bool numeric );
+      void reset( class DocExtentListMemoryBuilder& builder );
 
       DocExtentListMemoryBuilderIterator( const class DocExtentListMemoryBuilder& builder ); 
       
@@ -45,6 +57,8 @@ namespace indri {
       int _documentFrequency;
       int _extentFrequency;
 
+      greedy_vector< DocExtentListMemoryBuilderSegment, 4 > _lists;
+
       char* _list;
       char* _listBegin;
       char* _listEnd;
@@ -57,8 +71,6 @@ namespace indri {
       char* _locationCountPointer;
 
       bool _numeric;
-
-      greedy_vector< std::pair<char*,char*>, 4 > _lists;
 
       inline size_t _compressedSize( int documentID, int begin, int end, INT64 number );
       inline void _safeAddLocation( int documentID, int begin, int end, INT64 number );
@@ -74,12 +86,14 @@ namespace indri {
       void addLocation( int documentID, int begin, int end );
 
       void clear();
-      void close();
       bool empty();
 
       int documentFrequency() const;
       int extentFrequency() const;
       size_t memorySize() const;
+
+      void flush();
+      iterator* getIterator();
     };
   }
 }

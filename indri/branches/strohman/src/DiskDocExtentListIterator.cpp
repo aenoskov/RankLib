@@ -45,13 +45,6 @@ void indri::index::DiskDocExtentListIterator::startIteration() {
   // seek to the start:
   _file->seek( _startOffset );
 
-  // read the header length
-  UINT32 headerLength;
-  _file->read( &headerLength, sizeof(UINT32) );
-
-  // skip over the header
-  _file->seek( _file->position() + headerLength );
-
   // read the control byte
   UINT8 control;
   _file->read( &control, sizeof(UINT8) );

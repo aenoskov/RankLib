@@ -380,6 +380,9 @@
 				RelativePath=".\UnorderedWindowNode.cpp">
 			</File>
 			<File
+				RelativePath=".\Unpacker.cpp">
+			</File>
+			<File
 				RelativePath=".\UnpackerInternal.cpp">
 			</File>
 			<File
@@ -446,6 +449,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\CompressedCollection.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\ConditionVariable.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\ContextCountAccumulator.hpp">
@@ -611,6 +617,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\FieldStatistics.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\File.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\FileClassEnvironment.hpp">
@@ -782,6 +791,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\PowerPointDocumentExtractor.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\QueryAnnotation.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\QueryEnvironment.hpp">

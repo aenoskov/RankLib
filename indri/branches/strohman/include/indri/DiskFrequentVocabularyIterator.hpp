@@ -18,7 +18,7 @@ namespace indri {
   namespace index {
     class DiskFrequentVocabularyIterator : public VocabularyIterator {
     private:
-      File _file;
+      File& _file;
       RVLDecompressStream _stream;
       Buffer _buffer;
       const char* _current;
