@@ -335,7 +335,7 @@ void CompressedCollection::create( const std::string& fileName, const std::vecto
 
   for( size_t i=0; i<forwardIndexedFields.size(); i++ ) {
     std::stringstream metalookupName;
-    metalookupName << "forwardlookup" << i;
+    metalookupName << "forwardLookup" << i;
 
     std::string metalookupPath = Path::combine( fileName, metalookupName.str() );
     Keyfile* metalookup = new Keyfile;
@@ -350,7 +350,7 @@ void CompressedCollection::create( const std::string& fileName, const std::vecto
 
   for( size_t i=0; i<reverseIndexedFields.size(); i++ ) {
     std::stringstream metalookupName;
-    metalookupName << "reverselookup" << i;
+    metalookupName << "reverseLookup" << i;
 
     std::string metalookupPath = Path::combine( fileName, metalookupName.str() );
     Keyfile* metalookup = new Keyfile;
