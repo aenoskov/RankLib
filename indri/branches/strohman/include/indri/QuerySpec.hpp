@@ -2252,9 +2252,9 @@ namespace indri {
         copier.before(this);
 
         ScoredExtentNode* duplicateChild = dynamic_cast<indri::lang::ScoredExtentNode*>(_child->copy(copier));
-        ExtentRestriction* duplicate = new ExtentRestriction( duplicateChild,
-                                                              _windowSize,
-                                                              _increment );
+        FixedPassage* duplicate = new FixedPassage( duplicateChild,
+                                                    _windowSize,
+                                                    _increment );
         duplicate->setNodeName( nodeName() );
         
         return copier.after(this, duplicate);
