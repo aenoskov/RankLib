@@ -589,7 +589,7 @@ COUNT_T IndriIndex::docLength( DOCID_T documentID ) const {
 // documentIndexedLength
 //
 
-COUNT_T IndriIndex::docIndexedLength( COUNT_T documentID ) const {
+COUNT_T IndriIndex::docIndexedLength( DOCID_T documentID ) const {
   indri::index::DocumentData data = fetchDocumentData( documentID );
   return data.indexedLength;
 }
@@ -895,7 +895,7 @@ void IndriIndex::_lookupTerm( const char* term, TERMID_T& termID, indri::index::
   }
 }
 
-DOCID_T IndriIndex::addDocument( ParsedDocument* document ) {
+DOCID_T IndriIndex::addDocument( struct ParsedDocument* document ) {
   const char* documentName = "unknown";
 
   // find document name
