@@ -1,8 +1,19 @@
+/*==========================================================================
+ * Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
+ *
+ * Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+ * is subject to the terms of the software license set forth in the LICENSE
+ * file included with this software, and also available at
+ * http://www.lemurproject.org/license.html
+ *
+ *==========================================================================
+*/
 
 //
 // dumpindex
 //
 // 13 September 2004 -- tds
+// 18 December 2004 -- dam (added support to retrieve document text based on doc name)
 //
 
 #include "indri/IndriIndex.hpp"
@@ -114,8 +125,14 @@ void print_document_name( Repository& r, const char* number ) {
   std::cout << index->document( id ) << std::endl;
 }
 
-void print_document_text( Repository& r, const char* number ) {
-  int documentID = atoi( number );
+void print_document_text( Repository& r, const char* number, bool docid ) {
+  int documentID = 0;
+
+  if( docid )
+	  documentID = atoi( number );
+  else
+	  documentID = r.index()->document( number );
+
   CompressedCollection* collection = r.collection();
   ParsedDocument* document = collection->retrieve( documentID );
 
@@ -189,6 +206,7 @@ int main( int argc, char** argv ) {
     std::cout << "    termname (tn)        Term ID        Print the text representation of a term ID" << std::endl;
     std::cout << "    documentname (dn)    Document ID    Print the text representation of a document ID" << std::endl;
     std::cout << "    documenttext (dt)    Document ID    Print the text of a document" << std::endl;
+	std::cout << "    documenttext (dx)    Document name  Print the text of a document" << std::endl;
     std::cout << "    documenttext (dd)    Document ID    Print the full representation of a document" << std::endl;
     std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
     return -1;
@@ -213,7 +231,9 @@ int main( int argc, char** argv ) {
   } else if( command == "dn" || command == "documentname" ) {
     print_document_name( r, argv[3] );
   } else if( command == "dt" || command == "documenttext" ) {
-    print_document_text( r, argv[3] );
+    print_document_text( r, argv[3], true );
+  } else if( command == "dx" || command == "documenttext" ) {
+    print_document_text( r, argv[3], false );
   } else if( command == "dd" || command == "documentdata" ) {
     print_document_data( r, argv[3] );
   } else if( command == "dv" || command == "documentvector" ) {
