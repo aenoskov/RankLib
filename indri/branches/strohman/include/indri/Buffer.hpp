@@ -83,30 +83,31 @@ public:
     free( _buffer );
   }
 
-  size_t size() const {
+  inline size_t size() const {
     return _size;
   }
 
-  size_t position() const {
+  inline size_t position() const {
     return _position;
   }
 
-  void clear() {
+  inline void clear() {
     _position = 0;
   }
 
-  char* front() {
+  inline char* front() {
     return _buffer;
   }
 
-  char* write( size_t length ) {
-    grow( _position + length );
+  inline char* write( size_t length ) {
+    if( _position + length > _size )
+      grow( _position + length );
     char* spot = _buffer + _position;
     _position += length;
     return spot;
   }
 
-  void unwrite( size_t length ) {
+  inline void unwrite( size_t length ) {
     assert( length >= 0 );
     assert( length <= _position );
     _position -= length;
