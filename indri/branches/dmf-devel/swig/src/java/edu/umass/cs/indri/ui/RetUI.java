@@ -27,6 +27,8 @@ public class RetUI extends JPanel implements ActionListener {
 	
     /** Help file for the application */
     private final static String helpFile = "properties/IndriRetrieval.html";
+	/** Little lemur icon */
+	private final static String iconFile = "properties/lemur_icon.gif";
     /** Frame for help window */
     private JFrame helpFrame;
 	
@@ -482,6 +484,7 @@ public class RetUI extends JPanel implements ActionListener {
     private void makeHelp() {
 	java.net.URL helpURL = RetUI.class.getResource(helpFile);
 	JTextPane help = new JTextPane();
+		//add icon here.
 		
 	//Create and set up the window.
 	helpFrame = new JFrame("Indri Retrieval UI Help");
@@ -510,6 +513,7 @@ public class RetUI extends JPanel implements ActionListener {
      * with both document text and the query tree.
      */
     private void  makeDocTextFrame() {
+		//add icon here.
 	docTextFrame = new JFrame("Document");
 	docTextPane = new JTextPane();
 	docTextPane.setEditable(false);
@@ -809,6 +813,7 @@ public class RetUI extends JPanel implements ActionListener {
      * @return The JTable with its model and listener initialized.
      */
     private JTable makeDocsTable() {
+		// bruce wants titles if available, don't show scores or extents by default
 	DocsTableModel model = new DocsTableModel();
 	JTable table = new JTable(model);
 	table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -837,12 +842,30 @@ public class RetUI extends JPanel implements ActionListener {
 	item.addActionListener(this);
 	return item;
     }
+
+	/** Returns an ImageIcon, or null if the path was invalid. 
+	 @param path the image file to load.
+	 @return an ImageIcon, or null if the path was invalid. 
+	 */
+	protected static ImageIcon createImageIcon(String path) 
+	{
+		java.net.URL imgURL = RetUI.class.getResource(path);
+		if (imgURL != null) 
+		{
+			return new ImageIcon(imgURL);
+		} 
+		else 
+		{
+			return null;
+		}
+	}
     /**
      * Make the containing frame, menubar, and an instance of RetUI. Initialize.
      */
     private static void createAndShowGUI() {
 	RetUI sim = new RetUI();      
 	JFrame myFrame = new JFrame("Indri -- Retrieval");
+		myFrame.setIconImage(createImageIcon(iconFile).getImage());
 	myFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	sim.setOpaque(true); //content panes must be opaque
 	myFrame.getContentPane().add(sim, BorderLayout.CENTER);
