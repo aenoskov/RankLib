@@ -104,6 +104,27 @@ inline int disktermdata_size( int fieldCount ) {
 }
 
 //
+// disktermdata_create
+//
+
+inline indri::index::DiskTermData* disktermdata_create( int fieldCount ) {
+  char* dataBlock = (char*) malloc( disktermdata_size( fieldCount ) );
+
+  indri::index::DiskTermData* diskTermData = (indri::index::DiskTermData*) dataBlock;
+
+  diskTermData->termData = (indri::index::TermData*) (dataBlock +
+                           sizeof (indri::index::DiskTermData));
+  new(diskTermData->termData) indri::index::TermData;
+
+  diskTermData->termData->term = dataBlock +
+                           sizeof (indri::index::DiskTermData) +
+                           termdata_size( fieldCount );
+  const_cast<char*>(diskTermData->termData->term)[0] = 0;
+
+  return diskTermData;
+}
+
+//
 // disktermdata_decompress
 //
 

@@ -32,6 +32,7 @@ void indri::index::DiskDocListFileIterator::_readEntry() {
 
   // set up the iterator to find the appropriate data
   _iterator.setStartOffset( startPosition );
+  _iterator.startIteration();
 
   _docListData.iterator = &_iterator;
   _docListData.termData = _termData;
@@ -47,6 +48,16 @@ indri::index::DiskDocListFileIterator::DiskDocListFileIterator( File& docListFil
   _fieldCount( fieldCount ),
   _iterator( _file, 0 )
 {
+  _termData = (indri::index::TermData*) malloc( ::termdata_size( fieldCount ) );
+}
+
+//
+// DiskDocListFileIterator destructor
+//
+
+indri::index::DiskDocListFileIterator::~DiskDocListFileIterator() {
+  delete _file;
+  free( _termData );
 }
 
 //
@@ -90,6 +101,6 @@ const indri::index::DocListFileIterator::DocListData* indri::index::DiskDocListF
 //
 
 bool indri::index::DiskDocListFileIterator::finished() const {
-  return _fileLength > _file->position();
+  return _fileLength <= _file->position();
 }
 

@@ -126,6 +126,7 @@ public:
     int length;
     _current = RVLCompress::decompress_int( _current, length );
     ::memcpy( value, _current, length );
+    value[length] = 0;
     _current += length;
     return *this;
   }

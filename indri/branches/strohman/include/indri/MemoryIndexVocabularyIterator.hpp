@@ -32,8 +32,11 @@ namespace indri {
 
         _diskTermData.length = 0;
         _diskTermData.startOffset = 0;
-        _diskTermData.termData = (*_iterator)->termData;
-        _diskTermData.termID = (*_iterator)->termID;
+
+        if( _iterator != _termData.end() ) {
+          _diskTermData.termData = (*_iterator)->termData;
+          _diskTermData.termID = (*_iterator)->termID;
+        }
       }
       
       DiskTermData* currentEntry() { 

@@ -120,13 +120,15 @@ private:
   void _copyParameters( Parameters& options );
 
   void _removeStates( std::vector<index_state>& toRemove );
-  void _swapState( indri::index::Index* oldIndex, indri::index::Index* newIndex );
   void _remove( const std::string& path );
 
   void _openIndexes( Parameters& params, const std::string& parentPath );
-  std::vector<index_state> _statesContaining( indri::index::Index* index );
+  std::vector<index_state> _statesContaining( std::vector<indri::index::Index*>& indexes );
+  bool _stateContains( index_state& state, std::vector<indri::index::Index*>& indexes );
+  void _swapState( std::vector<indri::index::Index*>& oldIndexes, indri::index::Index* newIndex );
   void _closeIndexes();
   std::vector<indri::index::Index::FieldDescription> _fieldsForIndex( std::vector<Repository::Field>& _fields );
+  void _merge( index_state& state );
 
 public:
   Repository() {
@@ -178,11 +180,16 @@ public:
   /// Write the most recent state out to disk
   void write();
 
+  /// Merge all indexes together
+  void merge();
+
   /// Returns the average number of documents added each minute in the last 1, 5 and 15 minutes
   Load queryLoad();
 
   /// Returns the average number of documents added each minute in the last 1, 5 and 15 minutes
   Load documentLoad();
+
+
 };
 
 #endif // INDRI_REPOSITORY_HPP

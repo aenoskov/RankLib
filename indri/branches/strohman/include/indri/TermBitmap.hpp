@@ -34,7 +34,7 @@
   The TermBitmap is used because, in the ideal case, it is much more space
   efficient than the simpler approach of using an array mapping.  In an 
   array, we'd need 32 bits for each (from, to) pair.  In the case where
-  the (from, to) pairs are optimially dense [e.g. (1,1), (2,2), (3,3) ... ],
+  the (from, to) pairs are optimally dense [e.g. (1,1), (2,2), (3,3) ... ],
   the TermBitmap uses 1.33 bits per pair.
 */
 
@@ -86,17 +86,20 @@ namespace indri {
 
       const char* _findInBuffer( Buffer* b, int from ) {
         const char* start = b->front();
-        const char* end = b->front() + b->size();
+        const char* end = b->front() + b->position();
 
         while( end - start > 32 ) {
-          const char* mid = start + ((end - start) / 2);
+          const char* mid = start + (((end - start) / 2) & ~31);
           INT32 middle = *(INT32*) mid;
 
-          if( middle >= from )
+          if( from >= middle )
             start = mid;
           else
             end = mid;
         }
+
+        INT32 front = *(INT32*)start;
+        assert( from >= front && from < (front + 192) ); 
 
         return start;
       }
@@ -129,14 +132,17 @@ namespace indri {
 
           *(INT32*)_current = from;
           *(INT32*)(_current + 4) = to;
-          
+          memset( _current + 8, 0, (32 - 8) ); 
+
           _toBase = to;
           _fromBase = from;
           difference = 0;
         }
 
-        _current[difference/8] |= 1<<(difference%8);
+        _current[8+difference/8] |= 1<<(difference%8);
         _lastFrom = from;
+
+        assert( get(from) == to );
       }
 
       int get( int from ) {
@@ -154,6 +160,7 @@ namespace indri {
         while( (fromBase + found) < from ) {
           // find a non-zero bit that's past index <bits>
           unsigned char c;
+          bits++;
           
           // this goes to the index bits in the array, masks off previous bits, looking for non-zero bits
           while( !(c = spot[bits/8] & (0xff << (bits%8))) )

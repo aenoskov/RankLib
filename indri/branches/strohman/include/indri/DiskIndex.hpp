@@ -31,6 +31,7 @@ namespace indri {
 
       Keyfile _frequentIdToTerm;
       Keyfile _infrequentIdToTerm;
+      File _frequentTermsData;
 
       File _documentLengths;
       File _documentStatistics;
@@ -41,6 +42,7 @@ namespace indri {
       std::vector<FieldStatistics> _fieldData;
       std::vector<File> _fieldFiles;
       int _documentBase;
+      int _infrequentTermBase;
 
       indri::index::DiskTermData* _fetchTermData( int termID );
       indri::index::DiskTermData* _fetchTermData( const char* termString );

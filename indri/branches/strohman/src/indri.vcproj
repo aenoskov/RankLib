@@ -146,9 +146,6 @@
 				RelativePath=".\DiskDocumentDataIterator.cpp">
 			</File>
 			<File
-				RelativePath="..\include\indri\DiskDocumentDataIterator.hpp">
-			</File>
-			<File
 				RelativePath=".\DiskFrequentVocabularyIterator.cpp">
 			</File>
 			<File
@@ -156,6 +153,9 @@
 			</File>
 			<File
 				RelativePath=".\DiskKeyfileVocabularyIterator.cpp">
+			</File>
+			<File
+				RelativePath=".\DiskTermListFileIterator.cpp">
 			</File>
 			<File
 				RelativePath=".\DocExtentListMemoryBuilder.cpp">
@@ -484,10 +484,16 @@
 				RelativePath="..\include\indri\DiskDocListFileIterator.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\DiskDocumentDataIterator.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\DiskKeyfileVocabularyIterator.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\DiskTermData.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\DiskTermListFileIterator.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\DocListDiskBlockReader.hpp">

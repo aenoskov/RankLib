@@ -174,7 +174,7 @@ indri::index::DiskDocListIterator::DocumentData* indri::index::DiskDocListIterat
 //
 
 bool indri::index::DiskDocListIterator::finished() {
-  return _list != _listEnd || _skipDocument > 0;
+  return _result == 0;
 }
 
 //

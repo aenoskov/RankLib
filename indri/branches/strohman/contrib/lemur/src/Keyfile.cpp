@@ -61,8 +61,8 @@ void Keyfile::create( const std::string& filename, int cacheSize ) {
 
 void Keyfile::close() {
   // don't close an unopened key.
-  if (_handle != NULL) close_key( _handle);
-  delete[](_handle);
+  if (_handle != NULL) close_key( _handle );
+  delete[] _handle;
   _handle = NULL;
 }
 

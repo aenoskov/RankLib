@@ -67,7 +67,7 @@ namespace indri {
         TermData* termData;
       };
 
-      struct iterator_less {
+      struct iterator_greater {
         bool operator() ( const DocListFileIterator*const& one, const DocListFileIterator*const& two ) const {
           assert( !one->finished() && !two->finished() );
           
@@ -81,15 +81,15 @@ namespace indri {
 
           // if terms don't match, we're done
           if( result < 0 )
-            return true;
-          if( result > 0 )
             return false;
+          if( result > 0 )
+            return true;
 
           // terms match, so go by document
           int oneDocument = oneData->iterator->currentEntry()->document;
           int twoDocument = twoData->iterator->currentEntry()->document;
 
-          return oneDocument < twoDocument;
+          return oneDocument > twoDocument;
         }
       };
 

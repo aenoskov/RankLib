@@ -21,7 +21,7 @@ namespace indri {
       UINT64 _fileSize;
 
       DocumentData _documentData;
-      File _documentDataFile;
+      File& _documentDataFile;
 
     public:
       DiskDocumentDataIterator( File& documentDataFile );

@@ -12,8 +12,8 @@
 // DiskFrequentVocabularyIterator constructor
 //
 
-indri::index::DiskFrequentVocabularyIterator::DiskFrequentVocabularyIterator( const std::string& filename, int fieldCount ) :
-  _filename(filename),
+indri::index::DiskFrequentVocabularyIterator::DiskFrequentVocabularyIterator( File& frequentTermsData, int fieldCount ) :
+  _file(frequentTermsData),
   _fieldCount(fieldCount),
   _stream(0, 0)
 {
@@ -25,12 +25,8 @@ indri::index::DiskFrequentVocabularyIterator::DiskFrequentVocabularyIterator( co
 
 void indri::index::DiskFrequentVocabularyIterator::startIteration() {
   if( _buffer.size() == 0 ) {
-    File input;
-    input.openRead( _filename );
-    
-    UINT64 length = input.size();
-    input.read( _buffer.write( length ), 0, length );
-    input.close();
+    UINT64 length = _file.size();
+    _file.read( _buffer.write( length ), 0, length );
   }
 
   _stream.setBuffer( _buffer.front(), _buffer.size() );

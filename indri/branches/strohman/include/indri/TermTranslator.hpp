@@ -52,7 +52,7 @@ namespace indri {
             result = *value;
           } else {
             // term wasn't frequent and isn't now either, so get it from the bitmap
-            result = _currentFrequentCount + _bitmap->get( termID - _previousFrequentCount );
+            result = _currentFrequentCount + _bitmap->get( termID - _previousFrequentCount + 1 );
           }
         }
 

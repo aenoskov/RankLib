@@ -18,17 +18,17 @@ namespace indri {
   namespace index {
     class DiskFrequentVocabularyIterator : public VocabularyIterator {
     private:
+      File _file;
       RVLDecompressStream _stream;
       Buffer _buffer;
       const char* _current;
-      std::string _filename;
       int _fieldCount;
 
       DiskTermData* _data;
       char _dataBuffer[16*1024];
 
     public:
-      DiskFrequentVocabularyIterator( const std::string& fileName, int fieldCount ); 
+      DiskFrequentVocabularyIterator( File& frequentTermsData, int fieldCount ); 
       ~DiskFrequentVocabularyIterator() {};
       
       void startIteration();
