@@ -19,6 +19,7 @@
 #include "indri/DiskTermData.hpp"
 #include "indri/TermBitmap.hpp"
 #include "indri/DiskDocListIterator.hpp"
+#include "indri/DocumentDataIterator.hpp"
 
 using namespace indri::index;
 
@@ -127,6 +128,7 @@ void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
   _writeInvertedLists( contexts );
   _writeFieldLists( indexes, path );
   _writeDirectLists( contexts, _directFile );
+  _writeDocumentStatistics( contexts );
   delete_vector_contents( contexts );
 
   // close infrequent
@@ -150,6 +152,38 @@ void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
 
   // write a manifest file
   _writeManifest( manifestPath );
+}
+
+//
+// _writeDocumentStatistics
+//
+
+void IndexWriter::_writeDocumentStatistics( std::vector<WriterIndexContext*>& contexts ) {
+  SequentialWriteBuffer* statisticsBuffer = new SequentialWriteBuffer( _documentStatistics, 256*1024 );
+  SequentialWriteBuffer* lengthsBuffer = new SequentialWriteBuffer( _documentLengths, 256*1024 );
+
+  for( int i=0; i<contexts.size(); i++ ) {
+    indri::index::DocumentDataIterator* iterator = contexts[i]->index->documentDataIterator();
+    iterator->startIteration();
+
+    while( !iterator->finished() ) {
+      const indri::index::DocumentData* documentData = iterator->currentEntry();
+
+      statisticsBuffer->write( documentData, sizeof(DocumentData) );
+      int length = documentData->indexedLength;
+      lengthsBuffer->write( &length, sizeof(UINT32) );
+    
+      iterator->nextEntry();
+    }
+
+    delete iterator;
+  }
+
+  statisticsBuffer->flush();
+  lengthsBuffer->flush();
+
+  delete statisticsBuffer;
+  delete lengthsBuffer;
 }
 
 //
@@ -208,11 +242,8 @@ void IndexWriter::_pushInvertedLists( greedy_vector<WriterIndexContext*>& lists,
   for( int i=0; i<lists.size(); i++ ) {
     lists[i]->iterator->nextEntry();
 
-    if( lists[i]->iterator->finished() ) {
-      delete lists[i];
-    } else {
+    if( !lists[i]->iterator->finished() )
       queue.push( lists[i] );
-    }
   }
 }
 
@@ -646,7 +677,7 @@ int IndexWriter::_lookupTermID( Keyfile& keyfile, const char* term ) {
 }
 
 //
-// _harvestTerms
+// _buildTermTranslator
 //
 
 indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInfrequentTerms,
@@ -706,6 +737,8 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context, SequentialWrit
   VocabularyIterator* vocabulary = context->index->frequentVocabularyIterator();
   indri::index::Index* index = context->index;
   
+  vocabulary->startIteration();
+
   while( !vocabulary->finished() ) {
     indri::index::DiskTermData* diskTermData = vocabulary->currentEntry();
 
@@ -748,9 +781,12 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context, SequentialWrit
       output->write( outputBuffer.front(), outputBuffer.size() );
       outputBuffer.clear();
     }
+
+    iterator->nextEntry();
   }
 
   output->write( outputBuffer.front(), outputBuffer.size() );
+  output->flush();
   outputBuffer.clear();
 }
 

@@ -15,11 +15,13 @@ indri::index::MemoryIndexTermListFileIterator::MemoryIndexTermListFileIterator( 
 }
 
 void indri::index::MemoryIndexTermListFileIterator::startIteration() {
-  _index = 0;
   _list.clear();
 
   _buffersIterator = _buffers.begin();
   _bufferBase = 0;
+
+  _index = -1;
+  nextEntry();
 }
 
 bool indri::index::MemoryIndexTermListFileIterator::nextEntry() {
@@ -30,7 +32,7 @@ bool indri::index::MemoryIndexTermListFileIterator::nextEntry() {
   DocumentData& data = _data[_index];
 
   // advance buffer iterator if necessary
-  while( _bufferBase + (*_buffersIterator)->position() >= data.offset ) {
+  while( _bufferBase + (*_buffersIterator)->position() <= data.offset ) {
     _bufferBase += (*_buffersIterator)->position();
     _buffersIterator++;
   }

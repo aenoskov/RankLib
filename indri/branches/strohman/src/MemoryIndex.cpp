@@ -11,6 +11,7 @@
 #include "indri/MemoryIndexDocListFileIterator.hpp"
 #include "indri/MemoryIndexVocabularyIterator.hpp"
 #include "indri/MemoryIndexTermListFileIterator.hpp"
+#include "indri/MemoryDocumentDataIterator.hpp"
 
 #include "indri/FieldStatistics.hpp"
 #include "indri/ScopedLock.hpp"
@@ -616,7 +617,7 @@ indri::index::VocabularyIterator* indri::index::MemoryIndex::vocabularyIterator(
 //
 
 indri::index::VocabularyIterator* indri::index::MemoryIndex::infrequentVocabularyIterator() {
-  return vocabularyIterator();
+  return 0;
 }
 
 //
@@ -624,5 +625,15 @@ indri::index::VocabularyIterator* indri::index::MemoryIndex::infrequentVocabular
 //
 
 indri::index::VocabularyIterator* indri::index::MemoryIndex::frequentVocabularyIterator() {
-  return 0;
+  return new indri::index::MemoryIndexVocabularyIterator( _idToTerm );
 }
+
+//
+// documentDataIterator
+//
+
+indri::index::DocumentDataIterator* indri::index::MemoryIndex::documentDataIterator() {
+  return new MemoryDocumentDataIterator( _documentData );
+}
+
+
