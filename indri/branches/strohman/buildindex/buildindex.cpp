@@ -426,6 +426,7 @@ class StatusMonitor : public IndexStatus {
 
       default:
       case IndexStatus::DocumentCount:
+        break;
         if( !(documentsParsed % 50) )
           buildindex_print_status( "Documents: ", documentsParsed );
         
