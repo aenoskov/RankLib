@@ -100,12 +100,12 @@ public class TimelinePanel extends JPanel {
 				maxDate = curDate;
 				maxYear = curYear;
 			}
-			System.out.println("score="+info.score+",maxScore="+maxScore);
+			//System.out.println("score="+info.score+",maxScore="+maxScore);
 			if( info.score > maxScore )
 				maxScore = info.score;
 		}
 				
-		System.out.println("minYear="+minYear+",maxYear="+maxYear+",maxScore="+maxScore);
+		//System.out.println("minYear="+minYear+",maxYear="+maxYear+",maxScore="+maxScore);
 	}
 	
 	// actually draw the timeline
