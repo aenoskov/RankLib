@@ -42,6 +42,7 @@
 #define INDRI_TERMBITMAP_HPP
 
 #include "indri/Buffer.hpp"
+#include "indri/delete_range.hpp"
 
 namespace indri {
   namespace index {
@@ -109,6 +110,10 @@ namespace indri {
         _lastFrom = 0;
         _toBase = -10000;
         _fromBase = -10000;
+      }
+
+      ~TermBitmap() {
+        delete_vector_contents( _maps );
       }
 
       void add( int to ) {

@@ -56,9 +56,12 @@ struct WriterIndexContext {
   }
 
   ~WriterIndexContext() {
+    delete iterator;
+
     if( index->iteratorLock() )
       index->iteratorLock()->unlock();
 
+    delete oldFrequent;
     delete newlyFrequent;
     delete newlyInfrequent;
     delete bitmap;

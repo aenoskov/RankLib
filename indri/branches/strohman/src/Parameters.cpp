@@ -501,8 +501,8 @@ void Parameters::loadFile( const std::string& filename ) {
   char* buffer = new char[length];
   
   try {
-    input.read( buffer.get(), length );
-    std::auto_ptr<XMLNode> result( reader.read( buffer.get(), length ) );
+    input.read( buffer, length );
+    std::auto_ptr<XMLNode> result( reader.read( buffer, length ) );
 
     _loadXML( result.get() );
   } catch( Exception& e ) {

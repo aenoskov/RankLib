@@ -814,6 +814,7 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
 
   delete iterator;
   delete dataIterator;
+  delete translator;
   directOutput->write( outputBuffer.front(), outputBuffer.size() );
   directOutput->flush();
   outputBuffer.clear();
