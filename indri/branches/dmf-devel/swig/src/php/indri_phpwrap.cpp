@@ -685,39 +685,6 @@ extern "C" {
 
 #include <string>
 
-
-
-zval *php_makeQueryAnnotationNode(QueryAnnotationNode *inNode, zend_class_entry* ptr_ce) {
-  zval *retval = 0, *_cPtr;
-  MAKE_STD_ZVAL(_cPtr);
-  MAKE_STD_ZVAL(retval);
-  *_cPtr = *retval;
-  INIT_ZVAL(*retval);
-  object_init_ex(retval,ptr_ce);
-  add_property_zval(retval,"_cPtr",_cPtr);
-  // don't deref NULL
-  if (inNode) {
-  // name
-  // type
-  // query text
-  // children
-  add_property_string(retval, "name", (char *)inNode->name.c_str(), 1);
-  add_property_string(retval, "type",  (char *)inNode->type.c_str(), 1);
-  add_property_string(retval, "queryText",  (char *)inNode->queryText.c_str(), 1);
-  zval *children;
-  MAKE_STD_ZVAL(children);
-  array_init(children);
-  add_property_zval(retval, "children", children);
-  for( unsigned int i=0; i<inNode->children.size(); i++ ) {
-    zval *child;
-    child = php_makeQueryAnnotationNode(inNode->children[i], ptr_ce);
-    add_next_index_zval(children, child);
-  }
-}
-  // need the _cPtr, etc.
-  return retval;
-}
-
 static int _wrap_propset_ScoredExtentResult(zend_property_reference *property_reference, pval *value);
 static int _propset_ScoredExtentResult(zend_property_reference *property_reference, pval *value);
 static pval _wrap_propget_ScoredExtentResult(zend_property_reference *property_reference);
@@ -905,6 +872,40 @@ static int le_swig__p_QueryAnnotationNode=0; /* handle for QueryAnnotationNode *
 static int le_swig__p_QueryAnnotation=0; /* handle for QueryAnnotation */
 /* end vdecl subsection */
 /* wrapper section */
+
+
+zval *php_makeQueryAnnotationNode(QueryAnnotationNode *inNode) {
+  zval *retval = 0, *_cPtr;
+  MAKE_STD_ZVAL(_cPtr);
+  MAKE_STD_ZVAL(retval);
+  SWIG_SetPointerZval(retval, (void *)inNode,SWIGTYPE_p_QueryAnnotationNode, 1);
+  *_cPtr = *retval;
+  INIT_ZVAL(*retval);
+  object_init_ex(retval,ptr_ce_swig_QueryAnnotationNode);
+  add_property_zval(retval,"_cPtr",_cPtr);
+  // don't deref NULL
+  if (inNode) {
+  // name
+  // type
+  // query text
+  // children
+  add_property_string(retval, "name", (char *)inNode->name.c_str(), 1);
+  add_property_string(retval, "type",  (char *)inNode->type.c_str(), 1);
+  add_property_string(retval, "queryText",  (char *)inNode->queryText.c_str(), 1);
+  zval *children;
+  MAKE_STD_ZVAL(children);
+  array_init(children);
+  add_property_zval(retval, "children", children);
+  for( unsigned int i=0; i<inNode->children.size(); i++ ) {
+    zval *child;
+    child = php_makeQueryAnnotationNode(inNode->children[i]);
+    add_next_index_zval(children, child);
+  }
+}
+  // need the _cPtr, etc.
+  return retval;
+}
+
 ZEND_NAMED_FUNCTION(_wrap_new_ScoredExtentResult) {
     ScoredExtentResult *result;
     zval **args[1];
@@ -1404,7 +1405,7 @@ ZEND_NAMED_FUNCTION(_wrap_new_QueryAnnotationNode) {
     result = (QueryAnnotationNode *)new QueryAnnotationNode();
     
     {
-        zval *tmp = php_makeQueryAnnotationNode(result, ptr_ce_swig_QueryAnnotationNode );
+        zval *tmp = php_makeQueryAnnotationNode(result);
         *(return_value) =  *tmp;
         return;
     }
@@ -1543,7 +1544,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryAnnotation_getQueryTree) {
     result = (QueryAnnotationNode *)((QueryAnnotation const *)arg1)->getQueryTree();
     
     {
-        zval *tmp = php_makeQueryAnnotationNode(result, ptr_ce_swig_QueryAnnotationNode );
+        zval *tmp = php_makeQueryAnnotationNode(result);
         *(return_value) =  *tmp;
         return;
     }
@@ -1598,14 +1599,13 @@ ZEND_NAMED_FUNCTION(_wrap_QueryAnnotation_getAnnotations) {
             std::vector<ScoredExtentResult>& vec = iter->second;
             char *key = (char *)iter->first.c_str();
             for (iIndex=0;iIndex<vec.size();iIndex++)  {
-                zval *obj, *_cPtr, *retval;
+                zval *obj, *_cPtr;
                 MAKE_STD_ZVAL(obj);
                 MAKE_STD_ZVAL(_cPtr);
-                MAKE_STD_ZVAL(retval);
                 ScoredExtentResult *r = new ScoredExtentResult(vec[iIndex]);
-                SWIG_SetPointerZval(retval, (void *)r, SWIGTYPE_p_ScoredExtentResult, 1);
-                *_cPtr = *retval;
-                INIT_ZVAL(*retval);
+                SWIG_SetPointerZval(obj, (void *)r, SWIGTYPE_p_ScoredExtentResult, 1);
+                *_cPtr = *obj;
+                INIT_ZVAL(*obj);
                 object_init_ex(obj,ptr_ce_swig_ScoredExtentResult);
                 add_property_double(obj,"score",r->score);
                 add_property_long(obj,"document",r->document);
@@ -1615,7 +1615,6 @@ ZEND_NAMED_FUNCTION(_wrap_QueryAnnotation_getAnnotations) {
                 add_next_index_zval(seRes, obj);
             }
             add_assoc_zval(return_value, key, seRes);
-            //    add_next_index_zval(return_value, seRes);
         }
     }
 }
@@ -1653,11 +1652,10 @@ ZEND_NAMED_FUNCTION(_wrap_QueryAnnotation_getResults) {
             zval *obj, *_cPtr, *retval;
             MAKE_STD_ZVAL(obj);
             MAKE_STD_ZVAL(_cPtr);
-            MAKE_STD_ZVAL(retval);
             ScoredExtentResult *r = new ScoredExtentResult((*resultobj)[iIndex]);
-            SWIG_SetPointerZval(retval, (void *)r, SWIGTYPE_p_ScoredExtentResult, 1);
-            *_cPtr = *retval;
-            INIT_ZVAL(*retval);
+            SWIG_SetPointerZval(obj, (void *)r, SWIGTYPE_p_ScoredExtentResult, 1);
+            *_cPtr = *obj;
+            INIT_ZVAL(*obj);
             object_init_ex(obj,ptr_ce_swig_ScoredExtentResult);
             add_property_double(obj,"score",r->score);
             add_property_long(obj,"document",r->document);
@@ -2049,14 +2047,13 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runQuery) {
         array_init(return_value);
         std::vector< ScoredExtentResult > *resultobj = &result; 
         for (iIndex=0;iIndex<resultobj->size();iIndex++)  {
-            zval *obj, *_cPtr, *retval;
+            zval *obj, *_cPtr;
             MAKE_STD_ZVAL(obj);
             MAKE_STD_ZVAL(_cPtr);
-            MAKE_STD_ZVAL(retval);
             ScoredExtentResult *r = new ScoredExtentResult((*resultobj)[iIndex]);
-            SWIG_SetPointerZval(retval, (void *)r, SWIGTYPE_p_ScoredExtentResult, 1);
-            *_cPtr = *retval;
-            INIT_ZVAL(*retval);
+            SWIG_SetPointerZval(obj, (void *)r, SWIGTYPE_p_ScoredExtentResult, 1);
+            *_cPtr = *obj;
+            INIT_ZVAL(*obj);
             object_init_ex(obj,ptr_ce_swig_ScoredExtentResult);
             add_property_double(obj,"score",r->score);
             add_property_long(obj,"document",r->document);
@@ -2137,14 +2134,13 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runQuerydocset) {
         array_init(return_value);
         std::vector< ScoredExtentResult > *resultobj = &result; 
         for (iIndex=0;iIndex<resultobj->size();iIndex++)  {
-            zval *obj, *_cPtr, *retval;
+            zval *obj, *_cPtr;
             MAKE_STD_ZVAL(obj);
             MAKE_STD_ZVAL(_cPtr);
-            MAKE_STD_ZVAL(retval);
             ScoredExtentResult *r = new ScoredExtentResult((*resultobj)[iIndex]);
-            SWIG_SetPointerZval(retval, (void *)r, SWIGTYPE_p_ScoredExtentResult, 1);
-            *_cPtr = *retval;
-            INIT_ZVAL(*retval);
+            SWIG_SetPointerZval(obj, (void *)r, SWIGTYPE_p_ScoredExtentResult, 1);
+            *_cPtr = *obj;
+            INIT_ZVAL(*obj);
             object_init_ex(obj,ptr_ce_swig_ScoredExtentResult);
             add_property_double(obj,"score",r->score);
             add_property_long(obj,"document",r->document);
@@ -2362,14 +2358,13 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documentsdocids) {
         array_init(return_value);
         std::vector< ParsedDocument * > *resultobj = &result; 
         for (iIndex=0;iIndex<resultobj->size();iIndex++)  {
-            zval *obj, *_cPtr, *retval;
+            zval *obj, *_cPtr;
             MAKE_STD_ZVAL(obj);
             MAKE_STD_ZVAL(_cPtr);
-            MAKE_STD_ZVAL(retval);
             ParsedDocument *r = (*resultobj)[iIndex];
-            SWIG_SetPointerZval(retval, (void *)r, SWIGTYPE_p_ParsedDocument, 1);
-            *_cPtr = *retval;
-            INIT_ZVAL(*retval);
+            SWIG_SetPointerZval(obj, (void *)r, SWIGTYPE_p_ParsedDocument, 1);
+            *_cPtr = *obj;
+            INIT_ZVAL(*obj);
             object_init_ex(obj,ptr_ce_swig_ParsedDocument);
             // ignore other elements.
             add_property_string(obj,"text",(char *)(r->text), 1);
@@ -2477,14 +2472,13 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documents) {
         array_init(return_value);
         std::vector< ParsedDocument * > *resultobj = &result; 
         for (iIndex=0;iIndex<resultobj->size();iIndex++)  {
-            zval *obj, *_cPtr, *retval;
+            zval *obj, *_cPtr;
             MAKE_STD_ZVAL(obj);
             MAKE_STD_ZVAL(_cPtr);
-            MAKE_STD_ZVAL(retval);
             ParsedDocument *r = (*resultobj)[iIndex];
-            SWIG_SetPointerZval(retval, (void *)r, SWIGTYPE_p_ParsedDocument, 1);
-            *_cPtr = *retval;
-            INIT_ZVAL(*retval);
+            SWIG_SetPointerZval(obj, (void *)r, SWIGTYPE_p_ParsedDocument, 1);
+            *_cPtr = *obj;
+            INIT_ZVAL(*obj);
             object_init_ex(obj,ptr_ce_swig_ParsedDocument);
             // ignore other elements.
             add_property_string(obj,"text",(char *)(r->text), 1);
