@@ -190,6 +190,14 @@ public:
   /// Delete an existing document.
   /// @param documentID The document to delete.
   void deleteDocument( int documentID );
+
+  /// Returns the number of documents indexed so far in this session.
+  int documentsIndexed();
+
+  /// Returns the number of documents considered for indexing,
+  /// which is the sum of the documents indexed and the documents
+  /// skipped.
+  int documentsSeen();
 };
 
 #endif // INDRI_INDEXENVIRONMENT_HPP

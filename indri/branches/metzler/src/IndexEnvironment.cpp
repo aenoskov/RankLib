@@ -305,3 +305,19 @@ void IndexEnvironment::deleteDocument( int documentID ) {
   _repository.deleteDocument( documentID );
 }
 
+//
+// documentsIndexed
+//
+
+int IndexEnvironment::documentsIndexed() {
+  return _documentsIndexed;
+}
+
+//
+// documentsSeen
+//
+
+int IndexEnvironment::documentsSeen() {
+  return _documentsSeen;
+}
+

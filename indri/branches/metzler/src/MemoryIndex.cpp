@@ -463,6 +463,7 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   // assign a document ID
   int documentID = _baseDocumentID + _corpusStatistics.totalDocuments;
   _corpusStatistics.totalDocuments++;
+  _corpusStatistics.totalTerms += words.size();
   
   _termList.clear();
 
@@ -518,12 +519,12 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
       indri::index::TermFieldStatistics* termField = &entry->termData->fields[tag->id-1];
       termField->addOccurrence( documentID );
 
+      // this isn't quite right--needs to record stopwords too
       indri::index::FieldStatistics* field = &_fieldData[tag->id-1];
       field->addOccurrence( documentID );
     }
 
     _removeClosedTags( openTags, position );
-    _corpusStatistics.totalTerms++;
     indexedTerms++;
   }
 

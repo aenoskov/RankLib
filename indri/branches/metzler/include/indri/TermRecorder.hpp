@@ -83,6 +83,10 @@ namespace indri {
       Buffer& buffer() {
         return _buffer;
       }
+
+      int memorySize() {
+        return _buffer.position() + _pairs.size() * sizeof(std::pair<size_t, int>);
+      }
     };
   }
 }

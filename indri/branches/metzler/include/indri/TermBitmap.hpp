@@ -212,6 +212,10 @@ namespace indri {
         assert( (fromBase + found - 1) == from );
         return toBase + bits;
       }
+
+      size_t memorySize() {
+        return _maps.size() * (64*1024);
+      }
     };
   }
 }
