@@ -8,6 +8,7 @@ import java.awt.Color;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -19,6 +20,7 @@ import javax.swing.text.StyleContext;
 import edu.umass.cs.indri.DocumentVector;
 import edu.umass.cs.indri.ParsedDocument;
 import edu.umass.cs.indri.QueryAnnotation;
+import edu.umass.cs.indri.QueryAnnotationNode;
 import edu.umass.cs.indri.QueryEnvironment;
 import edu.umass.cs.indri.ScoredExtentResult;
 
@@ -50,7 +52,7 @@ public class RetrievalEngine {
 	}
 	
 	// runs a query with the given parameters
-	public Vector runQuery( String query, int numResults ) {
+	public Pair runQuery( String query, int numResults ) {
 		Vector allScores = new Vector();		
 					
 		System.err.println( "Running query: " + query );		
@@ -65,7 +67,7 @@ public class RetrievalEngine {
 		
 		setMetadata( viewableResults );
 		
-		return viewableResults;		
+		return new Pair( annotation, viewableResults );		
 	}
 	
 	// runs a query with the given parameters
@@ -317,6 +319,64 @@ public class RetrievalEngine {
 	}
 
 	// returns a RecapStyledDocument for a given ScoredDocInfo record
+	public DefaultStyledDocument getAnnotatedDocument( int docID, QueryAnnotation annotation ) {
+		DefaultStyledDocument doc = new DefaultStyledDocument();
+		
+		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
+		StyleConstants.setFontSize( defaultStyle, docFontSize );
+		
+		Style s = doc.addStyle( "match", defaultStyle );
+		StyleConstants.setBackground( s, Color.GREEN );
+		StyleConstants.setBold( s, true );
+				
+		ParsedDocument theDoc = getParsedDocument( docID );
+        
+		// insert document text into RecapStyledDocument
+		try { doc.insertString( 0, theDoc.text , defaultStyle ); }
+		catch( Exception e ) { /* do nothing */ }
+
+		QueryAnnotationNode root = annotation.getQueryTree();
+		Map matches = annotation.getAnnotations();
+		
+		annotationHelper( docID, doc, theDoc, root, matches );
+				
+		return doc;
+	}
+
+	private void annotationHelper( int docID, DefaultStyledDocument doc, ParsedDocument theDoc, QueryAnnotationNode root, Map matches ) {
+		// process root
+		if( root.type.equals( "RawScorerNode" ) ) {
+			ScoredExtentResult [] extents = (ScoredExtentResult [])matches.get( root.name );
+			if( extents != null && extents.length > 0 ) {
+				for( int i = 0; i < extents.length; i++ ) {
+					if( extents[i].document != docID )
+						continue;
+					int extentBegin = theDoc.positions[extents[i].begin].begin;
+					int extentEnd = theDoc.positions[extents[i].end - 1].end;
+					
+					try {
+						doc.replace( extentBegin, extentEnd - extentBegin,
+							     	 doc.getText(extentBegin, extentEnd-extentBegin),
+									 doc.getStyle("match") );
+					}
+					catch(Exception e) {  }					
+				}
+			}
+		}
+		System.out.println( root.type + " " + root.name + " "  + root.queryText );
+		
+		// process children
+		QueryAnnotationNode [] children = root.children;
+		if( children == null || children.length == 0 )
+			return;
+		else {
+			for(int i = 0; i < children.length; i++ )
+				annotationHelper( docID, doc, theDoc, children[i], matches );
+		}
+	}
+
+	
+//	 returns a RecapStyledDocument for a given ScoredDocInfo record
 	public RecapStyledDocument getMarkedDocument( ScoredDocInfo info ) {
 		RecapStyledDocument doc = new RecapStyledDocument();
 		
@@ -352,7 +412,7 @@ public class RetrievalEngine {
 		
 		return doc;
 	}
-
+	
 	public ParsedDocument getParsedDocument( int docID ) {
 		ParsedDocument theDoc = null;		
 		RecapCache.Entry entry = (RecapCache.Entry)cache.get( new Integer( docID ) );

@@ -10,8 +10,6 @@ import javax.swing.text.DefaultStyledDocument;
 /**
  * @author Don Metzler
  *
- * TODO To change the template for this generated type comment go to
- * Window - Preferences - Java - Code Style - Code Templates
  */
 public class RecapStyledDocument extends DefaultStyledDocument {
 

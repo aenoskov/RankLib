@@ -15,6 +15,8 @@ import javax.swing.JTextPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import edu.umass.cs.indri.QueryAnnotation;
+
 /*
  * Created on Sep 28, 2004
  *
@@ -65,6 +67,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		queryPanel.getUpdateTimelineButton().addActionListener( this );
 		
 		tlPanel.addMouseListener( this );
+		setResizeWeight( 0.8 );
 	}
 	
 	public void displayDoc( DocInfo doc ) {
@@ -76,10 +79,13 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		dvPane.clearTabs();		
 		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
 
-		Vector viewableResults = retEngine.runQuery( query, numResults );
+		Pair p = retEngine.runQuery( query, numResults );
+		QueryAnnotation annotation = (QueryAnnotation)p.left;
+		Vector viewableResults = (Vector)p.right;
 				
 		// update DocViewPane
-		dvPane.addMatches( viewableResults );
+		//dvPane.addMatches( viewableResults );
+		dvPane.displayExplorationResults( annotation, viewableResults );
 		
 		// update TimelinePanel
 		tlPanel.setResults( viewableResults );
