@@ -239,7 +239,7 @@ void indri::index::DiskDocListIterator::_readTopdocs() {
 // _readSkip
 //
 
-void indri::index::DiskDocListIterator::_readSkip() {
+inline void indri::index::DiskDocListIterator::_readSkip() {
   int skipLength; 
 
   _file->read( &_skipDocument, sizeof(int) );
@@ -257,7 +257,7 @@ void indri::index::DiskDocListIterator::_readSkip() {
 // _readEntry
 //
 
-void indri::index::DiskDocListIterator::_readEntry() {
+inline void indri::index::DiskDocListIterator::_readEntry() {
   _data.positions.clear();
   
   int deltaDocument;
