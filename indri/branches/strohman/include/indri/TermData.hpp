@@ -105,10 +105,7 @@ namespace indri {
   }
 }
 
-inline indri::index::TermData* termdata_create( int fieldCount ) {
-  // allocate enough room for the term data, plus enough room for fields
-  void* buffer = malloc( sizeof(indri::index::TermData) + sizeof(indri::index::TermFieldStatistics)*fieldCount );
-  
+inline indri::index::TermData* termdata_construct( void* buffer, int fieldCount ) {
   // call the constructor in place
   new(buffer) indri::index::TermData();
 
@@ -122,14 +119,25 @@ inline indri::index::TermData* termdata_create( int fieldCount ) {
   return (indri::index::TermData*) buffer;
 }
 
-inline void termdata_delete( indri::index::TermData* termData, int fieldCount ) {
+inline indri::index::TermData* termdata_create( int fieldCount ) {
+  // allocate enough room for the term data, plus enough room for fields
+  void* buffer = malloc( sizeof(indri::index::TermData) + sizeof(indri::index::TermFieldStatistics)*fieldCount );
+  return termdata_construct( buffer, fieldCount );
+}
+
+inline void termdata_destruct( indri::index::TermData* termData, int fieldCount ) {
   if( termData ) {
     termData->~TermData();
 
     for( int i=0; i<fieldCount; i++ ) {
       termData->fields[i].~TermFieldStatistics();
     }
+  }
+}
 
+inline void termdata_delete( indri::index::TermData* termData, int fieldCount ) {
+  if( termData ) {
+    termdata_destruct( termData, fieldCount );
     free(termData);
   }
 }

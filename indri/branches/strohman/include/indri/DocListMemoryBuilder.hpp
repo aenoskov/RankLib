@@ -60,6 +60,7 @@
 #include <assert.h>
 #include "indri/greedy_vector"
 #include "indri/DocListIterator.hpp"
+#include "indri/RegionAllocator.hpp"
 
 namespace indri {
   namespace index {
@@ -122,6 +123,8 @@ namespace indri {
       int _lastDocument;
       int _lastTermFrequency;
 
+      RegionAllocator* _allocator;
+
       inline size_t _compressedSize( int documentID, int position );
       inline void _safeAddLocation( int documentID, int position );
       void _growAddLocation( int documentID, int position, size_t newDataSize );
@@ -129,7 +132,7 @@ namespace indri {
       void _terminateDocument();
 
     public:
-      DocListMemoryBuilder();
+      DocListMemoryBuilder( class RegionAllocator* allocator );
       ~DocListMemoryBuilder();
       const DocListMemoryBuilder& operator=( DocListMemoryBuilder& other );
       

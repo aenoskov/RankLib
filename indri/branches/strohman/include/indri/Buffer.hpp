@@ -140,6 +140,10 @@ public:
       grow(_size*2);
   }
 
+  size_t remaining() {
+    return size() - position();
+  }
+
   void remove( size_t start ) {
     memmove( _buffer, _buffer + start, _position - start );
     _position -= start;

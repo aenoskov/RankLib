@@ -82,6 +82,12 @@ public:
     _position = position;
   }
 
+  void clear() {
+    _position = 0;
+    _current.filePosition = 0;
+    _current.buffer.clear();
+  }
+
   UINT64 position() {
     return _position;
   }
