@@ -21,10 +21,10 @@
 
 #define pow2_31 2147483648U
 
-#define RVL_COMPRESS_MASK                 ((1<<7)-1)
-#define RVL_COMPRESS_TERMINATE_BIT        (1<<7)
-#define RVL_COMPRESS_BYTE( d, in, b )     d[b] = (char) ((in >> 7*b) & ((1<<7)-1))
-#define RVL_COMPRESS_TERMINATE( d, b )    d[b] = d[b] | RVL_COMPRESS_TERMINATE_BIT
+#define RVL_COMPRESS_MASK                      ((1<<7)-1)
+#define RVL_COMPRESS_TERMINATE_BIT             (1<<7)
+#define RVL_COMPRESS_BYTE( d, in, b )          d[b] = (char) ((in >> 7*b) & ((1<<7)-1))
+#define RVL_COMPRESS_TERMINATE( d, in, b )     d[b] = (char) ((in >> 7*b) | (1<<7))
 
 class RVLCompress {
 public:
@@ -181,13 +181,11 @@ inline int RVLCompress::compressedSize( INT64 data ) {
 
 inline char* RVLCompress::compress_int( char* dest, int data ) {
   if( data < (1<<7) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_TERMINATE( dest, 0 );
+    RVL_COMPRESS_TERMINATE( dest, data, 0 );
     return dest + 1;
   } else if( data < (1<<14) ) {
     RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_TERMINATE( dest, 1 );
+    RVL_COMPRESS_TERMINATE( dest, data, 1 );
     return dest + 2;
   } else {
     return _compress_bigger_int( dest, data );
@@ -199,12 +197,11 @@ inline char* RVLCompress::compress_longlong( char* dest, INT64 id ) {
 
   if( data < (UINT64(1)<<7) ) {
     RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_TERMINATE( dest, 0 );
+    RVL_COMPRESS_TERMINATE( dest, data, 0 );
     return dest + 1;
   } else if( data < (UINT64(1)<<14) ) {
     RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_TERMINATE( dest, 1 );
+    RVL_COMPRESS_TERMINATE( dest, data, 1 );
     return dest + 2;
   } else {
     return _compress_bigger_longlong( dest, id );
