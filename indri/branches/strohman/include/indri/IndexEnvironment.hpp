@@ -128,6 +128,7 @@ public:
   /// set names of fields to be indexed as metadata
   /// @param fieldNames the list of fields.
   void setMetadataIndexedFields( const std::vector<std::string>& fieldNames );
+  //void setMetadataReverseIndexedFields( const std::vector<std::string>& fieldNames );
   /// set the list of stopwords
   /// @param stopwords the list of stopwords
   void setStopwords( const std::vector<std::string>& stopwords );
