@@ -1,5 +1,7 @@
 package edu.umass.cs.recap;
 import java.awt.Dimension;
+import java.awt.event.MouseListener;
+import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -7,6 +9,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
+import javax.swing.event.ChangeListener;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Document;
 import javax.swing.text.html.HTMLDocument;
@@ -43,7 +46,7 @@ public class DocViewPane extends JSplitPane {
 		this.curAnalyzeResults = new Vector();
 
 		docTextPane = new JTextPane();
-		matchPane = new JTabbedPane( JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT );
+		matchPane = new JTabbedPane( JTabbedPane.RIGHT, JTabbedPane.SCROLL_TAB_LAYOUT );
 		docPane = new JScrollPane();
 		docPane.getViewport().setView( docTextPane );
 
@@ -57,7 +60,7 @@ public class DocViewPane extends JSplitPane {
 		docTextPane.setDocument( doc );
 	}
 	
-	public void displayDoc( DocInfo info ) {
+	public void displayDoc( ScoredDocInfo info ) {
 		DefaultStyledDocument doc = retEngine.getDocument( info );
 		docTextPane.setDocument( doc );		
 	}
@@ -189,10 +192,10 @@ public class DocViewPane extends JSplitPane {
 		return docTextPane;
 	}	
 	
-	public void setSelectedDoc( DocInfo doc ) {
+	public void setSelectedDoc( ScoredDocInfo doc ) {
 		int numTabs = matchPane.getTabCount();
 		for( int i = 0; i < numTabs; i++ ) {
-			if( doc.getDocID().equals( matchPane.getTitleAt( i ) ) ) {
+			if( doc.docName.equals( matchPane.getTitleAt( i ) ) ) {
 				matchPane.setSelectedIndex( i );
 				return; // set to FIRST tab that matches the docID
 			}
@@ -201,5 +204,11 @@ public class DocViewPane extends JSplitPane {
 	
 	public void clearTabs() {
 		matchPane.removeAll();
+	}
+
+	// registers EventListeners for this class
+	public void addListeners( EventListener pane) {
+		docTextPane.addMouseListener( (MouseListener)pane );
+		matchPane.addChangeListener( (ChangeListener)pane );
 	}
 }

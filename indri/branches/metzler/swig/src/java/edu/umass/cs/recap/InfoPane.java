@@ -9,7 +9,9 @@ import java.awt.event.MouseListener;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
@@ -40,6 +42,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	private DocViewPane dvPane = null;
 	private TimelinePanel tlPanel = null;
 	private QueryPanel queryPanel = null;
+	private MainMenuBar menu = null;
 	
 	// default settings
 	private String simMeasure = "#identsim1";
@@ -47,14 +50,17 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	private int numExploreResults = 5;
 	private int numAnalyzeResults = 5;
 	
-	public InfoPane( RetrievalEngine retEngine, Dimension screenSize ) {
+	public InfoPane( RetrievalEngine retEngine, MainMenuBar menu, Dimension screenSize ) {
 		super( JSplitPane.VERTICAL_SPLIT );
 		this.retEngine = retEngine;
+		this.menu = menu;
 		
 		tlPanel = new TimelinePanel();
 		dvPane = new DocViewPane( retEngine, screenSize );
 		queryPanel = new QueryPanel();
 		JPanel topPanel = new JPanel();
+		
+		queryPanel.setSliderEnabled( false );
 		
 		topPanel.setLayout( new BorderLayout() );		
 		topPanel.add( dvPane, BorderLayout.CENTER );
@@ -64,18 +70,14 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		setTopComponent( topPanel );
 		setBottomComponent( tlPanel );
 		
-		dvPane.getDocTextPane().addMouseListener( this );
-		dvPane.getMatchPane().addChangeListener( this );
-
-		queryPanel.addListeners( this );
-		queryPanel.setSliderEnabled( false );
+		dvPane.addListeners( this );
+		queryPanel.addListeners( this );		
+		tlPanel.addListeners( this );
 		
-		tlPanel.addMouseListener( this );
-		tlPanel.addActionListeners( this );
 		setResizeWeight( 0.8 );
 	}
 	
-	public void displayDoc( DocInfo doc ) {
+	public void displayDoc( ScoredDocInfo doc ) {
 		dvPane.displayDoc( doc );
 	}
 
@@ -174,30 +176,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	public void stateChanged( ChangeEvent e ) {
 		// slider changed
 		double threshold = queryPanel.getThreshold();
-		if( e.getSource() instanceof JSlider ) {			
-			Vector results = dvPane.getCurAnalyzeResults();
-			if( results.size() == 0 )
-				return;
-			boolean [] b = new boolean[ results.size() ];
-			for( int i = 0; i < results.size(); i++ ) {
-				RecapStyledDocument doc = (RecapStyledDocument)results.elementAt( i );
-				doc.applySentenceMatchThreshold( threshold );
-				if( doc.getViewableSentenceMatches().size() == 0 )
-					b[ i ] = false;
-				else
-					b[ i ] = true;
-			}
-				
-			dvPane.setViewableAnalyzeResults( b );
-			tlPanel.setViewableResults( b );
-			repaint();
-			
-			JTextPane pane = dvPane.getResultPane();
-			if( pane != null && pane.getDocument() instanceof RecapStyledDocument ) {
-				RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();
-				//doc.applySentenceMatchThreshold( threshold );
-				dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
-			}
+		if( e.getSource() instanceof JSlider ) {
+			thresholdUpdate( threshold );
 		}
 		// otherwise it must've been a tab click in the DocViewPane
 		else if( dvPane != null && dvPane.getMatchPane().getSelectedIndex() != -1 ) {
@@ -222,17 +202,17 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			ScoredDocInfo info = tlPanel.getDocAt( e.getPoint() );
 			int clickCount = e.getClickCount();
 			if( info != null ) {
-				DocInfo doc = new DocInfo( info.docName, info.docID );
+				//DocInfo doc = new DocInfo( info.docName, info.docID );
 				if( clickCount == 1 ) { // 1 click => set tab to doc
 					tlPanel.setCurrent( info.docName );
-					dvPane.setSelectedDoc( doc );
+					dvPane.setSelectedDoc( info );
 					if( getMode().equals( "explore" ) )
 						dvPane.displayHighlightedDoc( info.docID );
 					repaint();
 				}
 				else { // 2+ clicks => analyze document
 					//updater.setSelectedDoc( doc );					
-					dvPane.setSelectedDoc( doc );
+					dvPane.setSelectedDoc( info );
 					if( getMode().equals( "analyze" ) )
 						dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
 				}
@@ -258,10 +238,17 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 
 	// required for ActionListener
 	public void actionPerformed( ActionEvent e ) {
+		Object src = e.getSource();
 		// TODO: change this so all matches are based on buttonName
-		JButton src = (JButton)e.getSource();
-		String buttonText = src.getLabel();
-		String buttonName = src.getName();
+		String buttonText = "";
+		String buttonName = "";
+		if( src instanceof JButton ) {			
+			buttonText = ((JButton)src).getLabel();
+			buttonName = ((JButton)src).getName();
+		}
+		else if( src instanceof JMenuItem ) {
+			buttonText = ((JMenuItem)src).getLabel();
+		}
 		if( buttonText.equals( "Run query" ) ) {
 			String mode = getMode();
 			if( mode.equals( "explore" ) ) {
@@ -271,6 +258,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			else if( mode.equals( "analyze" ) ) {
 				runAnalyzeQuery( queryPanel.getQueryText() );
 				queryPanel.setSliderEnabled( true );
+				double threshold = queryPanel.getThreshold();
+				thresholdUpdate( threshold );
 			}
 			else
 				System.err.println( "ERROR -- invalid search mode!" );
@@ -309,9 +298,9 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			ScoredDocInfo info = tlPanel.getPreviousDoc();
 			if( info == null )
 				return;
-			DocInfo doc = new DocInfo( info.docName, info.docID );
+			//DocInfo doc = new DocInfo( info.docName, info.docID );
 			tlPanel.setCurrent( info.docName );
-			dvPane.setSelectedDoc( doc );
+			dvPane.setSelectedDoc( info );
 			if( getMode().equals( "explore" ) )
 				dvPane.displayHighlightedDoc( info.docID );
 			repaint();
@@ -320,9 +309,9 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			ScoredDocInfo info = tlPanel.getNextDoc();
 			if( info == null )
 				return;
-			DocInfo doc = new DocInfo( info.docName, info.docID );
+			//DocInfo doc = new DocInfo( info.docName, info.docID );
 			tlPanel.setCurrent( info.docName );
-			dvPane.setSelectedDoc( doc );
+			dvPane.setSelectedDoc( info );
 			if( getMode().equals( "explore" ) )
 				dvPane.displayHighlightedDoc( info.docID );
 			repaint();
@@ -334,6 +323,56 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			if( getMode().equals( "analyze") )				
 				dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
 		}
+		else if( buttonText.equals( "Increase font size" ) ) {
+			retEngine.increaseDocFontSize();
+		}
+		else if( buttonText.equals( "Decrease font size" ) ) {
+			retEngine.decreaseDocFontSize();
+		}
+		else if( buttonText.equals( "IDF-based Word Overlap" ) ) {
+			setSimMeasure( "#identsim1" );
+		}
+		else if( buttonText.equals( "Word Overlap" ) ) {
+			setSimMeasure( "#identsim0" );
+		}
+		else if( buttonText.equals( "Machine Translation (Model 0)" ) ) {
+			setSimMeasure( "#identsim50" );
+		}
+		else if( buttonText.equals( "Query likelihood" ) ) {
+			setSimMeasure( "#combine" );
+		}
+		else if( buttonText.equals( "About...") ) {			
+			JOptionPane.showMessageDialog( this,
+				    "RECAP is the result of a collaborative effort involving:\n\nYaniv Bernstein (RMIT)\nW. Bruce Croft (UMass)\nDonald Metzler (UMass)\nAlistair Moffat (U. of Melbourne)\nJustin Zobel (RMIT)\n\nCode developed by Donald Metzler",
+				    "About...",
+				    JOptionPane.INFORMATION_MESSAGE,
+				    new ImageIcon("edu/umass/cs/recap/images/recap.png"));		
+		}
+		else if( buttonText.equals( "Add server...") ) {
+			String server = showInputDialog( "Name of server to add:" );
+			try {
+				retEngine.addServer( server );
+			}
+			catch( Exception f ) {
+				showErrorDialog( "Error adding server!" );
+			}
+		}
+		else if( buttonText.equals( "Add index..." ) ) {
+			String index = showInputDialog( "Location of index to add:" );
+			try {
+				retEngine.addIndex( index );
+			}
+			catch( Exception f ) {
+				showErrorDialog( "Error while opening index!" );
+			}
+		}
+		else if( buttonText.equals( "Exit" ) ) {
+			System.exit( 0 );
+		}
+		
+		// update these values each time a menu event occurs for simplicity
+		setNumExploreResults( menu.getNumExploreResults() );
+		setNumAnalyzeResults( menu.getNumAnalyzeResults() );
 	}
 
 	// process a hyperlink click
@@ -373,7 +412,38 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		return queryPanel.getMode();
 	}
 	
+	protected String showInputDialog( String msg ) {
+		return JOptionPane.showInputDialog( msg );
+	}
+
 	protected void showErrorDialog( String msg ) {		
 		JOptionPane.showMessageDialog( this, msg, "Error", JOptionPane.ERROR_MESSAGE );
-	}	
+	}
+	
+	protected void thresholdUpdate( double threshold ) {
+		Vector results = dvPane.getCurAnalyzeResults();
+		if( results.size() == 0 )
+			return;
+		boolean [] b = new boolean[ results.size() ];
+		for( int i = 0; i < results.size(); i++ ) {
+			RecapStyledDocument doc = (RecapStyledDocument)results.elementAt( i );
+			doc.applySentenceMatchThreshold( threshold );
+			if( doc.getViewableSentenceMatches().size() == 0 )
+				b[ i ] = false;
+			else
+				b[ i ] = true;
+		}
+			
+		dvPane.setViewableAnalyzeResults( b );
+		tlPanel.setViewableResults( b );
+		repaint();
+		
+		JTextPane pane = dvPane.getResultPane();
+		if( pane != null && pane.getDocument() instanceof RecapStyledDocument ) {
+			RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();
+			//doc.applySentenceMatchThreshold( threshold );
+			dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
+		}
+
+	}
 }
