@@ -78,7 +78,7 @@ public:
 	public:  indri::lang::ScoredExtentNode*  weightedList(
 		 indri::lang::WeightedCombinationNode* wn 
 	);
-	public:  indri::lang::ExtentRestriction*  extentRestriction(
+	public:  indri::lang::ScoredExtentNode*  extentRestriction(
 		 indri::lang::ScoredExtentNode* sn 
 	);
 	public:  double  floating();
@@ -123,10 +123,10 @@ protected:
 private:
 	static const char* tokenNames[];
 #ifndef NO_STATIC_CONSTS
-	static const int NUM_TOKENS = 59;
+	static const int NUM_TOKENS = 60;
 #else
 	enum {
-		NUM_TOKENS = 59
+		NUM_TOKENS = 60
 	};
 #endif
 	
