@@ -7,6 +7,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 /*
  * Created on Nov 2, 2004
  *
@@ -27,7 +28,12 @@ public class QueryPanel extends JPanel {
 	private JButton clearQueryButton = null;
 	private Choice numResultsChoice = null;
 	private Choice simMeasureChoice = null;
+	private Choice combineMethodChoice = null;
 	private Choice fieldChoice = null;
+
+	private JTextField startDate = null;
+	private JTextField endDate = null;
+	private JButton updateTimelineButton = null;
 	
 	public QueryPanel( String [] fields ) {
 		queryLabel = new JLabel( "Query:" );
@@ -50,22 +56,38 @@ public class QueryPanel extends JPanel {
 		simMeasureChoice.add("ql");
 		simMeasureChoice.add("mt0"); 
 
+		combineMethodChoice = new Choice();
+		combineMethodChoice.add("none");
+		combineMethodChoice.add("prob");
+		combineMethodChoice.add("sequence");
+
 		fieldChoice = new Choice();
 		fieldChoice.add( "document" ); // document retrieval
 		for( int i = 0; i < fields.length; i++ )
 			fieldChoice.add( fields[i] );
+
+		startDate = new JTextField("1/1/1980");
+		endDate = new JTextField("12/31/2010");
+		updateTimelineButton = new JButton( "Update timeline");
 		
 		// subpanel
 		JPanel subPanel = new JPanel();
-		subPanel.setLayout( new GridLayout( 4,2 ) );
-		subPanel.add( new JLabel( "Method:" ) );
+		subPanel.setLayout( new GridLayout( 5,3 ) );
+		subPanel.add( new JLabel( "Similarity:" ) );
 		subPanel.add( simMeasureChoice );
+		subPanel.add( new JLabel( "Timeline start: ") );
+		subPanel.add( new JLabel( "Combiner:" ) );
+		subPanel.add( combineMethodChoice );
+		subPanel.add( startDate );
 		subPanel.add( new JLabel( "Results:" ) );
 		subPanel.add( numResultsChoice );
+		subPanel.add( new JLabel( "Timeline end: ") );
 		subPanel.add( new JLabel( "Field:" ) );
 		subPanel.add( fieldChoice );
+		subPanel.add( endDate );
 		subPanel.add( runQueryButton );
 		subPanel.add( clearQueryButton );
+		subPanel.add( updateTimelineButton );
 		
 		queryScrollPane.getViewport().setView( queryTextArea );
 		
@@ -94,6 +116,10 @@ public class QueryPanel extends JPanel {
 	public Choice getNumResultsChoice() {
 		return numResultsChoice;
 	}
+
+	public JButton getUpdateTimelineButton() {
+		return updateTimelineButton;
+	}
 	
 	public String getSimMeasure() {
 		String choice = simMeasureChoice.getSelectedItem();
@@ -117,5 +143,13 @@ public class QueryPanel extends JPanel {
 	
 	public int getNumResults() {
 		return Integer.parseInt( numResultsChoice.getSelectedItem() );
+	}
+	
+	public void setTimelineStartDate( String start ) {
+		startDate.setText( start );
+	}
+	
+	public void setTimelineEndDate( String end ) {
+		endDate.setText( end );
 	}
 }

@@ -64,6 +64,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 
 		queryPanel.getRunQueryButton().addActionListener( this );
 		queryPanel.getClearQueryButton().addActionListener( this );
+		queryPanel.getUpdateTimelineButton().addActionListener( this );
 		
 		tlPanel.addMouseListener( this );
 	}
@@ -110,6 +111,10 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		String curDocName = ( (ScoredDocInfo)viewableResults.elementAt( viewableResults.size() - 1 ) ).docName;
 		tlPanel.setCurrent( curDocName );
 
+		// update QueryPanel
+		queryPanel.setTimelineStartDate( tlPanel.getStartDate() );
+		queryPanel.setTimelineEndDate( tlPanel.getEndDate() );
+		
 		this.setCursor( new Cursor( Cursor.DEFAULT_CURSOR ) );
 	}
 
@@ -133,12 +138,23 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			if( docNames[i].startsWith("WSJ") ) {
 				info.date = Integer.parseInt(docNames[i].substring(7,9));
 				info.month = Integer.parseInt(docNames[i].substring(5,7));
-				info.year = Integer.parseInt(docNames[i].substring(3,5));
+				info.year = 1900 + Integer.parseInt(docNames[i].substring(3,5));
 			}
-			else {
+			else if( docNames[i].startsWith("LA") ) {
+				info.date = Integer.parseInt(docNames[i].substring(2,4));
+				info.month = Integer.parseInt(docNames[i].substring(4,6));
+				info.year = 1900 + Integer.parseInt(docNames[i].substring(6,8));				
+			}
+			else if( docNames[i].startsWith("AP") ) {
 				info.date = Integer.parseInt(docNames[i].substring(6,8));
 				info.month = Integer.parseInt(docNames[i].substring(4,6));
-				info.year = Integer.parseInt(docNames[i].substring(2,4));
+				info.year = 1900 + Integer.parseInt(docNames[i].substring(2,4));
+			}
+			// TODO: fix this to handle FBIS, FT, and SJMN
+			else {
+				info.date = 1;
+				info.month = 1;
+				info.year = 1989;
 			}
 			System.out.println(info);
 		}
@@ -296,6 +312,9 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		}
 		else if( src == queryPanel.getClearQueryButton() ) {
 			queryPanel.setQueryText("");
+		}
+		else if( src == queryPanel.getUpdateTimelineButton() ) {
+			//tlPanel.
 		}
 	}
 }
