@@ -21,7 +21,8 @@ namespace indri {
       const std::vector<MemoryIndex::term_entry*>& _termData;
       std::vector<MemoryIndex::term_entry*> _alphabetical;
       std::vector<MemoryIndex::term_entry*>::iterator _currentTerm;
-      indri::index::DocListMemoryBuilderIterator _iterator;
+      DocListMemoryBuilderIterator _iterator;
+      DocListData _data;
       
     public:
       MemoryIndexDocListFileIterator( const std::vector<MemoryIndex::term_entry*>& termData ) :
@@ -37,13 +38,15 @@ namespace indri {
         std::sort( _alphabetical.begin(), _alphabetical.end(), MemoryIndex::term_entry::term_less() );
         _currentTerm = _alphabetical.begin();
         _iterator.reset( (*_currentTerm)->list );
+        _data.termData = &(*_currentTerm)->termData;
+        _data.iterator = &_iterator;
       }
       
       bool finished() const {
         return _currentTerm == _alphabetical.end();
       }
       
-      DocListIterator* currentEntry() { 
+      DocListData* currentEntry() { 
         return &_iterator;
       }
       
@@ -56,6 +59,8 @@ namespace indri {
           return false;
         
         _iterator.reset( (*_currentTerm)->list );
+        _data.termData = &(*_currentTerm)->termData;
+        return true;
       }
     };
   }

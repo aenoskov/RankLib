@@ -12,12 +12,12 @@ namespace indri {
   namespace index {
     class TermListFileIterator {
     public:
-      virtual ~TermListFileIterator();
+      virtual ~TermListFileIterator() {};
       
-      virtual void startIteration();
-      virtual bool nextEntry();
-      virtual bool finished();
-      virtual TermList* currentEntry();
+      virtual void startIteration() = 0;
+      virtual bool nextEntry() = 0;
+      virtual bool finished() = 0;
+      virtual TermList* currentEntry() = 0;
     };
   }
 }

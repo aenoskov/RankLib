@@ -49,7 +49,7 @@ namespace indri {
       Mutex _lock;
 
       CorpusStatistics _corpusStatistics;
-      UINT64 _baseDocumentID;
+      int _baseDocumentID;
       
       // document buffers
       indri::index::TermList _termList;
@@ -68,8 +68,8 @@ namespace indri {
       std::vector<indri::index::DocumentData> _documentData;
       
       // document vector buffers
-      std::list<Buffer*> _documentVectors;
-      UINT64 _documentVectorBaseOffset;
+      std::list<Buffer*> _termLists;
+      UINT64 _termListsBaseOffset;
       
       void _addOpenTags( greedy_vector<indri::index::FieldExtent>& indexedTags,
                          greedy_vector<indri::index::FieldExtent>& openTags,
@@ -87,8 +87,16 @@ namespace indri {
       int _fieldID( const char* fieldName );
 
     public:
-      UINT64 documentBase();
-        
+      MemoryIndex();
+      MemoryIndex( int docBase );
+      MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields );
+
+      int documentBase();
+      
+      int term( const std::string& t );
+      int term( const char* t );
+      std::string term( int termID );
+
       UINT64 documentCount();
       UINT64 uniqueTermCount();
       
@@ -101,12 +109,14 @@ namespace indri {
       UINT64 fieldDocumentCount( const std::string& field );
       UINT64 fieldDocumentCount( const std::string& field, const std::string& term );
       
-      indri::index::DocListIterator* docListIterator( int termID );
-      indri::index::DocListIterator* docListIterator( const std::string& term );
-      indri::index::DocListFileIterator* docListFileIterator();
-      indri::index::TermList* termList( int documentID );
-      indri::index::TermListFileIterator* documentVectorIterator();
-      indri::index::VocabularyIterator* vocabularyIterator();
+      DocListIterator* docListIterator( int termID );
+      DocListIterator* docListIterator( const std::string& term );
+      DocListFileIterator* docListFileIterator();
+      DocExtentListIterator* fieldListIterator( int fieldID );
+      DocExtentListIterator* fieldListIterator( const std::string& field );
+      const TermList* termList( int documentID );
+      TermListFileIterator* termListFileIterator();
+      VocabularyIterator* vocabularyIterator();
       
       int addDocument( ParsedDocument& document );
     };

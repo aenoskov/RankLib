@@ -47,6 +47,8 @@ namespace indri {
         
         if( _iterator == _alphabetical.end() )
           return false;
+
+        return true;
       }
       
       bool finished() {
