@@ -11,6 +11,7 @@
 #include <vector>
 #include "indri/File.hpp"
 #include "indri/SequentialWriteBuffer.hpp"
+#include "indri/HashTable.hpp"
 
 class BulkBlock {
 private:
@@ -83,13 +84,16 @@ private:
   File* _file;
   UINT64 _fileLength;
   bool _ownFile;
+  HashTable< UINT32, BulkBlock* > _cache;
+  BulkBlock _spare;
 
-  void _fetch( BulkBlock& block, UINT32 id );
+  BulkBlock* _fetch( UINT32 id );
 
 public:
   BulkTreeReader::BulkTreeReader();
   BulkTreeReader( File& file );
   BulkTreeReader( File& file, UINT64 length );
+  ~BulkTreeReader();
   
   void openRead( const std::string& filename );
   bool get( const char* key, char* value, int& actual, int valueLength );

@@ -12,11 +12,12 @@
 #include "indri/File.hpp"
 #include "indri/delete_range.hpp"
 #include "indri/BulkTree.hpp"
+#include <iostream>
 
 // add pair at begin block, add length at end of block
 // 
 
-const int BULK_BLOCK_SIZE = 16*1024;
+const int BULK_BLOCK_SIZE = 8*1024;
 
 int BulkBlock::_remainingCapacity() {
   int startDataSize = _dataEnd();
@@ -281,7 +282,7 @@ void BulkTreeWriter::_flushAll() {
 
     if( count == 1 && hasNotBeenFlushed )
       break;
-
+    
     if( count )
       _flush( i );
   }
@@ -292,6 +293,7 @@ BulkTreeWriter::BulkTreeWriter() :
 {
   _blockID = 0;
   _blocks.push_back( new BulkBlock(true) );
+  _flushLevel = 0;
 }
 
 BulkTreeWriter::~BulkTreeWriter() {
@@ -349,8 +351,25 @@ void BulkTreeWriter::flush() {
 // BulkTreeReader
 // ==============
 
-void BulkTreeReader::_fetch( BulkBlock& block, UINT32 id ) {
-  _file->read( block.data(), id*BulkBlock::dataSize(), BulkBlock::dataSize() );
+BulkBlock* BulkTreeReader::_fetch( UINT32 id ) {
+  assert( id < _fileLength / BulkBlock::dataSize() );
+  BulkBlock** result = _cache.find( id );
+  BulkBlock* block;
+
+  if( !result ) {
+    if( _cache.size() >= 200 ) {
+      block = &_spare;
+    } else {
+      block = new BulkBlock;
+      _cache.insert( id, block );
+    }
+
+    _file->read( block->data(), id*BulkBlock::dataSize(), BulkBlock::dataSize() );
+  } else {
+    block = *result;
+  }
+  
+  return block;
 }
 
 BulkTreeReader::BulkTreeReader( File& file ) :
@@ -372,6 +391,14 @@ BulkTreeReader::BulkTreeReader() :
 {
 }
 
+BulkTreeReader::~BulkTreeReader() {
+  HashTable< UINT32, BulkBlock* >::iterator iter;
+
+  for( iter = _cache.begin(); iter != _cache.end(); iter++ ) {
+    delete *iter->second;
+  }
+}
+
 void BulkTreeReader::openRead( const std::string& filename ) {
   _file = new File;
   _file->open( filename );
@@ -387,7 +414,7 @@ void BulkTreeReader::close() {
 }
 
 bool BulkTreeReader::get( const char* key, int keyLength, char* value, int& actual, int valueLength ) {
-  BulkBlock block;
+  BulkBlock* block = 0;
   int rootID = int(_fileLength / BULK_BLOCK_SIZE) - 1;
 
   if( rootID < 0 )
@@ -396,13 +423,13 @@ bool BulkTreeReader::get( const char* key, int keyLength, char* value, int& actu
   int nextID = rootID;
 
   while( true ) {
-    _fetch( block, nextID );
+    block = _fetch( nextID );
 
-    if( block.leaf() )
+    if( block->leaf() )
       break;
 
     int actual;
-    bool result = block.findGreater( key, keyLength, (char*) &nextID, actual, sizeof(nextID) );
+    bool result = block->findGreater( key, keyLength, (char*) &nextID, actual, sizeof(nextID) );
 
     if( !result )
       return false;
@@ -411,7 +438,7 @@ bool BulkTreeReader::get( const char* key, int keyLength, char* value, int& actu
   }
 
   // now we're at a leaf
-  return block.find( key, keyLength, value, actual, valueLength );
+  return block->find( key, keyLength, value, actual, valueLength );
 }
 
 bool BulkTreeReader::get( const char* key, char* value, int& actual, int valueLength ) {

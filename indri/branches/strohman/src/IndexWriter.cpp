@@ -166,20 +166,22 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
   LOGMESSAGE( "Inverted Lists Complete" );
   _writeFieldLists( indexes, path );
   LOGMESSAGE( "Fields Complete" );
+
+  _infrequentTermsReader.openRead( infrequentStringPath );
+  _frequentTermsReader.openRead( frequentStringPath );
   _writeDirectLists( contexts );
   LOGMESSAGE( "Direct Lists Complete" );
   delete_vector_contents( contexts );
 
-  // close infrequent
-  _infrequentTerms.idMap->close();
+  _infrequentTermsReader.close();
+  _frequentTermsReader.close();
+
+  // delete infrequent
   delete _infrequentTerms.idMap;
-  _infrequentTerms.stringMap->close();
   delete _infrequentTerms.stringMap;
 
-  // close frequent
-  _frequentTerms.idMap->close();
+  // delete frequent
   delete _frequentTerms.idMap;
-  _frequentTerms.stringMap->close();
   delete _frequentTerms.stringMap;
   _frequentTermsData.close();
 
@@ -685,10 +687,10 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
   // at this point, we need to fill in all the "top" vocabulary data into the keyfile
   _storeFrequentTerms();
 
-  _frequentTerms.idMap->flush();
-  _frequentTerms.stringMap->flush();
-  _infrequentTerms.idMap->flush();
-  _infrequentTerms.stringMap->flush();
+  _frequentTerms.idMap->close();
+  _frequentTerms.stringMap->close();
+  _infrequentTerms.idMap->close();
+  _infrequentTerms.stringMap->close();
 
   ::termdata_delete( termData, _fields.size() );
   _invertedOutput->flush();
@@ -700,7 +702,7 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
 // _lookupTermID
 //
 
-int IndexWriter::_lookupTermID( BulkTreeWriter& keyfile, const char* term ) {
+int IndexWriter::_lookupTermID( BulkTreeReader& keyfile, const char* term ) {
   char compressedData[16*1024];
   char uncompressedData[16*1024];
   int actual;
@@ -723,8 +725,8 @@ int IndexWriter::_lookupTermID( BulkTreeWriter& keyfile, const char* term ) {
 // _buildTermTranslator
 //
 
-indri::index::TermTranslator* IndexWriter::_buildTermTranslator( BulkTreeWriter& newInfrequentTerms,
-                                            BulkTreeWriter& newFrequentTerms,
+indri::index::TermTranslator* IndexWriter::_buildTermTranslator( BulkTreeReader& newInfrequentTerms,
+                                            BulkTreeReader& newFrequentTerms,
                                             TermRecorder& oldFrequentTermsRecorder,
                                             HashTable<int, int>* oldInfrequentHashTable,
                                             TermRecorder& newFrequentTermsRecorder,
@@ -811,7 +813,8 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
                                     SequentialWriteBuffer* directOutput,
                                     SequentialWriteBuffer* lengthsOutput,
                                     SequentialWriteBuffer* dataOutput ) {
-  // have to grab a list of all the old frequent terms first--how is this done?
+
+  std::cout << "reading vocab" << std::endl;
   VocabularyIterator* vocabulary = context->index->frequentVocabularyIterator();
   indri::index::Index* index = context->index;
   
@@ -828,8 +831,8 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
   vocabulary = 0;
 
   TermListFileIterator* iterator = index->termListFileIterator();
-  TermTranslator* translator = _buildTermTranslator( *_infrequentTerms.stringMap,
-                                                     *_frequentTerms.stringMap,
+  TermTranslator* translator = _buildTermTranslator( _infrequentTermsReader,
+                                                     _frequentTermsReader,
                                                      *context->oldFrequent,
                                                      context->oldInfrequent,
                                                      *context->newlyFrequent,
