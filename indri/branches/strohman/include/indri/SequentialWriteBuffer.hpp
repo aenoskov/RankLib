@@ -26,10 +26,12 @@ public:
   }
 
   void seek( UINT64 position ) {
-    if( position < _current.filePosition )
+    if( position < _current.filePosition ) {
       flush();
+      _current.filePosition = position;
+    }
+
     _position = position;
-    _current.filePosition = position;
   }
   
   char* write( size_t length ) {
@@ -75,11 +77,17 @@ public:
     return _position;
   }
 
+  void flushBytes( UINT64 bytes ) {
+    if( bytes != 0 ) {
+      assert( bytes <= _current.buffer.position() );
+      _file.write( _current.buffer.front(), _current.filePosition, bytes );
+      _current.buffer.remove( bytes );
+      _current.filePosition += bytes;
+    }
+  }
+
   void flush() {
-    std::cout << "writing " << _current.buffer.position() << " bytes" << std::endl;
-    _file.write( _current.buffer.front(), _current.filePosition, _current.buffer.position() );
-    _current.buffer.clear();
-    _current.filePosition = 0;
+    flushBytes( _current.buffer.position() );
   }
 };
 
