@@ -64,10 +64,12 @@ public class RetrievalEngine {
 		// run a query for each sentence
 		for( int queryNum = 0; queryNum < queries.size(); queryNum++ ) {
 			String q = (String)queries.elementAt( queryNum );
+			System.err.println( "[" + (queryNum+1) + "/" + queries.size() + "] Running query: " + queryOp + queryExtent + "(" + q + ")" );
 			ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", 1000 );
 			allScores.add( scores );
 		}
 
+		System.err.println( "Combining scores...");
 		Vector results = scoreResults( allScores, queryExtent, queryCombiner );
 		
 		Collections.sort( results );
@@ -123,7 +125,22 @@ public class RetrievalEngine {
 				candidateDocs.put( docNum, new ScoredDocInfo( docNum.intValue(), 0.0, new Vector() ) );
 			}			
 		}
-				
+
+		String [] metadata = null;
+		if( queryCombiner.equals( "prob" ) ) { 
+			// TODO: make this work for fields other than
+			// "sentence"
+			// get the document vectors for each candidate
+			int [] docIDs = new int[ candidateDocs.size() ];
+			Iterator iter = candidateDocs.keySet().iterator();
+			int num = 0;
+			while( iter.hasNext() ) {
+				Integer i = (Integer)iter.next();
+				docIDs[ num++ ] = i.intValue();
+			}
+			metadata = indri.documentMetadata( docIDs, "numsentences" );
+		}
+
 		// score the documents
 		for( int queryNum = 0; queryNum < scores.size(); queryNum++ ) {
 			HashMap results = new HashMap();
@@ -142,11 +159,12 @@ public class RetrievalEngine {
 		
 			// update each document's score
 			Iterator iter = candidateDocs.keySet().iterator();
+			int num = 0;
 			while( iter.hasNext() ) {
 				Integer i = (Integer)iter.next();
 				double score = 0.0;
 				if( queryCombiner.equals( "prob" ) ) 
-					score = getDocScoreProb( i , results, queryExtent );
+					score = getDocScoreProb( i , results, metadata[num++] );
 				else if( queryCombiner.equals( "none") ) {
 					Vector v = (Vector)results.get( i );
 					if( v.size() > 1 )
@@ -179,13 +197,12 @@ public class RetrievalEngine {
 	
 	// scores a single document by probabilistically combining
 	// scores
-	private double getDocScoreProb( Integer i, HashMap results, String queryExtent ) {
+	private double getDocScoreProb( Integer i, HashMap results, String metadata ) {
 		double score = 0.0;
-
-		// get the document vectors for each candidate
-		int [] docIDs = new int[ 1 ];
-		docIDs[ 0 ] = i.intValue();
-		DocumentVector [] docs = indri.documentVectors( docIDs );
+		
+		int numExtents = 1;
+		if( metadata != null && !metadata.equals("") )
+			numExtents = Integer.parseInt( metadata );
 		
 		Vector v = (Vector)results.get( i );
 		if( v == null || v.size() == 0 )
@@ -193,7 +210,7 @@ public class RetrievalEngine {
 		else {
 			for( int j = 0; j < v.size(); j++ ) {
 				ScoredExtentResult s = (ScoredExtentResult)v.elementAt( j );
-				score += Math.exp( 1.0*s.score ) / 1.0 * extentCount( queryExtent, docs[0] );
+				score += Math.exp( 1.0*s.score ) / ( 1.0 * numExtents );
 			}
 		}
 		
