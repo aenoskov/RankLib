@@ -53,6 +53,7 @@ struct WriterIndexContext {
     newlyFrequent = new indri::index::TermRecorder;
     newlyInfrequent = new indri::index::TermRecorder;
     oldFrequent = new indri::index::TermRecorder;
+    oldInfrequent = new HashTable<int, int>;
   }
 
   ~WriterIndexContext() {
@@ -64,6 +65,7 @@ struct WriterIndexContext {
     delete oldFrequent;
     delete newlyFrequent;
     delete newlyInfrequent;
+    delete oldInfrequent;
     delete bitmap;
   }
 
@@ -75,6 +77,7 @@ struct WriterIndexContext {
   indri::index::TermRecorder* newlyFrequent;
   indri::index::TermRecorder* newlyInfrequent;
   indri::index::TermRecorder* oldFrequent;
+  HashTable<int, int>* oldInfrequent;
 };
 
 typedef std::priority_queue<WriterIndexContext*,
@@ -145,6 +148,7 @@ namespace indri {
       indri::index::TermTranslator* _buildTermTranslator( Keyfile& newInfrequentTerms,
                                                           Keyfile& newFrequentTerms,
                                                           indri::index::TermRecorder& oldFrequentTermsRecorder,
+                                                          HashTable<int, int>* oldInfrequent,
                                                           indri::index::TermRecorder& newFrequentTermsRecorder,
                                                           indri::index::TermRecorder& newlyInfrequentTermsRecorder,
                                                           indri::index::TermBitmap* bitmap );
