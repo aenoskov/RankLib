@@ -85,6 +85,11 @@ void HTMLParser::initialize( UnparsedDocument* unparsed, ParsedDocument* parsed 
   // set base_url
   normalizeURL(base_url);
 
+  // get tag definitions
+  _absoluteUrlTag = _findTag("absolute-url");
+  _relativeUrlTag = _findTag("relative-url");
+  _anchorTag = _findTag("a");
+
   // add URL to metadata
   MetadataPair pair;
   pair.key = "url";
@@ -113,6 +118,9 @@ void HTMLParser::handleToken(char *token, int type, long pos) {
           (token[i+1] == 'R' || token[i+1] == 'r') &&
           (token[i+2] == 'E' || token[i+2] == 'e') &&
           (token[i+3] == 'F' || token[i+3] == 'f')) {
+            if(!_anchorTag && !_relativeUrlTag && !_absoluteUrlTag)
+              break;
+
             if(!extractURL(token))
               break;
             
@@ -127,9 +135,9 @@ void HTMLParser::handleToken(char *token, int type, long pos) {
             
             const TaggedTextParser::tag_properties* tagProps;
             if( !relative ) {
-              tagProps = _findTag("absolute-url");
+              tagProps = _absoluteUrlTag;
             } else {
-              tagProps = _findTag("relative-url");
+              tagProps = _relativeUrlTag;
             }
 
             if( tagProps && !tagProps->exclude && !_exclude ) {
@@ -138,7 +146,7 @@ void HTMLParser::handleToken(char *token, int type, long pos) {
               endTag(tagProps->name, tagProps->conflation, pos+1);
             }
 
-            tagProps = _findTag("a");
+            tagProps = _anchorTag;
             if( tagProps && !tagProps->exclude && !_exclude )
               addTag(tagProps->name, tagProps->conflation, pos+1);
           }
@@ -212,17 +220,9 @@ bool HTMLParser::extractURL(char *token) {
 bool HTMLParser:: normalizeURL(char *s) {
   char *normurl = s;
 
-  // remove the fragment identifier
+  // remove the fragment identifier, query information and parameter information
   char *c;
-  for(c = s; *c != '\0' && *c != '#'; c++);
-  *c = '\0';
-
-  // remove query information
-  for(c = s; *c != '\0' && *c != '?'; c++);
-  *c = '\0';
-
-  // remove parameter information
-  for(c = s; *c != '\0' && *c != ';'; c++);
+  for(c = s; *c != '\0' && *c != '#' && *c != '?' && *c != ';'; c++);
   *c = '\0';
 
   // extract scheme, if given
@@ -232,6 +232,8 @@ bool HTMLParser:: normalizeURL(char *s) {
   char path[MAX_URL_LENGTH];
   int path_len = 0;
   int scheme_len = 0;
+  int netloc_len = 0;
+
   for(c = s; *c != '\0'; c++) {
     // scheme must have length > 0 and end with a ':'
     if(scheme_len > 0 && *c == ':') {
@@ -239,13 +241,15 @@ bool HTMLParser:: normalizeURL(char *s) {
       strncpy(scheme, s, scheme_len);
       scheme[scheme_len] = '\0';
       // convert scheme to lowercase
-      for(int i = 0; i < scheme_len; i++) scheme[i] = tolower(scheme[i]);
+      for(int i = 0; i < scheme_len; i++) {
+        if( scheme[i] >='A' && scheme[i] <='Z' )
+          scheme[i] = scheme[i] + ('a' - 'A');
+      }
       c++;
 
       // extract network location
       if(*c == '/' && *(c+1) == '/') c+=2; // skip "//"
       char *netloc_begin = c;
-      int netloc_len = 0;
       for(; *c != '\0' && *c != '/'; c++)
         netloc_len++;
       strncpy(netloc, netloc_begin, netloc_len);
@@ -257,7 +261,9 @@ bool HTMLParser:: normalizeURL(char *s) {
           colon_loc = i;
         else if(colon_loc > -1 && !isdigit((unsigned char) netloc[i]))
           colon_loc = -1;
-        netloc[i] = tolower(netloc[i]);
+
+        if( netloc[i] > 'A' && netloc[i] < 'Z' )
+          netloc[i] = netloc[i] + ('a' - 'A');
       }
       if(colon_loc > -1)
         netloc[colon_loc] = '\0';
@@ -271,8 +277,17 @@ bool HTMLParser:: normalizeURL(char *s) {
       }
       break;
     }
+
+    char ch = *c;
+
     // only alpha + num + '+' + '-' + '.' are allowed to appear in scheme
-    if(!isalpha((unsigned char)*c) && !isdigit((unsigned char)*c) && *c != '+' && *c != '-' && *c != '.') break;
+    if( ((ch < 'A' || ch > 'Z') && (ch < 'a' || ch > 'z')) && // not alpha
+        (ch < '0' || ch > '9') && // not digit
+        ch != '+' &&
+        ch != '-' && 
+        ch != '.' )
+        break;
+
     scheme_len++;
   }
 
@@ -281,11 +296,17 @@ bool HTMLParser:: normalizeURL(char *s) {
 
   if(found_scheme) {
     if(strcmp(scheme, "http") == 0) {
-      if(path_len == 0)
-        sprintf(normurl, "%s://%s", scheme, netloc);
-      else {
-        sprintf(normurl, "%s://%s/%s", scheme, netloc, path);
-        dotCleanStart = strlen(scheme) + strlen(netloc) + 4;
+      if(path_len == 0) {
+        memcpy( normurl, scheme, scheme_len );
+        memcpy( normurl + scheme_len, "://", 3 );
+        memcpy( normurl + scheme_len + 3, netloc, netloc_len+1 );
+      } else {
+        memcpy( normurl, scheme, scheme_len );
+        memcpy( normurl + scheme_len, "://", 3 );
+        memcpy( normurl + scheme_len + 3, netloc, netloc_len );
+        normurl[scheme_len + 3 + netloc_len] = '/';
+        memcpy( normurl + scheme_len + 3 + netloc_len + 1, path, path_len+1 );
+        dotCleanStart = scheme_len + 3 + netloc_len + 1;
       }
     }
     else {
@@ -297,10 +318,16 @@ bool HTMLParser:: normalizeURL(char *s) {
     char tmp_buf[MAX_URL_LENGTH];
     strncpy(tmp_buf, s, MAX_URL_LENGTH-1);
     tmp_buf[MAX_URL_LENGTH-1] = 0;
-    if(*s == '/')
-      sprintf(normurl, "%s%s", base_url, tmp_buf);
-    else
-      sprintf(normurl, "%s/%s", base_url, tmp_buf);
+    if(*s == '/') {
+      normurl[0] = 0;
+      strcat( normurl, base_url );
+      strcat( normurl, tmp_buf );
+    } else {
+      normurl[0] = 0;
+      strcat( normurl, base_url );
+      strcat( normurl, "/" );
+      strcat( normurl, tmp_buf );
+    }
     
     char* colonSlashSlash = 0;
     char* slash = 0;
