@@ -56,7 +56,6 @@ indri::index::DiskDocListFileIterator::DiskDocListFileIterator( File& docListFil
 //
 
 indri::index::DiskDocListFileIterator::~DiskDocListFileIterator() {
-  delete _file;
   free( _termData );
 }
 
