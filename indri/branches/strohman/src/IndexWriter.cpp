@@ -21,6 +21,11 @@
 #include "indri/DiskDocListIterator.hpp"
 #include "indri/DocumentDataIterator.hpp"
 
+// TODO DEBUG TODO
+#include <iostream>
+#include "indri/IndriTimer.hpp"
+const int KEYFILE_MEMORY_SIZE = 128*1024;
+
 using namespace indri::index;
 
 //
@@ -117,15 +122,15 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
 
   // infrequent stuff
   _infrequentTerms.idMap = new Keyfile();
-  _infrequentTerms.idMap->create( infrequentIDPath );
+  _infrequentTerms.idMap->create( infrequentIDPath, KEYFILE_MEMORY_SIZE );
   _infrequentTerms.stringMap = new Keyfile();
-  _infrequentTerms.stringMap->create( infrequentStringPath );
+  _infrequentTerms.stringMap->create( infrequentStringPath, KEYFILE_MEMORY_SIZE );
 
   // frequent stuff
   _frequentTerms.idMap = new Keyfile();
-  _frequentTerms.idMap->create( frequentIDPath );
+  _frequentTerms.idMap->create( frequentIDPath, KEYFILE_MEMORY_SIZE );
   _frequentTerms.stringMap = new Keyfile();
-  _frequentTerms.stringMap->create( frequentStringPath );
+  _frequentTerms.stringMap->create( frequentStringPath, KEYFILE_MEMORY_SIZE );
   _frequentTermsData.create( frequentTermsDataPath );
 
   // stats, inverted file, direct file
@@ -137,8 +142,8 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
   _invertedOutput = new SequentialWriteBuffer( _invertedFile, 1024*1024 );
 
   std::vector<WriterIndexContext*> contexts;
-  _buildIndexContexts( contexts, indexes );
 
+  _buildIndexContexts( contexts, indexes );
   _writeInvertedLists( contexts );
   _writeFieldLists( indexes, path );
   _writeDirectLists( contexts );
@@ -736,10 +741,12 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
     vocabulary->nextEntry();
   }
 
+  delete vocabulary;
+  vocabulary = 0;
 
   TermListFileIterator* iterator = index->termListFileIterator();
-  TermTranslator* translator = _buildTermTranslator( *_infrequentTerms.idMap,
-                                                     *_frequentTerms.idMap,
+  TermTranslator* translator = _buildTermTranslator( *_infrequentTerms.stringMap,
+                                                     *_frequentTerms.stringMap,
                                                      *context->oldFrequent,
                                                      *context->newlyFrequent,
                                                      *context->newlyInfrequent,

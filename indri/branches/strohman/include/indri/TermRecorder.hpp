@@ -61,6 +61,11 @@ namespace indri {
             j++;
           }
         }
+
+        while( missing && j < _pairs.size() ) {
+          missing->push_back( _pairs[j] );
+          j++;
+        }
       }
 
       std::vector< std::pair<const char*, int> >& pairs() {
