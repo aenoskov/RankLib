@@ -397,7 +397,7 @@ public class RetUI extends JPanel implements ActionListener {
 	} else if (act.equals("About")) 	{
 	    JOptionPane.showMessageDialog(this, aboutText, "About", 
 					  JOptionPane.INFORMATION_MESSAGE,
-					  null);
+					  createImageIcon(iconFile));
 	} else if (act.equals("Help")) {
 	    // pop up a help dialog
 	    helpFrame.setVisible(true);
@@ -491,6 +491,8 @@ public class RetUI extends JPanel implements ActionListener {
     public void openServer() {
 	//simple text entry dialog for server name/port
 	String index = JOptionPane.showInputDialog("Enter a server name, with optional port number (host[:portnum]).");
+	// cancel button used.
+	if (index == null) return;
 	indexesModel.addElement("Server: " + index);
 	try {	    
 	    env.addServer(index);

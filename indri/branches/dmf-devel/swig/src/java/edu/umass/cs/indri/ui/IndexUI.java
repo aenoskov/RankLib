@@ -460,8 +460,8 @@ public class IndexUI extends JPanel implements ActionListener,
 	    helpFrame.setVisible(true);
 	} else if (source == hAbout) 	{
 	    JOptionPane.showMessageDialog(this, aboutText, "About", 
-					  JOptionPane.INFORMATION_MESSAGE);
-	    //  createImageIcon(logoFile));
+					  JOptionPane.INFORMATION_MESSAGE,
+					  createImageIcon(iconFile));
 	}
 	// at least one datafile and a name entered.
 	boolean enabled = (cfModel.getSize() > 0 && 
