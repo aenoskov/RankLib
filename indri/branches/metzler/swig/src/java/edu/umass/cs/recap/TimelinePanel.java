@@ -6,6 +6,7 @@ import java.awt.Point;
 import java.awt.Shape;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.geom.Ellipse2D;
 import java.util.EventListener;
 import java.util.Vector;
@@ -59,6 +60,10 @@ public class TimelinePanel extends JPanel {
 	private JButton nextDocButton = null;
 	private JButton analyzeButton = null;
 
+	// drag-selection information
+	private Point startDragPoint = null;
+	private Point endDragPoint = null;
+	
 	// which documents are actually viewable
 	// if this variable is null then all documents are viewable
 	private boolean [] viewable = null;
@@ -285,6 +290,18 @@ public class TimelinePanel extends JPanel {
 			else
 				g.drawLine( xPos, midY-MONTH_TICK_SIZE, xPos, midY+MONTH_TICK_SIZE );
 		}
+		
+		// draw click-dragged region, if any
+		if( startDragPoint != null && endDragPoint != null ) {
+			//g.drawLine( startDragPoint.x, startDragPoint.y, endDragPoint.x, endDragPoint.y );
+			g.setColor( new Color( 0.0f, 0.0f, 1.0f, 0.50f ) );
+			int w = endDragPoint.x - startDragPoint.x;
+			if( w < 0 ) {
+				w = -w;
+				startDragPoint.x = endDragPoint.x;
+			}
+			g.fillRect( startDragPoint.x, midY-YEAR_TICK_SIZE, w, 2*YEAR_TICK_SIZE );
+		}
  	}
 	
 	public ScoredDocInfo getDocAt( Point p ) {
@@ -317,6 +334,19 @@ public class TimelinePanel extends JPanel {
 		maxYear = year;
 	}
 	
+	public void setStartDragPoint( Point p ) {
+		startDragPoint = p;
+	}
+	
+	public void setEndDragPoint( Point p ) {
+		endDragPoint = p;
+	}
+	
+	public void clearDragPoints() {
+		startDragPoint = null;
+		endDragPoint = null;
+	}
+	
 	// register EventListeners for this class
 	public void addListeners( EventListener listener ) {
 		previousDocButton.addActionListener( (ActionListener)listener );
@@ -324,6 +354,7 @@ public class TimelinePanel extends JPanel {
 		analyzeButton.addActionListener( (ActionListener)listener );
 		
 		addMouseListener( (MouseListener)listener );
+		addMouseMotionListener( (MouseMotionListener)listener );
 	}
 
 }

@@ -220,17 +220,17 @@ public class RetrievalEngine {
 
 		// TODO: make this work for fields other than
 		// "sentence"
-		String [] metadata = null;
+		//String [] metadata = null;
 		// get the document vectors for each candidate
-		int [] docIDs = new int[ candidateDocs.size() ];
-		Iterator iter = candidateDocs.keySet().iterator();
-		int num = 0;
-		while( iter.hasNext() ) {
-			Integer i = (Integer)iter.next();
-			docIDs[ num++ ] = i.intValue();
-		}
-		metadata = indri.documentMetadata( docIDs, "numsentences" );
-
+		//int [] docIDs = new int[ candidateDocs.size() ];
+		//Iterator iter = candidateDocs.keySet().iterator();
+		//int num = 0;
+		//while( iter.hasNext() ) {
+		//	Integer i = (Integer)iter.next();
+		//	docIDs[ num++ ] = i.intValue();
+		//}
+		//metadata = indri.documentMetadata( docIDs, "numsentences" );
+		
 		// score the documents
 		for( int queryNum = 0; queryNum < scores.size(); queryNum++ ) {
 			HashMap results = new HashMap();
@@ -265,12 +265,12 @@ public class RetrievalEngine {
 			}
 		
 			// update each document's score
-			iter = candidateDocs.keySet().iterator();
-			num = 0;
+			Iterator iter = candidateDocs.keySet().iterator();
+			int num = 0;
 			while( iter.hasNext() ) {
 				Integer i = (Integer)iter.next();
 				double score = 0.0;
-				score = getDocScoreProb( i , results, metadata[num++] );
+				score = getDocScoreProb( i , results ); //, metadata[num++] );
 				ScoredDocInfo info = (ScoredDocInfo)candidateDocs.get( i );
 				Vector v = (Vector)results.get( i );
 				info.score += Math.log( score );
@@ -282,7 +282,7 @@ public class RetrievalEngine {
 		}
 
 		// construct the final ranked list
-		iter = candidateDocs.keySet().iterator();
+		Iterator iter = candidateDocs.keySet().iterator();
 		while( iter.hasNext() ) {
 			Integer i = (Integer)iter.next();
 			ScoredDocInfo info = (ScoredDocInfo)candidateDocs.get( i );
@@ -294,12 +294,12 @@ public class RetrievalEngine {
 
 	// scores a single document by probabilistically combining
 	// scores
-	private double getDocScoreProb( Integer i, HashMap results, String metadata ) {
+	private double getDocScoreProb( Integer i, HashMap results ) { //, String metadata ) {
 		double score = EPSILON;
 		
 		int numExtents = 1;
-		if( metadata != null && !metadata.equals("") )
-			numExtents = Integer.parseInt( metadata );
+		//if( metadata != null && !metadata.equals("") )
+		//	numExtents = Integer.parseInt( metadata );
 		
 		Vector v = (Vector)results.get( i );
 		if( v == null || v.size() == 0 )
@@ -341,6 +341,7 @@ public class RetrievalEngine {
 		for( int i = 0; i < docs.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)docs.elementAt( i );
 			ids[i] = info.docID;
+			System.out.println("DOCID = " + ids[i] );
 		}
 		
 		// arrays to fill in with data
@@ -374,7 +375,7 @@ public class RetrievalEngine {
 				info.month = Integer.parseInt(docDates[i].trim().substring(2,4));
 				info.year = 1900 + Integer.parseInt(docDates[i].trim().substring(0,2));				
 			}
-			else if( docNames[i].startsWith("SJMN") ) {				
+			else if( docNames[i].startsWith("SJMN") ) {
 				info.date = Integer.parseInt(docDates[i].trim().substring(4,6));
 				info.month = Integer.parseInt(docDates[i].trim().substring(2,4));
 				info.year = 1900 + Integer.parseInt(docDates[i].trim().substring(0,2));				
