@@ -472,3 +472,20 @@ indri::index::VocabularyIterator* indri::index::DiskIndex::infrequentVocabularyI
 indri::index::DocumentDataIterator* indri::index::DiskIndex::documentDataIterator() {
   return new indri::index::DiskDocumentDataIterator( _documentStatistics );
 }
+
+//
+// iteratorLock
+//
+
+Lockable* indri::index::DiskIndex::iteratorLock() {
+  return 0;
+}
+
+//
+// statisticsLock
+//
+
+Lockable* indri::index::DiskIndex::statisticsLock() {
+  return &_lock;
+}
+

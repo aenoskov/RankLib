@@ -58,17 +58,22 @@
 #include "indri/DocListIterator.hpp"
 #include "indri/DocExtentListIterator.hpp"
 
+#include "indri/ScopedLock.hpp"
+#include "indri/Thread.hpp"
+
 void InferenceNetwork::_moveToDocument( int candidate ) {
   // move all document iterators
   std::vector<indri::index::DocListIterator*>::iterator iter;
   for( iter = _docIterators.begin(); iter != _docIterators.end(); iter++ ) {
-    (*iter)->nextEntry( candidate );
+    if( *iter )
+      (*iter)->nextEntry( candidate );
   }
 
   // move all field iterators
   std::vector<indri::index::DocExtentListIterator*>::iterator fiter;
   for( fiter = _fieldIterators.begin(); fiter != _fieldIterators.end(); fiter++ ) {
-    (*fiter)->nextEntry( candidate );
+    if( *fiter )
+      (*fiter)->nextEntry( candidate );
   }
 
   // prepare all extent iterator nodes
@@ -258,14 +263,13 @@ const InferenceNetwork::MAllResults& InferenceNetwork::evaluate() {
   
   for( int i=0; i<indexes->size(); i++ ) {
     indri::index::Index& index = *(*indexes)[i];
+    ScopedLock iterators( index.iteratorLock() );
 
-    // TODO: index->lockIterators();
-    // TODO: index->lockStatistics();
-
+    ScopedLock statistics( index.statisticsLock() );
     _indexChanged( index );
+    statistics.unlock();
 
-    // TODO: index->unlockStatistics()
-
+    // evaluate query against the index
     _evaluateIndex( index );
 
     // remove all the iterators

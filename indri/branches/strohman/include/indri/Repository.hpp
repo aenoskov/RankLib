@@ -83,10 +83,24 @@ public:
   typedef indri::ref_ptr<index_vector> index_state;
 
 private:
+  friend class RepositoryMaintenanceThread;
+  friend class RepositoryLoadThread;
+
+  class RepositoryMaintenanceThread* _maintenanceThread;
+  class RepositoryLoadThread* _loadThread;
+
   Mutex _stateLock; /// protects against state changes
   std::vector<index_state> _states;
   index_state _active;
   int _indexCount;
+
+  // maintenance and load threads
+  ConditionVariable _quitLoadThread;
+  ConditionVariable _quitMaintenanceThread;
+
+  // running flags
+  volatile bool _maintenanceRunning;
+  volatile bool _loadThreadRunning;
 
   Mutex _addLock; /// protects addDocument
 
@@ -101,7 +115,7 @@ private:
 
   INT64 _memory;
 
-  enum { LOAD_MINUTES = 15, LOAD_MINUTE_FRACTION = 4 };
+  enum { LOAD_MINUTES = 15, LOAD_MINUTE_FRACTION = 12 };
 
   indri::atomic::value_type _queryLoad[ LOAD_MINUTES * LOAD_MINUTE_FRACTION ];
   indri::atomic::value_type _documentLoad[ LOAD_MINUTES * LOAD_MINUTE_FRACTION ];
@@ -129,6 +143,15 @@ private:
   void _closeIndexes();
   std::vector<indri::index::Index::FieldDescription> _fieldsForIndex( std::vector<Repository::Field>& _fields );
   void _merge( index_state& state );
+
+  // these methods should only be called by the maintenance thread
+  /// merge all known indexes together
+  void _merge(); 
+  /// write the active index to disk
+  void _write();
+
+  void _startThreads();
+  void _stopThreads();
 
 public:
   Repository() {
@@ -188,8 +211,6 @@ public:
 
   /// Returns the average number of documents added each minute in the last 1, 5 and 15 minutes
   Load documentLoad();
-
-
 };
 
 #endif // INDRI_REPOSITORY_HPP

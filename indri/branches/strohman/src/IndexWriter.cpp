@@ -176,7 +176,7 @@ void IndexWriter::write( std::vector<Index*>& indexes, const std::string& path )
 
 void IndexWriter::_buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes ) {
   for( int i=0; i<indexes.size(); i++ )
-    contexts.push_back( new WriterIndexContext( indexes[i]->docListFileIterator(), indexes[i] ) );
+    contexts.push_back( new WriterIndexContext( indexes[i] ) );
 }
 
 //
@@ -235,7 +235,7 @@ void IndexWriter::_pushInvertedLists( greedy_vector<WriterIndexContext*>& lists,
 // _writeStatistics
 //
 
-void IndexWriter::_writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData ) {
+void IndexWriter::_writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, UINT64& startOffset ) {
   greedy_vector<WriterIndexContext*>::iterator iter;
   ::termdata_clear( termData, _fields.size() );
 
@@ -252,6 +252,8 @@ void IndexWriter::_writeStatistics( greedy_vector<WriterIndexContext*>& lists, i
 
   stream << termData->term;
   ::termdata_compress( stream, termData,  _fields.size() );
+
+  startOffset = _invertedOutput->tell();
 
   int dataSize = stream.dataSize();
   _invertedOutput->write( &dataSize, sizeof(UINT32) );
@@ -340,7 +342,7 @@ void IndexWriter::_writeFieldList( const std::string& fileName, std::vector<indr
 // 
 //
 
-void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset ) {
+void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& endOffset ) {
   greedy_vector<WriterIndexContext*>::iterator iter;
   const int minimumSkip = 1<<12; // 4k
   int documentsWritten = 0;
@@ -349,9 +351,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
   bool hasTopdocs = termData->corpus.documentCount > TOPDOCS_DOCUMENT_COUNT;
   bool isFrequent = termData->corpus.totalCount > FREQUENT_TERM_COUNT;
   int topdocsCount = hasTopdocs ? int(termData->corpus.totalCount * 0.01) : 0;
-  int topdocsSpace = hasTopdocs ? topdocsCount*3*sizeof(DocListIterator::TopDocument) + sizeof(int) : 0;
-
-  startOffset = _invertedOutput->tell();
+  int topdocsSpace = hasTopdocs ? topdocsCount*3*sizeof(int) + sizeof(int) : 0;
 
   // write a control byte
   char control = (hasTopdocs ? 0x01 : 0) | (isFrequent ? 0x02 : 0);
@@ -362,7 +362,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
   // leave some room for the topdocs list
   if( hasTopdocs ) {
     _invertedOutput->write( &topdocsCount, sizeof(int) );
-    _invertedOutput->seek( topdocsSpace + _invertedOutput->tell() );
+    _invertedOutput->seek( topdocsSpace + initialPosition );
   }
 
   // maintain a list of top documents
@@ -440,6 +440,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
       topdocs.pop();
     }
 
+    assert( (_invertedOutput->tell() - initialPosition) == topdocsSpace );
     _invertedOutput->seek( finalPosition );
   }
 
@@ -599,10 +600,10 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
     _fetchMatchingInvertedLists( current, invertedLists );
 
     // loop 1: merge statistics for term
-    _writeStatistics( current, termData );
+    _writeStatistics( current, termData, startOffset );
 
     // go through lists one by one, adding data to the final invlist, adding skips, etc.
-    _addInvertedListData( current, termData, invertedListBuffer, startOffset, endOffset );
+    _addInvertedListData( current, termData, invertedListBuffer, endOffset );
 
     // have to store the termData in a B-Tree (or something) for fast access later
     _storeMatchInformation( current, sequence, termData, startOffset, endOffset );

@@ -67,6 +67,8 @@
 #include "indri/IndexWriter.hpp"
 #include "indri/DiskIndex.hpp"
 #include "indri/ScopedLock.hpp"
+#include "indri/RepositoryLoadThread.hpp"
+#include "indri/RepositoryMaintenanceThread.hpp"
 #include <string>
 #include <algorithm>
 
@@ -350,6 +352,8 @@ void Repository::create( const std::string& path, Parameters* options ) {
     }
 
     _collection->create( collectionPath, collectionFields );
+
+    _startThreads();
   } catch( Exception& e ) {
     LEMUR_RETHROW( e, "Couldn't create a repository at '" + path + "' because:" );
   } catch( ... ) {
@@ -389,6 +393,8 @@ void Repository::openRead( const std::string& path, Parameters* options ) {
 
   _collection = new CompressedCollection();
   _collection->openRead( collectionPath );
+
+  _startThreads();
 }
 
 //
@@ -429,6 +435,8 @@ void Repository::open( const std::string& path, Parameters* options ) {
   // open compressed collection
   _collection = new CompressedCollection();
   _collection->open( collectionPath );
+
+  _startThreads();
 }
 
 //
@@ -466,18 +474,6 @@ void Repository::addDocument( ParsedDocument* document ) {
   _collection->addDocument( documentID, document );
 
   _countDocumentAdd();
-
-  // TODO: make this better
-  if( state->back()->documentCount() >= 12500 ) {
-    bool mrg = state->size() > 10;
-
-    // drop our reference to the current state
-    state = 0;
-    write();
-
-    if( mrg )
-      merge();
-  }
 }
 
 //
@@ -638,13 +634,15 @@ void print_index_state( std::vector<Repository::index_state>& states ) {
 // index back in as a disk index
 //
 
-void Repository::write() {
+void Repository::_write() {
   // grab a copy of the current state
   index_state state = indexes();
-
+  
   // if the current index is empty, don't need to write it
   if( state->size() && state->back()->documentCount() == 0 )
     return;
+
+  std::cout << "=========================== adding memory index ==== " << std::endl;
 
   // make a new MemoryIndex, cutting off the old one from updates
   addMemoryIndex();
@@ -652,6 +650,9 @@ void Repository::write() {
   // if we just added the first, no need to write the "old" one
   if( state->size() == 0 )
     return;
+
+
+  std::cout << "=========================== beginning write ==== " << std::endl;
 
   // write out the last index
   index_state lastState = new std::vector<indri::index::Index*>;
@@ -682,9 +683,13 @@ void Repository::_merge( index_state& state ) {
   indri::index::IndexWriter writer;
   writer.write( indexes, newIndexPath );
 
+  std::cout << "=========================== write complete ==== " << std::endl;
+
   // open the index we just wrote
   indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
   diskIndex->open( indexPath, indexNumber.str() );
+
+  std::cout << "=========================== index open ==== " << std::endl;
 
   // make a new state, replacing the old index for the new one
   _swapState( indexes, diskIndex );
@@ -710,6 +715,8 @@ void Repository::_merge( index_state& state ) {
     Thread::sleep( 100 );
   }
 
+  std::cout << "======================== all states unused ==========" << std::endl;
+
   // okay, now nobody is using the state, so we can get rid of those states
   // and the index we wrote
   for( int i=0; i<indexes.size(); i++ ) {
@@ -733,6 +740,8 @@ void Repository::_merge( index_state& state ) {
     }
   }
 
+  std::cout << "======================== all indexed deleted ==========" << std::endl;
+
   // remove all containing states
   _removeStates( containing );
 }
@@ -743,7 +752,7 @@ void Repository::_merge( index_state& state ) {
 // Merge all known indexes together
 //
 
-void Repository::merge() {
+void Repository::_merge() {
   // grab a copy of the current state
   index_state state = indexes();
   index_state mergers = state;
@@ -864,6 +873,9 @@ void Repository::close() {
       _writeParameters( paramPath );
     }
 
+    // have to stop threads after the write request,
+    // so the indexes actually get written
+    _stopThreads();
     _closeIndexes();
 
     _collection->close();
@@ -885,4 +897,68 @@ Repository::index_state Repository::indexes() {
   _countQuery();
 
   return _active;
+}
+
+//
+// write
+//
+// Send a write request to the maintenance thread.
+//
+
+void Repository::write() {
+  if( !_maintenanceThread )
+    _maintenanceThread->write();
+}
+
+//
+// merge
+//
+// Send a merge request to the maintenance thread.
+//
+
+void Repository::merge() {
+  if( _maintenanceThread )
+    _maintenanceThread->merge();
+}
+
+//
+// _startThreads
+//
+
+void Repository::_startThreads() {
+  if( !_readOnly ) {
+    _maintenanceThread = new RepositoryMaintenanceThread( *this, _memory );
+    _maintenanceThread->start();
+  } else {
+    _maintenanceThread = 0;
+  }
+
+  _loadThread = new RepositoryLoadThread( *this );
+  _loadThread->start();
+}
+
+//
+// _stopThreads
+//
+
+void Repository::_stopThreads() {
+  if( !_loadThread && !_maintenanceThread )
+    return;
+
+  if( _maintenanceThread )
+    _maintenanceThread->signal();
+  if( _loadThread )
+    _loadThread->signal();
+
+  if( _loadThread ) {
+    _loadThread->join();
+    delete _loadThread;
+    _loadThread = 0;
+  }
+
+  if( _maintenanceThread ) {
+    _maintenanceThread->join();
+    delete _maintenanceThread;
+    _maintenanceThread = 0;
+  }
 }

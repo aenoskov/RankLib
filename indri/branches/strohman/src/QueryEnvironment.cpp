@@ -330,13 +330,33 @@ void QueryEnvironment::_mergeServerQuery( InferenceNetwork::MAllResults& results
   delete_vector_contents<QueryServerResponse*>( serverResults );
 }
 
+//
+// addIndex
+//
+
 void QueryEnvironment::addIndex( const std::string& pathname ) {
   Repository* repository = new Repository();
   repository->openRead( pathname, &_parameters );
-
   _repositories.push_back( repository );
-  _servers.push_back( new LocalQueryServer( *repository ) );
+
+  addRepository( *repository );
 }
+
+//
+// addRepository
+//
+
+void QueryEnvironment::addRepository( Repository& repository ) {
+  // just like addIndex, but we don't actually keep a pointer
+  // to the repository; we don't want to close it when we close the
+  // query environment
+
+  _servers.push_back( new LocalQueryServer( repository ) );
+}
+
+//
+// addServer
+//
 
 void QueryEnvironment::addServer( const std::string& hostname ) {
   NetworkStream* stream = new NetworkStream;

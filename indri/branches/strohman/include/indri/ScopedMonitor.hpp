@@ -8,6 +8,9 @@
 #ifndef INDRI_SCOPEDMONITOR_HPP
 #define INDRI_SCOPEDMONITOR_HPP
 
+#include "indri/Mutex.hpp"
+#include "indri/ConditionVariable.hpp"
+
 class ScopedMonitor {
 private:
   Mutex& _mutex;

@@ -10,22 +10,29 @@
 
 class ScopedLock {
 private:
-  Mutex* _mutex;
+  Lockable* _lockable;
 
 public:
-  ScopedLock( Mutex& mutex ) {
-    _mutex = &mutex;
-    _mutex->lock();
+  ScopedLock( Lockable& lockable ) {
+    _lockable = &lockable;
+    _lockable->lock();
+  }
+
+  ScopedLock( Lockable* lockable ) {
+    _lockable = lockable;
+
+    if( _lockable )
+      _lockable->lock();
   }
 
   ~ScopedLock() {
-    if( _mutex )
-      _mutex->unlock();
+    if( _lockable )
+      _lockable->unlock();
   }
 
   void unlock() {
-    _mutex->unlock();
-    _mutex = 0;
+    _lockable->unlock();
+    _lockable = 0;
   }
 };
 

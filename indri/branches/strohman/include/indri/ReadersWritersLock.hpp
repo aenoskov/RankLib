@@ -13,15 +13,15 @@
 
 class ReadersWritersLock {
 private:
-  Mutex _mutex;
-  wait_queue_entry* _head;
-  wait_queue_entry* _tail;
-
   struct wait_queue_entry {
     bool writing;
     wait_queue_entry* next;
     ConditionVariable wakeup;
-  }
+  };
+
+  Mutex _mutex;
+  wait_queue_entry* _head;
+  wait_queue_entry* _tail;
 
   int _readers;
   int _writers;
@@ -65,6 +65,14 @@ private:
   }
 
 public:
+  ReadersWritersLock() :
+    _tail(0),
+    _head(0),
+    _readers(0),
+    _writers(0)
+  {
+  }
+
   void lockRead() {
     _mutex.lock();
 
@@ -100,7 +108,7 @@ public:
     }
 
     assert( _writers == 0 );
-    _readers++;
+    _writers++;
     _mutex.unlock();
   }
 

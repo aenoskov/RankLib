@@ -120,6 +120,9 @@ public:
   /// \brief Add a local repository
   /// @param pathname the path to the repository.
   void addIndex( const std::string& pathname );
+  /// \brief Add a repository object
+  /// @param a repository instance
+  void addRepository( Repository& repository );
   /// Close the QueryEnvironment.
   void close();
   /// \brief Run an Indri query language query. @see ScoredExtentResult
