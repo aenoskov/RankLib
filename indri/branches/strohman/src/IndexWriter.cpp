@@ -65,6 +65,9 @@ void IndexWriter::_writeStatistics( greedy_vector<WriterInvertedList*>& lists, i
 
   stream << termData->term;
   ::termdata_compress( stream, termData, _fieldCount );
+
+  int dataSize = stream.dataSize();
+  _output.write( &dataSize, sizeof(int) );
   _output.write( stream.data(), stream.dataSize() );
 }
 
@@ -99,6 +102,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
 
   // leave some room for the topdocs list
   if( hasTopdocs ) {
+    _output.write( &topdocsCount, sizeof(int) );
     _output.seek( topdocsSpace + _output.tell() );
   }
 
@@ -106,6 +110,8 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
   std::priority_queue<DocListIterator::TopDocument,
                       std::vector<DocListIterator::TopDocument>,
                       DocListIterator::TopDocument::less> topdocs;
+
+  int lastDocument = 0;
 
   // for each matching list:
   for( iter = lists.begin(); iter != lists.end(); ++iter ) {
@@ -138,11 +144,16 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
         _output.write( &skipLength, sizeof(int) );
         _output.write( listBuffer.front(), listBuffer.position() );
         listBuffer.clear();
+
+        // delta encode documents by batch
+        lastDocument = 0;
       }
 
       // write this entry out to the list
-      stream << documentData->document;
+      stream << documentData->document - lastDocument;
       stream << documentData->positions.size();
+      lastDocument = documentData->document;
+
       int lastPosition = 0;
 
       for( int i=0; i<documentData->positions.size(); i++ ) {

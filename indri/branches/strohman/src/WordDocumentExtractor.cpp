@@ -105,6 +105,8 @@ void WordDocumentExtractor::uninitialize() {
       v_internal->_wordUnknown->Release();
     if( v_internal->_wordDispatch )
       v_internal->_wordDispatch->Release();
+    if( v_internal->_wordDispatch ) 
+      v_internal->_wordDispatch->
     delete v_internal;
   }
 }

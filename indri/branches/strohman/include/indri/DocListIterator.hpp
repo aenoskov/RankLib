@@ -89,12 +89,15 @@ namespace indri {
       
       virtual ~DocListIterator() {};
 
-      // get a list of top documents for this iterator
-      virtual const greedy_vector<TopDocument>& topDocuments() = 0;
-
       // get the iterator ready to return data; call this before calling currentEntry or nextEntry
       virtual void startIteration() = 0;
 
+      // get a list of top documents for this iterator (must call startIteration() first)
+      virtual const greedy_vector<TopDocument>& topDocuments() = 0;
+
+      // return the current document entry if we're not finished, null otherwise.
+      virtual DocumentData* currentEntry() = 0;
+    
       // move to the next document in the list; return false if there are no more valid documents
       virtual bool nextEntry() = 0;
 
@@ -102,9 +105,6 @@ namespace indri {
       // returns false if no such document exists.
       virtual bool nextEntry( int documentID ) = 0;
 
-      // return the current document entry if we're not finished, null otherwise.
-      virtual DocumentData* currentEntry() = 0;
-    
       // returns true if the iterator has no more entries
       virtual bool finished() = 0;
     };

@@ -11,6 +11,7 @@
 struct InternalFileBuffer {
   InternalFileBuffer( size_t length ) {
     buffer.grow(length);
+    filePosition = 0;
   }
 
   Buffer buffer;

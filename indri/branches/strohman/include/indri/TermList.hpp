@@ -88,7 +88,6 @@ namespace indri {
         //   termID * termCount (compressed)
         //   ( fieldID, begin, (delta begin) end, number ) * fieldCount
         
-        buffer.clear();
         int length = 10 + 5 * _terms.size() + 2 * sizeof(FieldExtent) * _fields.size();
         char* begin = buffer.write( length );
         char* out = begin;

@@ -57,7 +57,7 @@ public:
   }
 
   void flush() {
-    _file.write( _current.buffer.front(), _current.filePosition, _current.buffer.size() );
+    _file.write( _current.buffer.front(), _current.filePosition, _current.buffer.position() );
     _current.buffer.clear();
     _current.filePosition = 0;
   }

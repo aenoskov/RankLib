@@ -112,6 +112,12 @@
 				RelativePath=".\DirectoryIterator.cpp">
 			</File>
 			<File
+				RelativePath=".\DiskDocListIterator.cpp">
+			</File>
+			<File
+				RelativePath=".\DiskIndex.cpp">
+			</File>
+			<File
 				RelativePath=".\DocExtentListMemoryBuilder.cpp">
 			</File>
 			<File
