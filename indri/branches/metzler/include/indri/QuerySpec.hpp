@@ -1880,11 +1880,12 @@ namespace indri {
     public:
       IdentSimNode() : _variation(1) {}
       IdentSimNode( Unpacker& unpacker ) {
-	_variation = unpacker.getInteger( "variation" );
+		_variation = unpacker.getInteger( "variation" );
+        _children = unpacker.getScoredExtentVector( "children" );
       }
 
       void setVariation( int variation ) {
-	_variation = variation;
+		_variation = variation;
       }
 
       void setVariation( const std::string& variation ) {
@@ -1892,7 +1893,7 @@ namespace indri {
       }
 
       int getVariation() {
-	return _variation;
+		return _variation;
       }
       
       std::string typeName() const {
@@ -1911,6 +1912,7 @@ namespace indri {
       void pack( Packer& packer ) {
         packer.before(this);
         packer.put( "variation", _variation );
+		packer.put( "children", _children );
         packer.after(this);
       }
 
@@ -1919,10 +1921,17 @@ namespace indri {
       }
 
       Node* copy( Copier& copier ) {
-	copier.before(this);
-	IdentSimNode* newIdentSimNode = new IdentSimNode(*this);
-	return copier.after(this, newIdentSimNode);
-      }
+		copier.before(this);
+
+		IdentSimNode* duplicate = new IdentSimNode();
+		duplicate->setVariation( _variation );
+        for( unsigned int i=0; i<_children.size(); i++ ) {
+		  Node *child = _children[i]->copy(copier);
+		  duplicate->addChild( dynamic_cast<ScoredExtentNode*>(child) );
+        }
+
+		return copier.after(this, duplicate);
+	  }
     };
 
     class OrNode : public UnweightedCombinationNode {
