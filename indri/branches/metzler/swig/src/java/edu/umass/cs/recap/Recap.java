@@ -17,7 +17,7 @@ import edu.umass.cs.indri.QueryEnvironment;
  */
 public class Recap extends JFrame {
 	
-	private static final String VERSION = "0.5";
+	private static final String VERSION = "0.7";
 		
 	public Recap() {
 		setTitle( "RECAP v" + VERSION );

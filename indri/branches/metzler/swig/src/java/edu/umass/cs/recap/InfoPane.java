@@ -224,21 +224,32 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				}
 			}
 		}
+		else if( src instanceof QuickFindScrollPane ) {
+			QuickFindScrollPane pane = (QuickFindScrollPane)src;
+			Match m = pane.processClick( e );
+			if( m != null ) {
+				JTextPane textPane = dvPane.getDocTextPane();
+				if( !( textPane.getDocument() instanceof RecapStyledDocument ) )
+					return;
+				RecapStyledDocument doc = (RecapStyledDocument)textPane.getDocument();			
+				doc.setHighlight( m.begin, m.end );
+			}
+		}
 	}
 	
 	public void mouseReleased( MouseEvent e ) {
 		Object src = e.getSource();
 		if( src == dvPane.getDocTextPane() ) {
 			JTextPane pane = dvPane.getDocTextPane();
-			if( !( pane.getDocument() instanceof RecapStyledDocument ) )
-				return;
-			RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();			
+			//if( !( pane.getDocument() instanceof RecapStyledDocument ) )
+			//	return;
+			//RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();			
 			String queryText = pane.getSelectedText();
 			if( queryText != null && !queryText.trim().equals("") ) {
 				queryPanel.setAnalyzeQuery( new AnalyzeQuery( pane.getSelectedText(), pane.getSelectionStart(), pane.getSelectionEnd() ) );
-				queryPanel.setQueryText( removeTags( pane.getSelectedText() ) );
+				queryPanel.setQueryText( RecapTools.removeTags( pane.getSelectedText() ) );
 			}
-			doc.setHighlight( pane.getSelectionStart(), pane.getSelectionEnd() );
+			//doc.setHighlight( pane.getSelectionStart(), pane.getSelectionEnd() );
 		}
 		else if( e.getButton() == MouseEvent.BUTTON1 && src == tlPanel ) {
 			if( tlMouseWasDragged )
@@ -432,7 +443,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			repaint();
 		}
 	}
-	
+
 	private void highlightExtent( int docID, int begin, int end ) {
 		JTextPane docTextPane = dvPane.getDocTextPane();
 		ParsedDocument doc = retEngine.getParsedDocument( docID );				
@@ -486,39 +497,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		}
 
 	}
-	
-	// highlights the query sentence associated with sentence match m
-	public void setQueryHighlight( Match m ) {
-		
-	}
-	
-	// removes any tags from the string
-	private String removeTags( String s ) {
-		String ret = "";
-		
-		String tok0 = null;
-		String tok1 = null;
-
-		StringTokenizer tok = new StringTokenizer( s, "<>", true );
-		try {
-			tok0 = tok.nextToken();
-			ret += tok0;
-			tok1 = tok.nextToken();
-		}
-		catch( Exception e ) { return ""; }
-		while( tok.hasMoreTokens() ) {
-			String token = tok.nextToken();
-			if( token.equals(">") && tok0.equals("<") ) { /* tok1 is tag name, so don't add it to the return string */ }
-			else { ret += tok1; }
-			tok0 = tok1;
-			tok1 = token;
-		}
-		
-		ret += tok1;
-		
-		return ret.replaceAll("<>", "");
-	}
-	
+			
 	private void updateTimeline() {
 		String startDate = queryPanel.getTimelineStartDate();
 		String endDate = queryPanel.getTimelineEndDate();

@@ -2,7 +2,6 @@ package edu.umass.cs.recap;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -23,7 +22,7 @@ import javax.swing.border.Border;
  * allow for easy/quick jumping to the matches.
  *
  */
-public class QuickFindScrollPane extends JScrollPane implements MouseListener {
+public class QuickFindScrollPane extends JScrollPane { //implements MouseListener {
 	
 	private int byteLength = -1;
 	private Vector matches = null;
@@ -37,9 +36,7 @@ public class QuickFindScrollPane extends JScrollPane implements MouseListener {
 		this.queryPositions = queryPositions;
 		
 		border = new QuickFindBorder( matches, byteLength );		
-		this.setBorder( border );
-		
-		this.addMouseListener( this );
+		this.setBorder( border );		
 	}
 
 	public void setMatches( Vector matches ) {		
@@ -48,8 +45,9 @@ public class QuickFindScrollPane extends JScrollPane implements MouseListener {
 		this.setBorder( border );
 	}
 	
-	public void mouseClicked(MouseEvent event) {
-		Point p = event.getPoint();
+	public Match processClick( MouseEvent event ) {
+		Point p = event.getPoint();	
+		Match queryPos = null;
 		
 		int height = this.getHeight();
 		int width = this.getWidth();
@@ -71,17 +69,10 @@ public class QuickFindScrollPane extends JScrollPane implements MouseListener {
 				textPane.setCaretPosition( m.begin );
 				textPane.moveCaretPosition( m.end );
 				
-				Match queryPos = (Match)queryPositions.get( i );
-				System.out.println( "MATCH = " + queryPos );
+				queryPos = (Match)queryPositions.get( i );
 			}
 		}
+		
+		return queryPos;
 	}
-
-	public void mouseEntered(MouseEvent arg0) {}
-
-	public void mouseExited(MouseEvent arg0)  {}
-
-	public void mousePressed(MouseEvent arg0) {}
-
-	public void mouseReleased(MouseEvent arg0) {}
 }
