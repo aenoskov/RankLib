@@ -71,7 +71,8 @@ struct Extent {
   }
 
   bool beginsBefore( const Extent& other ) const {
-    return begin <= other.begin;
+    //    return begin <= other.begin;
+    return begin < other.begin;
   }
 
   struct begins_before_less {
