@@ -1,16 +1,12 @@
 package edu.umass.cs.recap;
 import java.awt.Dimension;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.Vector;
 
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextPane;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
@@ -28,7 +24,7 @@ import edu.umass.cs.indri.ScoredExtentResult;
  * @author Don Metzler
  *
  */
-public class DocViewPane extends JSplitPane implements HyperlinkListener {
+public class DocViewPane extends JSplitPane {
 
 	private RetrievalEngine retEngine = null;
 	
@@ -73,7 +69,6 @@ public class DocViewPane extends JSplitPane implements HyperlinkListener {
 	// TODO: clean this up a bit
 	private void addNewTab( ScoredDocInfo info ) {
 		RecapStyledDocument doc = retEngine.getMarkedDocument( info );
-		//JScrollPane scrollPane = new JScrollPane();
 		JScrollPane scrollPane = new QuickFindScrollPane( doc.getMatches(), doc.getByteLength() );
 		JTextPane textPane = new JTextPane();
 		textPane.setDocument( doc );
@@ -86,40 +81,49 @@ public class DocViewPane extends JSplitPane implements HyperlinkListener {
 	public void displayExplorationResults( QueryAnnotation annotation, Vector viewableResults ) {
 		curExploreResults.clear();
 		ScoredExtentResult [] results = annotation.getResults();
-		QueryAnnotationNode root = annotation.getQueryTree();
-		Map matches = annotation.getAnnotations();
 		
 		for( int i = 0; i < results.length; i++ )
 			curExploreResults.put( new Integer( results[i].document ), retEngine.getAnnotatedDocument( results[i].document, annotation ) );
 		
-		addResultTab( results, viewableResults );
+		addResultTab( annotation, viewableResults ); //results, viewableResults );
 	}
 	
-	private void addResultTab( ScoredExtentResult [] results, Vector viewableResults ) {
+	private void addResultTab( QueryAnnotation annotation, Vector viewableResults) {
 		JScrollPane resultPane = new JScrollPane();
 		JTextPane textPane = new JTextPane();
 		textPane.setContentType("text/html");
 		HTMLEditorKit kit = new HTMLEditorKit();
 		HTMLDocument doc = (HTMLDocument)kit.createDefaultDocument();
-		setResults( doc, results, viewableResults );
+		setResults( doc, annotation, viewableResults );
 		textPane.setDocument( doc );
 		textPane.setEditable( false );
-		textPane.addHyperlinkListener( this ); // listen for hyperlink clicks
 		resultPane.getViewport().setView( textPane );
 		matchPane.addTab( "Results", resultPane );
 	}
 
-	private void setResults( HTMLDocument doc, ScoredExtentResult [] results, Vector viewableResults ) {
-		HTMLEditorKit htmlKit = new HTMLEditorKit();
+	private void setResults( HTMLDocument doc, QueryAnnotation annotation, Vector viewableResults ) {
+		HTMLEditorKit htmlKit = new HTMLEditorKit();		
+
+		//Map matches = annotation.getAnnotations();		
+		QueryAnnotationNode root = annotation.getQueryTree();
+		String queryText = "<h2>Query:</h2><pre>" + root.queryText + "</pre><br><hr>";
 		
+		try {
+			htmlKit.insertHTML( doc, doc.getLength(), queryText, 0, 0, null );
+		}
+		catch( Exception e ) { e.printStackTrace(); }
+				
+		ScoredExtentResult [] results = annotation.getResults();
 		for( int i = 0; i < results.length; i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)viewableResults.elementAt(i);
-			String url = info.docName + ":" + info.docID;
-			String title = "<h2>" + (i+1) + ". <a href=\"" + url + "\">" + info.docName + "</a></h2>";
+			String url = info.docName + ":document:" + info.docID;
+			String title = "<h2><b>" + (i+1) + ". <a href=\"" + url + "\">" + info.docName + "</a></h2>";
+			String docinfo = "<i>Extent</i>: <font color=#ff0000><b><a href=\"" + info.docName + ":extent:" + info.docID + ":" + results[i].begin + ":" + results[i].end + "\">[" + results[i].begin + "," + results[i].end + "]</a></b></font><br>";
 					
 			try {
 				htmlKit.insertHTML( doc, doc.getLength(), title, 0, 0, null );
 				htmlKit.insertHTML( doc, doc.getLength(), generateHTMLSnippet( results[i].document ), 0, 0, null );
+				htmlKit.insertHTML( doc, doc.getLength(), docinfo, 0, 0, null );
 			}
 			catch( Exception e ) { e.printStackTrace(); }
 		}		
@@ -149,9 +153,13 @@ public class DocViewPane extends JSplitPane implements HyperlinkListener {
 		return matchPane;
 	}
 
+	public JTextPane getResultPane() {
+		return (JTextPane)((JScrollPane)matchPane.getSelectedComponent()).getViewport().getView();		
+	}
+	
 	public JTextPane getDocTextPane() {
 		return docTextPane;
-	}
+	}	
 	
 	public void setSelectedDoc( DocInfo doc ) {
 		int numTabs = matchPane.getTabCount();
@@ -165,16 +173,5 @@ public class DocViewPane extends JSplitPane implements HyperlinkListener {
 	
 	public void clearTabs() {
 		matchPane.removeAll();
-	}
-	
-	// process a hyperlink click
-	public void hyperlinkUpdate(HyperlinkEvent e) {
-		if( e.getEventType() == HyperlinkEvent.EventType.ACTIVATED ) {
-			StringTokenizer tok = new StringTokenizer( e.getDescription(), ":" );
-			String docName = tok.nextToken();
-			int docID = Integer.parseInt( tok.nextToken() );
-			displayHighlightedDoc( docID );
-			setDividerLocation( 0.5 );
-		}
 	}
 }

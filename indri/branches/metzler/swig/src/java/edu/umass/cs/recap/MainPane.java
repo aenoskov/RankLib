@@ -99,6 +99,9 @@ public class MainPane extends JPanel implements ActionListener, MainPaneUpdater 
 		else if( label.equals( "100" ) ) {
 			infoPane.setNumResults( 100 );
 		}
+		else if( label.equals( "Exit" ) ) {
+			System.exit(0);
+		}
 		else {
 			System.err.println( "UNKNOWN MENU ITEM SELECTED: " + item.getLabel() );
 		}
