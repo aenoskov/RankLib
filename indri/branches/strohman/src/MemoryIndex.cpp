@@ -1,9 +1,49 @@
 
+//
+// MemoryIndex
+//
+// 24 November 2004 -- tds
+//
+
 #include "indri/MemoryIndex.hpp"
+#include "indri/TermList.hpp"
+
+#include "indri/MemoryIndexDocListFileIterator.hpp"
+#include "indri/MemoryIndexVocabularyIterator.hpp"
+
+#include "indri/FieldStatistics.hpp"
+#include "indri/ScopedLock.hpp"
+
+#include "lemur/Keyfile.hpp"
 
 const int ONE_MEGABYTE = 1024*1024;
 
-void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byteLength, int documentID, int documentLength, indri::index::TermListBuilder& locatedTerms ) {
+//
+// _fieldID
+//
+
+int indri::index::MemoryIndex::_fieldID( const char* fieldName ) {
+  int* entry = _fieldLookup.find( fieldName );
+
+  if( entry )
+    return *entry;
+
+  return 0;
+}
+
+//
+// _fieldID
+//
+
+int indri::index::MemoryIndex::_fieldID( const std::string& fieldName ) {
+  return _fieldID( fieldName.c_str() );
+}
+
+//
+// _writeDocumentTermList
+//
+
+void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byteLength, int documentID, int documentLength, indri::index::TermList& locatedTerms ) {
   Buffer* addBuffer = 0;
   
   if( !_documentVectors.size() || _documentVectors.back()->size() - _documentVectors.back()->position() < documentLength ) {
@@ -18,11 +58,15 @@ void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byt
   }
   
   offset = _documentVectorBaseOffset + addBuffer->position();
-  _termList.write( addBuffer );
+  _termList.write( *addBuffer );
   byteLength = addBuffer->position() + _documentVectorBaseOffset - offset;
 }
 
-void indri::index::MemoryIndex::_writeDocumentStatistics( File::offset_type offset, int byteLength, int indexedLength, int totalLength, int uniqueTerms ) {
+//
+// _writeDocumentStatistics
+//
+
+void indri::index::MemoryIndex::_writeDocumentStatistics( UINT64 offset, int byteLength, int indexedLength, int totalLength, int uniqueTerms ) {
   indri::index::DocumentData data;
   
   data.offset = offset;
@@ -32,6 +76,10 @@ void indri::index::MemoryIndex::_writeDocumentStatistics( File::offset_type offs
   
   _documentData.push_back( data );
 }
+
+//
+// _addOpenTags
+//
 
 void indri::index::MemoryIndex::_addOpenTags( greedy_vector<indri::index::FieldExtent>& indexedTags,
                                greedy_vector<indri::index::FieldExtent>& openTags,
@@ -44,7 +92,7 @@ void indri::index::MemoryIndex::_addOpenTags( greedy_vector<indri::index::FieldE
     if( extent->begin > position )
       break;
     
-    int tagId = field( extent->name );
+    int tagId = _fieldID( extent->name );
     
     if( tagId == 0 )
       continue;
@@ -76,38 +124,51 @@ void indri::index::MemoryIndex::_removeClosedTags( greedy_vector<indri::index::F
 // Tries to find this term in a hash table--if it isn't there, it gets added.
 //
 
-void indri::index::MemoryIndex::_lookupTerm( const char* term, int& termID, indri::index::TermData*& termData ) {
-  term_cache_entry** entry = _cache->find( const_cast<char*>(term) );
+indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( const char* term, int& termID ) {
+  term_entry** entry = _stringToTerm.find( const_cast<char*>(term) );
 
-  if( entry ) {
-    // full cache hit
-    termID = (*entry)->termID;
-    termData = (*entry)->termData;
-  } else {
-    // this is a term we haven't seen before
-    _corpusStatistics.uniqueTerms++;
-    termID = _corpusStatistics.uniqueTerms;
-    
-    // create a term data structure
-    termData = _createTermData();
-    
-    // store termData structure in the  [termID->termData] cache
-    _idToTerm.push_back( termData );
-    
-    term_cache_entry** entry;
-    term_cache_entry* newEntry = 0;
-    int termLength = strlen(term);
-    
-    newEntry = (term_cache_entry*) malloc( termLength+1 + sizeof( newEntry->termID ) + sizeof( newEntry->termData ) );
-    strcpy( newEntry->term, term );
-    
-    // store in [termString->termData] cache
-    entry = _cache->insert( const_cast<char*>(newEntry->term) );
-    *entry = newEntry;
-    
-    (*entry)->termID = termID;
-    (*entry)->termData = termData;
-    (*entry)->termData->term = newEntry->term;
+  // if we've seen it, return it
+  if( entry )
+    return *entry;
+
+  // this is a term we haven't seen before
+  _corpusStatistics.uniqueTerms++;
+  termID = _corpusStatistics.uniqueTerms;
+  
+  // create a term data structure
+  TermData* termData = termdata_create( _fieldData.size() );
+  
+  term_entry* newEntry = 0;
+  int termLength = strlen(term);
+  
+  newEntry = (term_entry*) malloc( termLength+1 + sizeof(term_entry) );
+  strcpy( newEntry->term, term );
+  new (newEntry) term_entry;
+  
+  // store in [termString->termData] cache
+  entry = _stringToTerm.insert( const_cast<char*>(newEntry->term) );
+  *entry = newEntry;
+
+  // store termData structure in the  [termID->termData] cache
+  _idToTerm.push_back( newEntry );
+  
+  newEntry->termID = termID;
+  newEntry->termData = termData;
+  newEntry->termData->term = newEntry->term;
+
+  return newEntry;
+}
+
+//
+// _destroyTerms
+//
+
+void indri::index::MemoryIndex::_destroyTerms() {
+  for( unsigned int i=0; i<_idToTerm.size(); i++ ) {
+    term_entry* entry = _idToTerm[i];
+    termdata_delete( entry->termData, _fieldData.size() );
+    entry->~term_entry();
+    free( entry );
   }
 }
 
@@ -121,9 +182,9 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   unsigned int indexedTerms = 0;
   greedy_vector<char*>& words = document.terms;
 
-  // assign a document ID
-  _totalDocuments++;
-  int documentID = _totalDocuments;
+  // assign a document ID -- TODO: check for off by one error here
+  _corpusStatistics.totalDocuments++;
+  int documentID = _baseDocumentID + _corpusStatistics.totalDocuments;
 
   _termList.clear();
 
@@ -144,23 +205,20 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     }
 
     // fetch everything we know about this word so far
-    int wordID;
-    indri::index::TermData* termData;
-
-    _lookupTerm( word, wordID, termData );
+    term_entry* entry = _lookupTerm( word );
 
     // store information about this term location
-    _termList.addTerm( wordID );
-    termData->list.addLocation( documentID, position ); 
-    termData->corpus.addOccurrence( documentID );
-    _seenTerms.push_back( termData );
+    _termList.addTerm( entry->termID );
+    entry->list.addLocation( documentID, position ); 
+    entry->termData->corpus.addOccurrence( documentID );
+    _seenTerms.push_back( entry );
 
     // update our open tag knowledge
-    _addOpenTags( indexedTags, openTags, tagExtents, extentIndex, position );
+    _addOpenTags( indexedTags, openTags, document.tags, extentIndex, position );
 
     // for every open tag, we want to record that we've seen the 
     for( greedy_vector<indri::index::FieldExtent>::iterator tag = openTags.begin(); tag != openTags.end(); tag++ ) {
-      indri::index::TermFieldStatistics* termField = &termData->fields[tag->id-1];
+      indri::index::TermFieldStatistics* termField = &entry->termData->fields[tag->id-1];
       termField->addOccurrence( documentID );
 
       indri::index::FieldStatistics* field = &_fieldData[tag->id-1]->statistics;
@@ -179,7 +237,7 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     _fieldData[extent.id-1]->list->addExtent( documentID, extent.begin, extent.end, extent.number );
   }
 
-  File::offset_type offset;
+  UINT64 offset;
   int byteLength;
 
   _writeDocumentTermList( offset, byteLength, documentID, int(words.size()), _termList );
@@ -193,43 +251,43 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
 // docListIterator
 //
 
-indri::index::DocListIterator* docListIterator( TERMID_T termID ) {
+indri::index::DocListIterator* indri::index::MemoryIndex::docListIterator( int termID ) {
   assert( termID >= 0 );
   assert( termID < _corpusStatistics.uniqueTerms );
   
   if( termID == 0 )
     return 0;
   
-  indri::index::TermData* termData = _idToTerm[termID];
-  return termData->list.getIterator();
+  term_entry* entry = _idToTerm[termID];
+  return entry->list.getIterator();
 }
 
 //
 // docListIterator
 //
 
-indri::index::DocListIterator* docListIterator( const std::string& term ) {
-  term_cache_entry** entry = _cache->find( const_cast<char*>(term.c_str()) );
+indri::index::DocListIterator* indri::index::MemoryIndex::docListIterator( const std::string& term ) {
+  term_entry** entry = _stringToTerm.find( term.c_str() );
 
   if( !entry )
     return 0;
   
-  return (*entry)->termData->getIterator();
+  return (*entry)->list.getIterator();
 }  
 
 //
 // docListFileIterator
 //
 
-indri::index::DocListFileIterator* docListFileIterator() {
+indri::index::DocListFileIterator* indri::index::MemoryIndex::docListFileIterator() {
   // has to be in alphabetical order
-  return indri::index::MemoryDocListFileIterator( _idToTerm );
+  return new indri::index::MemoryIndexDocListFileIterator( _idToTerm );
 }
 
 //
 // vocabularyIterator
 //
 
-indri::index::VocabularyIterator* vocabularyIterator() {
-  return indri::index::MemoryIndexVocabularyIterator( _idToTerm );
+indri::index::VocabularyIterator* indri::index::MemoryIndex::vocabularyIterator() {
+  return new indri::index::MemoryIndexVocabularyIterator( _idToTerm );
 }

@@ -10,15 +10,17 @@
 
 #include "indri/Mutex.hpp"
 #include "indri/TermData.hpp"
+#include "indri/DocListFileIterator.hpp"
+#include <algorithm>
 
 namespace indri {
   namespace index {
-    class MemoryIndexDocListFileIterator {
+    class MemoryIndexDocListFileIterator : public DocListFileIterator {
     private:
       std::vector<indri::index::TermData*>& _termData;
-      std::vector<indri::index::TermData*>& _alphabetical;
+      std::vector<indri::index::TermData*>  _alphabetical;
       std::vector<indri::index::TermData*>::iterator _currentTerm;
-      indri::index::MemoryIndexDocListIterator _iterator;
+      indri::index::DocListMemoryBuilderIterator _iterator;
       
     public:
       MemoryIndexDocListFileIterator( std::vector<indri::index::TermData*>& termData ) :

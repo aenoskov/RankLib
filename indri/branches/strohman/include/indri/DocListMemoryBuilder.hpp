@@ -91,6 +91,9 @@ namespace indri {
         nextEntry();
       }
       
+      DocListMemoryBuilderIterator() {
+      }
+
       DocListMemoryBuilderIterator( const greedy_vector< std::pair<char*,char*>, 4 >& lists ) {
         reset( lists );
       }
@@ -116,6 +119,7 @@ namespace indri {
           
           _list = RVLCompress::decompress_int( _list, deltaDocument );
           _data.document += deltaDocument;
+          _data.positions.clear();
 
           _list = RVLCompress::decompress_int( _list, positions );
 
@@ -164,19 +168,19 @@ namespace indri {
       char* _list;
       char* _listBegin;
       char* _listEnd;
+
+      char* _documentPointer;
       char* _locationCountPointer;
 
       int _lastLocation;
       int _lastDocument;
       int _lastTermFrequency;
 
-      void _storeCompressedInt( std::vector<char>& destination, int data, int previous = 0 );
-      void _createDocument( int docID );
-      void _writeLocation( int location );
-      void _terminateDocument();
-      void _terminateSegment();
+      inline size_t _compressedSize( int documentID, int position );
+      inline void _safeAddLocation( int documentID, int position );
+      void _growAddLocation( int documentID, int position, size_t newDataSize );
       void _grow();
-      void _copy( DocListMemoryBuilder& other );
+      void _terminateDocument();
 
     public:
       DocListMemoryBuilder();
@@ -184,13 +188,12 @@ namespace indri {
       void addLocation( int docID, int location );
       void clear();
       void close();
-      iterator getIterator();
+      iterator* getIterator();
       bool empty();
 
       int documentFrequency() const;
       int termFrequency() const;
       size_t memorySize() const;
-      int curDocID() const;
     };
   }
 }

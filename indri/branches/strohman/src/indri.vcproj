@@ -112,6 +112,9 @@
 				RelativePath=".\DirectoryIterator.cpp">
 			</File>
 			<File
+				RelativePath=".\DocExtentListMemoryBuilder.cpp">
+			</File>
+			<File
 				RelativePath=".\DocListMemoryBuilder.cpp">
 			</File>
 			<File
@@ -155,6 +158,9 @@
 			</File>
 			<File
 				RelativePath=".\KrovetzStemmerTransformation.cpp">
+			</File>
+			<File
+				RelativePath=".\MemoryIndex.cpp">
 			</File>
 			<File
 				RelativePath=".\NormalizationTransformation.cpp">
