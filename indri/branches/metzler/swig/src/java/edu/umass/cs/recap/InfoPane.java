@@ -39,18 +39,15 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	private TimelinePanel tlPanel = null;
 	private QueryPanel queryPanel = null;
 	
-	private MainPaneUpdater updater = null;
-
 	// default settings
 	private String simMeasure = "#identsim1";
 	private String queryExtent = "sentence";
 	private int numExploreResults = 5;
 	private int numAnalyzeResults = 5;
 	
-	public InfoPane( RetrievalEngine retEngine, Dimension screenSize, MainPaneUpdater updater ) {
+	public InfoPane( RetrievalEngine retEngine, Dimension screenSize ) {
 		super( JSplitPane.VERTICAL_SPLIT );
 		this.retEngine = retEngine;
-		this.updater = updater;
 		
 		tlPanel = new TimelinePanel();
 		dvPane = new DocViewPane( retEngine, screenSize );
@@ -82,15 +79,21 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	}
 
 	// runs an "explore" query, scores documents, and updates appropriate on-screen info
-	private void runExploreQuery( String query ) {
+	private void runExploreQuery( String query ) {		
+		// error checking
 		if( query == null || query.equals("") ) {
 			this.showErrorDialog( "Unable to evaluate empty or null query!" );
 			return;
 		}
-				
+		if( !retEngine.isQueryable() ) { // make sure at least one index or server is open  
+			showErrorDialog( "No server or index open to query against!" );
+			return;
+		}
+		
 		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
-
+		
 		Pair p = retEngine.runQuery( query, numExploreResults );
+		
 		QueryAnnotation annotation = (QueryAnnotation)p.left;
 		Vector viewableResults = (Vector)p.right;
 
@@ -121,11 +124,16 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		
 	// runs an "analyze" query, scores documents, and updates appropriate on-screen info
 	private void runAnalyzeQuery( String query ) {
+		// error checking
 		if( query == null || query.equals("") ) {
 			showErrorDialog( "Unable to evaluate empty or null query!");
 			return;
 		}
-		
+		if( !retEngine.isQueryable() ) { // make sure at least one index or server is open  
+			showErrorDialog( "No server or index open to query against!" );
+			return;
+		}
+
 		dvPane.clearTabs();
 		setCursor( new Cursor( Cursor.WAIT_CURSOR ) );
 
@@ -306,7 +314,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		return queryPanel.getMode();
 	}
 	
-	protected void showErrorDialog( String msg ) {
+	protected void showErrorDialog( String msg ) {		
 		JOptionPane.showMessageDialog( this, msg, "Error", JOptionPane.ERROR_MESSAGE );
 	}
 }

@@ -19,6 +19,7 @@
 #include "indri/ListBeliefNode.hpp"
 #include "lemur/lemur-compat.hpp"
 #include "indri/Annotator.hpp"
+#include <algorithm>
 
 // computes the length of the scored context
 int ListBeliefNode::_contextLength( int begin, int end ) {
@@ -37,8 +38,12 @@ int ListBeliefNode::_contextLength( int begin, int end ) {
 
   int contextLength = 0;
   const greedy_vector<Extent>& extents = _context->extents();
+  Extent region( begin, end );
 
-  for( size_t i=0; i<extents.size(); i++ ) {
+  size_t i = std::lower_bound( extents.begin(), extents.end(), region, Extent::begins_before_less() ) - 
+	         extents.begin();
+
+  for( ; i<extents.size(); i++ ) {
     if( extents[i].begin > end )
       break;
 
@@ -60,14 +65,22 @@ int ListBeliefNode::_contextOccurrences( int begin, int end ) {
   int count = 0;
   int lastEnd = 0;
 
+  Extent region( begin, end );
+
+  size_t i = std::lower_bound( extents.begin(), extents.end(), region, Extent::begins_before_less() ) - 
+	         extents.begin();
+
   // look for all occurrences within bounds and that don't overlap
-  for( size_t i=0; i<extents.size(); i++ ) {
+  for( ; i<extents.size(); i++ ) {
     if( extents[i].begin >= begin &&
         extents[i].end <= end &&
         extents[i].begin >= lastEnd ) {
       count++;
       lastEnd = extents[i].end;
     }
+
+	if( extents[i].begin > end )
+	  break;
   }
 
   return count;

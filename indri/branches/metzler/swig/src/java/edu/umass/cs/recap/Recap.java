@@ -35,13 +35,8 @@ public class Recap extends JFrame {
 		CommandLineMode clm = null;
 		
 		// parse the command line arguments
-		boolean addedIndex = false;
 		boolean interactive = true;
 
-		if( args.length == 0 ) {
-			
-		}
-		
 		for( int i = 0; i < args.length; i++ ) {
 			String curArg = args[i].toLowerCase();
 			try {
@@ -49,13 +44,11 @@ public class Recap extends JFrame {
 					String nextArg= args[++i];
 					indri.addIndex( nextArg );
 					System.out.println( "Added index " + nextArg + "...");
-					addedIndex = true;
 				}
 				else if( curArg.equals( "-server" ) ) {
 					String nextArg= args[++i];
 					indri.addServer( nextArg );
 					System.out.println( "Added server " + nextArg + "...");
-					addedIndex = true;
 				}
 				else if( curArg.equals( "-commandline") ) {
 					interactive = false;
@@ -72,11 +65,6 @@ public class Recap extends JFrame {
 			}
 		}
 		
-		if( !addedIndex ) {
-			System.err.println( "Must specify at least one index or server!" );
-			return;
-		}
-
 		// create the retrieval engine
 		RetrievalEngine retEngine = new RetrievalEngine( indri );
 
