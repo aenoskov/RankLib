@@ -35,7 +35,8 @@ DOC=$(JAVAHOME)/bin/javadoc -classpath java  $(DOCARGS)
 
 .PHONY: java-lib doc
 
-all: java-lib
+#all: java-lib php/indri_phpwrap.cpp
+all: java-lib php/indri_phpwrap.cpp
 
 
 java-lib: $(OUTDIR) $(OUTDIRUI) $(OUTDIRPROP) $(PROPS) $(SOLIB) doc $(JARFILES)
@@ -48,6 +49,9 @@ $(OBJ)/java/indri_javawrap.o: java/indri_javawrap.cpp
 
 java/indri_javawrap.cpp: $(INTERFACES)
 	$(SWIG) -c++ -java -package edu.umass.cs.indri -o java/indri_javawrap.cpp -outdir $(JSRC) $(INCLUDES) $(SRC) 
+
+php/indri_phpwrap.cpp: $(INTERFACES)
+	$(SWIG) -c++ -php -o php/indri_phpwrap.cpp -outdir php $(INCLUDES) $(SRC) 
 
 $(OUTDIRPROP) $(OUTDIRUI) $(OUTDIR) $(OBJ)/java/docs:
 	$(INSTALL_DIR) $@
