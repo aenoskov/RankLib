@@ -63,6 +63,10 @@ public class TimelinePanel extends JPanel {
 	// drag-selection information
 	private Point startDragPoint = null;
 	private Point endDragPoint = null;
+	private int dragStartMonth = 0;
+	private int dragStartYear = 0;
+	private int dragEndMonth = 0;
+	private int dragEndYear = 0;
 	
 	// which documents are actually viewable
 	// if this variable is null then all documents are viewable
@@ -297,10 +301,26 @@ public class TimelinePanel extends JPanel {
 			g.setColor( new Color( 0.0f, 0.0f, 1.0f, 0.50f ) );
 			int w = endDragPoint.x - startDragPoint.x;
 			if( w < 0 ) {
-				w = -w;
-				startDragPoint.x = endDragPoint.x;
+				g.fillRect( endDragPoint.x, midY-YEAR_TICK_SIZE, -w, 2*YEAR_TICK_SIZE );
+				dragStartMonth = (int)Math.floor( ( endDragPoint.x - HORIZONTAL_INSET ) / monthWidth );
+				dragEndMonth = (int)Math.ceil( ( startDragPoint.x - HORIZONTAL_INSET ) / monthWidth );
 			}
-			g.fillRect( startDragPoint.x, midY-YEAR_TICK_SIZE, w, 2*YEAR_TICK_SIZE );
+			else {
+				g.fillRect( startDragPoint.x, midY-YEAR_TICK_SIZE, w, 2*YEAR_TICK_SIZE );
+				dragStartMonth = (int)Math.floor( ( startDragPoint.x - HORIZONTAL_INSET ) / monthWidth );
+				dragEndMonth = (int)Math.ceil( ( endDragPoint.x - HORIZONTAL_INSET ) / monthWidth );
+			}
+			dragStartYear = minYear + (int)( ( dragStartMonth + minMonth - 1 ) / 12.0 );
+			dragEndYear = minYear + (int)( ( dragEndMonth + minMonth - 1 ) / 12.0 );
+			dragStartMonth = ( dragStartMonth + minMonth - 1) % 12 + 1;
+			dragEndMonth = ( dragEndMonth + minMonth - 1) % 12 + 1;
+			System.out.println( "start = " + dragStartMonth + "/" + dragStartYear + ", end = " + dragEndMonth + "/" + dragEndYear);
+		}
+		else {
+			dragStartMonth = 0;
+			dragStartYear = 0;
+			dragEndMonth = 0;
+			dragEndYear = 0;
 		}
  	}
 	
@@ -346,7 +366,16 @@ public class TimelinePanel extends JPanel {
 		startDragPoint = null;
 		endDragPoint = null;
 	}
-	
+
+	// TODO: make a "Date" class to return this with instead
+	public String getDragStartDate() {
+		return dragStartMonth + "/" + dragStartYear;
+	}
+
+	public String getDragEndDate() {
+		return dragEndMonth + "/" + dragEndYear;
+	}
+
 	// register EventListeners for this class
 	public void addListeners( EventListener listener ) {
 		previousDocButton.addActionListener( (ActionListener)listener );
