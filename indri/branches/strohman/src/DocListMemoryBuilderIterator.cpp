@@ -13,9 +13,19 @@
 
 void indri::index::DocListMemoryBuilderIterator::startIteration() {
   _current = _lists->begin();
-  _data.positions.clear();
+
+  if( _current != _lists->end() ) {
+    _list = _current->base;
+    _listEnd = _current->data;
+  } else {
+    _list = 0;
+    _listEnd = 0;
+  }
+  
   _data.document = 0;
-  _list = _listEnd = 0;
+  _data.positions.clear();
+
+  nextEntry();
 }
 
 //

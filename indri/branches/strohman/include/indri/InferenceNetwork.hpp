@@ -45,7 +45,6 @@
   ==========================================================================
 */
 
-
 //
 // InferenceNetwork
 //
@@ -61,6 +60,7 @@
 #include "indri/TermScoreFunction.hpp"
 #include "indri/Repository.hpp"
 #include "indri/Index.hpp"
+#include "indri/DeletedDocumentList.hpp"
 
 class InferenceNetwork {
 public:
@@ -90,7 +90,7 @@ private:
   void _indexFinished( indri::index::Index& index );
 
   void _moveToDocument( int candidate );
-  int _nextCandidateDocument();
+  int _nextCandidateDocument( DeletedDocumentList::read_transaction* deleted );
   void _evaluateDocument( indri::index::Index& index, int document );
   void _evaluateIndex( indri::index::Index& index );
 

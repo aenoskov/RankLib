@@ -29,7 +29,7 @@ const int ONE_MEGABYTE = 1024*1024;
 indri::index::MemoryIndex::MemoryIndex() :
   _readLock(_lock),
   _writeLock(_lock),
-  _stringToTerm( 1024 * 1024 )
+  _stringToTerm( ONE_MEGABYTE )
 {
   _baseDocumentID = 0;
   _termListsBaseOffset = 0;
@@ -38,7 +38,7 @@ indri::index::MemoryIndex::MemoryIndex() :
 indri::index::MemoryIndex::MemoryIndex( int docBase ) :
   _readLock(_lock),
   _writeLock(_lock),
-  _stringToTerm( 1024 * 1024 )
+  _stringToTerm( ONE_MEGABYTE )
 {
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
@@ -47,7 +47,7 @@ indri::index::MemoryIndex::MemoryIndex( int docBase ) :
 indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields ) :
   _readLock(_lock),
   _writeLock(_lock),
-  _stringToTerm( 1024 * 1024 )
+  _stringToTerm( ONE_MEGABYTE )
 {
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
@@ -108,6 +108,9 @@ int indri::index::MemoryIndex::documentBase() {
 //
 
 int indri::index::MemoryIndex::documentLength( int documentID ) {
+  if( _baseDocumentID < documentID || (documentID - _baseDocumentID) > _documentData.size() )
+    return 0;
+
   return _documentData[ documentID - _baseDocumentID ].indexedLength;
 }
 
@@ -457,9 +460,9 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   greedy_vector<char*>& words = document.terms;
 
   // assign a document ID -- TODO: check for off by one error here
-  _corpusStatistics.totalDocuments++;
   int documentID = _baseDocumentID + _corpusStatistics.totalDocuments;
-
+  _corpusStatistics.totalDocuments++;
+  
   _termList.clear();
 
   // move words into inverted lists, recording model statistics as we go
@@ -653,7 +656,9 @@ indri::index::DocumentDataIterator* indri::index::MemoryIndex::documentDataItera
 //
 
 Lockable* indri::index::MemoryIndex::statisticsLock() {
-  return &_readLock;
+  // technically, this should be _readLock, but statisticsLock is supposed to be
+  // acquired after iteratorLock() has been acquired, so that one should cover it.
+  return 0;
 }
 
 //

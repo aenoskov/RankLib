@@ -88,6 +88,8 @@
 #include "indri/XMLReader.hpp"
 #include "indri/IndriTimer.hpp"
 
+#include "indri/IndexEnvironment.hpp"
+
 #include <set>
 #include <map>
 
@@ -339,19 +341,19 @@ void QueryEnvironment::addIndex( const std::string& pathname ) {
   repository->openRead( pathname, &_parameters );
   _repositories.push_back( repository );
 
-  addRepository( *repository );
+  _servers.push_back( new LocalQueryServer( *repository ) );
 }
 
 //
-// addRepository
+// addIndex
+//
+// This just adds a pointer to the repository that's
+// owned by some IndexEnvironment object; the 
+// repository will not be closed by this QueryEnvironment.
 //
 
-void QueryEnvironment::addRepository( Repository& repository ) {
-  // just like addIndex, but we don't actually keep a pointer
-  // to the repository; we don't want to close it when we close the
-  // query environment
-
-  _servers.push_back( new LocalQueryServer( repository ) );
+void QueryEnvironment::addIndex( IndexEnvironment& environment ) {
+  _servers.push_back( new LocalQueryServer( environment._repository ) );
 }
 
 //

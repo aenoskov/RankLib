@@ -172,9 +172,7 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
   _lastLocation = 0;
   _documentPointer = 0;
 
-  assert( !_locationCountPointer || _listBegin < _locationCountPointer );
-  assert( !_locationCountPointer || _listEnd > _locationCountPointer );
-  assert( !_locationCountPointer || _list > _locationCountPointer );
+  assert( !_locationCountPointer );
 }
 
 //
@@ -186,10 +184,12 @@ void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int p
   assert( !_locationCountPointer || _listEnd > _locationCountPointer );
   assert( !_locationCountPointer || _list > _locationCountPointer );
 
+  bool hasPointer = _locationCountPointer ? true : false;
+  int lastdoc = _lastDocument;
+
   if( _lastDocument != documentID ) {
-    if( _lastDocument != 0 && _locationCountPointer ) {
+    if( _locationCountPointer )
       _terminateDocument();
-    }
 
     _documentPointer = _list;
     _list = RVLCompress::compress_int( _list, documentID - _lastDocument );
@@ -204,9 +204,10 @@ void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int p
 
   _termFrequency++;
 
-  assert( !_locationCountPointer || _listBegin < _locationCountPointer );
-  assert( !_locationCountPointer || _listEnd > _locationCountPointer );
-  assert( !_locationCountPointer || _list > _locationCountPointer );
+  assert( _locationCountPointer );
+  assert( _listBegin < _locationCountPointer );
+  assert( _listEnd > _locationCountPointer );
+  assert( _list > _locationCountPointer );
   assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
   assert( _listEnd >= _list );
 }
@@ -235,11 +236,10 @@ inline size_t indri::index::DocListMemoryBuilder::_compressedSize( int documentI
 
 void indri::index::DocListMemoryBuilder::_growAddLocation( int documentID, int position, size_t newDataSize ) {
   // have to copy the last document if it's not complete, or if there's not enough room to complete it
-  bool documentMismatch = (_lastDocument != documentID);
   bool terminateSpace = (RVLCompress::compressedSize( _termFrequency - _lastTermFrequency ) - 1) <= _listEnd - _list;
 
   // by terminating the document now, we save a document copy and a bit of space
-  if( documentMismatch && terminateSpace && _lastDocument != 0 )
+  if( _locationCountPointer && terminateSpace && documentID != _lastDocument )
     _terminateDocument();
 
   // grow the list, adding space for a document if necessary
