@@ -369,6 +369,7 @@ void BulkTreeWriter::create( const std::string& filename ) {
 }
 
 void BulkTreeWriter::put( UINT32 key, const char* value, int valueLength ) {
+  key = ::htonl( key );
   put( (const char*) &key, sizeof(key), value, valueLength );
 }
 
@@ -529,5 +530,6 @@ bool BulkTreeReader::get( const char* key, char* value, int& actual, int valueLe
 }
 
 bool BulkTreeReader::get( UINT32 key, char* value, int& actual, int valueLength ) {
+  key = ::htonl( key );
   return get( (const char*) &key, sizeof(key), value, actual, valueLength );
 }
