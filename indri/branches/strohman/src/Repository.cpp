@@ -53,9 +53,8 @@
 //
 
 #include "indri/Repository.hpp"
-#include "indri/IndriIndex.hpp"
+#include "indri/MemoryIndex.hpp"
 #include "indri/CompressedCollection.hpp"
-#include "indri/TopdocsIndex.hpp"
 #include "indri/Path.hpp"
 #include "indri/PorterStemmerTransformation.hpp"
 #include "indri/KrovetzStemmerTransformation.hpp"
@@ -64,6 +63,7 @@
 #include "indri/Parameters.hpp"
 #include "indri/StemmerFactory.hpp"
 #include "indri/NormalizationTransformation.hpp"
+#include "Exception.hpp"
 #include <string>
 
 void Repository::_buildFields() {
@@ -111,11 +111,11 @@ void Repository::_buildChain() {
   }
 }
 
-std::vector<IndriIndex::FieldDescription> repository_fieldsForIndex( std::vector<Repository::Field>& _fields ) {
-  std::vector<IndriIndex::FieldDescription> result;
+std::vector<indri::index::Index::FieldDescription> repository_fieldsForIndex( std::vector<Repository::Field>& _fields ) {
+  std::vector<indri::index::Index::FieldDescription> result;
 
   for( size_t i=0; i<_fields.size(); i++ ) {
-    IndriIndex::FieldDescription fdesc;
+    indri::index::Index::FieldDescription fdesc;
     
     fdesc.name = _fields[i].name;
     fdesc.numeric = _fields[i].numeric;
@@ -164,14 +164,12 @@ void Repository::create( const std::string& path, Parameters* options ) {
     if( options )
       queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
     
-    _index = new IndriIndex( _memory, queryProportion );
+    _mutableIndex = new indri::index::MemoryIndex();
     _collection = new CompressedCollection();
-    _topdocs = new TopdocsIndex();
 
     std::string indexPath = Path::combine( path, "index" );
     std::string collectionPath = Path::combine( path, "collection" );
-    std::string topdocsPath = Path::combine( path, "topdocs" );
-
+    
     if( !Path::exists( indexPath ) )
       Path::create( indexPath );
 
@@ -182,9 +180,9 @@ void Repository::create( const std::string& path, Parameters* options ) {
 
     _buildFields();
     _buildChain();
-    std::vector<IndriIndex::FieldDescription> indexFieldDesc = repository_fieldsForIndex( _fields );
+    std::vector<indri::index::Index::FieldDescription> indexFieldDesc = repository_fieldsForIndex( _fields );
 
-    _index->create( indexName, indexFieldDesc );
+    //_mutableIndex->create( indexName, indexFieldDesc );
 
     if( !Path::exists( collectionPath ) )
       Path::create( collectionPath );
@@ -200,7 +198,6 @@ void Repository::create( const std::string& path, Parameters* options ) {
     }
 
     _collection->create( collectionPath, collectionFields );
-    _topdocs->create( topdocsPath );
   } catch( Exception& e ) {
     LEMUR_RETHROW( e, "Couldn't create a repository at '" + path + "' because:" );
   } catch( ... ) {
@@ -220,19 +217,16 @@ void Repository::openRead( const std::string& path, Parameters* options ) {
   if( options )
     queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
-  _index = new IndriIndex( _memory, queryProportion );
+  _mutableIndex = new indri::index::MemoryIndex();
   _collection = new CompressedCollection();
-  _topdocs = new TopdocsIndex();
 
   std::string indexPath = Path::combine( path, "index" );
   std::string collectionPath = Path::combine( path, "collection" );
-  std::string topdocsPath = Path::combine( path, "topdocs" );
 
   std::string indexName = Path::combine( indexPath, "index" );
 
-  _index->openRead( indexName.c_str() );
+  // TODO: _mutableIndex->openRead( indexName.c_str() );
   _collection->openRead( collectionPath );
-  _topdocs->openRead( topdocsPath );
 
   _parameters.loadFile( Path::combine( path, "manifest" ) );
 
@@ -255,18 +249,15 @@ void Repository::open( const std::string& path, Parameters* options ) {
   if( options )
     queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
-  _index = new IndriIndex( _memory, queryProportion );
+  _mutableIndex = new indri::index::MemoryIndex();
   _collection = new CompressedCollection();
-  _topdocs = new TopdocsIndex();
 
   std::string indexPath = Path::combine( path, "index" );
   std::string collectionPath = Path::combine( path, "collection" );
   std::string indexName = Path::combine( indexPath, "index" );
-  std::string topdocsPath = Path::combine( path, "topdocs" );
 
-  _index->open( indexName );
+  // TODO: _mutableIndex->open( indexName );
   _collection->open( collectionPath );
-  _topdocs->open( topdocsPath );
 
   _parameters.loadFile( Path::combine( path, "manifest" ) );
 
@@ -287,7 +278,7 @@ void Repository::addDocument( ParsedDocument* document ) {
     document = _transformations[i]->transform( document );
   }
 
-  int documentID = _index->addDocument( document );
+  int documentID = _mutableIndex->addDocument( *document );
   _collection->addDocument( documentID, document );
 }
 
@@ -303,14 +294,6 @@ std::vector<std::string> Repository::tags() const {
   }
 
   return t;
-}
-
-IndriIndex* Repository::index() {
-  return _index;
-}
-
-TopdocsIndex* Repository::topdocs() {
-  return _topdocs;
 }
 
 std::string Repository::processTerm( const std::string& term ) {
@@ -342,35 +325,19 @@ CompressedCollection* Repository::collection() {
 }
 
 void Repository::close() {
-  if( _index && _collection ) {
+  if( _mutableIndex && _collection ) {
     std::string manifest = "manifest";
     std::string paramPath = Path::combine( _path, manifest );
 
     if( !_readOnly )
       _parameters.writeFile( paramPath );
 
-    _index->close();
+    // TODO: _mutableIndex->close();
     _collection->close();
 
-    delete _index;
-    _index = 0;
-
-    if( ! _readOnly ) {
-      // build or update topdocs lists as necessary
-      std::string indexPath = Path::combine( _path, "index" );
-      indexPath = Path::combine( indexPath, "index" );
-      
-      _index = new IndriIndex( _memory, 1.0 );
-      _index->openRead( indexPath );
-      
-      _topdocs->update( *_index );
-      _topdocs->close();
-      delete _topdocs;
-      _topdocs = 0;
-
-      _index->close();
-    }
-
+    delete _mutableIndex;
+    _mutableIndex = 0;
+    
     delete _collection;
     _collection = 0;
 

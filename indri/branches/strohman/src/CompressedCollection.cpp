@@ -63,6 +63,7 @@
 #include "indri/Buffer.hpp"
 #include "indri/Path.hpp"
 #include "indri/Parameters.hpp"
+#include "indri/Buffer.hpp"
 #include <algorithm>
 
 const int INPUT_BUFFER_SIZE = 1024;
@@ -78,7 +79,7 @@ static void zlib_free( void* opaque, void* address ) {
   free( address );
 }
 
-static void zlib_deflate( z_stream_s& stream, WriteBuffer* outfile ) {
+static void zlib_deflate( z_stream_s& stream, SequentialWriteBuffer* outfile ) {
   if( stream.avail_out == 0 ) {
     stream.next_out = (Bytef*) outfile->write( OUTPUT_BUFFER_SIZE );
     stream.avail_out = OUTPUT_BUFFER_SIZE;
@@ -101,7 +102,7 @@ static void zlib_deflate( z_stream_s& stream, WriteBuffer* outfile ) {
   }
 }
 
-static void zlib_deflate_finish( z_stream_s& stream, WriteBuffer* outfile ) {
+static void zlib_deflate_finish( z_stream_s& stream, SequentialWriteBuffer* outfile ) {
   while(true) {
     if( stream.avail_out == 0 ) {
       stream.next_out = (Bytef*) outfile->write( OUTPUT_BUFFER_SIZE );
@@ -121,11 +122,10 @@ static void zlib_deflate_finish( z_stream_s& stream, WriteBuffer* outfile ) {
   deflateReset( &stream );
 }
 
-static void zlib_read_document( z_stream_s& stream, File& infile, File::offset_type offset, Buffer& outputBuffer ) {
+static void zlib_read_document( z_stream_s& stream, File& infile, UINT64 offset, Buffer& outputBuffer ) {
   // read in data from the file until the stream ends
   // split up the data as necessary
   // decompress positional info
-  infile.seekg( offset, std::fstream::beg );
 
   // read some data
   char inputBuffer[INPUT_BUFFER_SIZE];
@@ -137,9 +137,9 @@ static void zlib_read_document( z_stream_s& stream, File& infile, File::offset_t
   
   while(true) {
     if( !stream.avail_in ) {
-      infile.read( inputBuffer, sizeof inputBuffer );
-      File::offset_type readSize = infile.gcount();
-
+      UINT64 readSize = infile.read( offset, inputBuffer, sizeof inputBuffer );
+      offset += readSize; 
+      
       stream.avail_in = readSize;
       stream.next_in = (Bytef*) inputBuffer;
     }
@@ -259,7 +259,7 @@ void CompressedCollection::_readPositions( ParsedDocument* document, const void*
 }
 
 CompressedCollection::CompressedCollection() {
-  _output = new WriteBuffer( _storage, 1024*1024 );
+  _output = new SequentialWriteBuffer( _storage, 1024*1024 );
 
   _stream = new z_stream_s;
   _stream->zalloc = zlib_alloc;
@@ -291,7 +291,7 @@ void CompressedCollection::create( const std::string& fileName, const std::vecto
   std::string lookupName = Path::combine( fileName, "lookup" );
   std::string storageName = Path::combine( fileName, "storage" );
 
-  _storage.open( storageName, std::fstream::out | std::fstream::in | std::fstream::binary | std::fstream::trunc );
+  _storage.create( storageName );
   _lookup.create( lookupName );
 
   Parameters manifest;
@@ -320,9 +320,8 @@ void CompressedCollection::open( const std::string& fileName ) {
   Parameters manifest;
   manifest.loadFile( manifestName );
 
-  _storage.open( storageName, std::fstream::out | std::ifstream::in |  std::fstream::binary );
+  _storage.open( storageName );
   _lookup.open( lookupName );
-  _storage.seekp( 0, std::fstream::end );
 
   if( manifest.exists("field") ) {
     Parameters fields = manifest["field"];
@@ -350,7 +349,7 @@ void CompressedCollection::openRead( const std::string& fileName ) {
   Parameters manifest;
   manifest.loadFile( manifestName );
 
-  _storage.open( storageName, std::ifstream::in |  std::fstream::binary );
+  _storage.openRead( storageName );
   _lookup.openRead( lookupName );
 
   if( manifest.exists("field") ) {
@@ -402,7 +401,7 @@ void CompressedCollection::addDocument( int documentID, ParsedDocument* document
   _stream->zfree = zlib_free;
   _stream->next_out = 0;
   _stream->avail_out = 0;
-  File::offset_type offset = _output->tellp();
+  UINT64 offset = _output->tell();
   greedy_vector<UINT32> recordOffsets;
   int keyLength;
   int valueLength;
@@ -453,7 +452,7 @@ void CompressedCollection::addDocument( int documentID, ParsedDocument* document
 
 
 ParsedDocument* CompressedCollection::retrieve( int documentID ) {
-  File::offset_type offset;
+  UINT64 offset;
   int actual;
   
   if( !_lookup.get( documentID, &offset, actual, sizeof offset ) ) {
