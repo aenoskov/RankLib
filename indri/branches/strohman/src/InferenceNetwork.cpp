@@ -137,14 +137,14 @@ void InferenceNetwork::_indexChanged( indri::index::Index& index ) {
   }
 }
 
-int InferenceNetwork::_nextCandidateDocument() {
+int InferenceNetwork::_nextCandidateDocument( DeletedDocumentList::read_transaction* deleted ) {
   int candidate = MAX_INT32;
 
   for( unsigned int i=0; i<_complexEvaluators.size(); i++ ) {
     candidate = lemur_compat::min( candidate, _complexEvaluators[i]->nextCandidateDocument() );
   }
-  
-  return candidate;
+
+  return deleted->nextCandidateDocument( candidate );
 }
 
 void InferenceNetwork::_evaluateDocument( indri::index::Index& index, int document ) {
@@ -212,6 +212,8 @@ const std::vector<EvaluatorNode*>& InferenceNetwork::getEvaluators() const {
 }
 
 void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
+  DeletedDocumentList::read_transaction* deleted = _repository.deletedList().getReadTransaction();
+
   int lastCandidate = MAX_INT32;
   int collectionSize = index.documentBase() + index.documentCount();
   int scoredDocuments = 0;
@@ -226,7 +228,8 @@ void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
       // this asks the whole inference network for the
       // first document that might possibly produce a
       // usable (above the max score threshold) score
-      candidate = _nextCandidateDocument();
+      candidate = _nextCandidateDocument( deleted );
+      assert( candidate >= index.documentBase() );
 
       // if candidate is MAX_INT32, we're done
       if( candidate == MAX_INT32 || candidate > collectionSize ) {
@@ -250,8 +253,11 @@ void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
       // move all candidate iterators to candidate+1
       _moveToDocument( candidate+1 );
       lastCandidate = candidate+1;
+      assert( candidate >= index.documentBase() );
     }
   }
+
+  delete deleted;
 }
 
 //

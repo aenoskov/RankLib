@@ -25,6 +25,7 @@ public:
 
   UINT64 initialize();
   UINT64 work();
+  bool hasWork();
   void deinitialize();
 
   void write();

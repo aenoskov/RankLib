@@ -29,6 +29,8 @@ public:
   Thread( void (*function)(void*), void* data );
   void execute();
   void join();
+
+  static int id();
   static void sleep( int milliseconds );
 };
 

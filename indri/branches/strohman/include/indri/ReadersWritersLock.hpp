@@ -15,6 +15,7 @@ class ReadersWritersLock {
 private:
   struct wait_queue_entry {
     bool writing;
+    bool awakened;
     wait_queue_entry* next;
     ConditionVariable wakeup;
   };
@@ -27,6 +28,8 @@ private:
   int _writers;
 
   void _enqueue( wait_queue_entry& entry ) {
+    entry.awakened = false;
+
     // called within the mutex
     if( _tail == 0 ) {
       entry.next = 0;
@@ -44,6 +47,7 @@ private:
 
     if( _head ) {
       // wakeup the next thread, no matter what
+      _head->awakened = true;
       _head->wakeup.notifyOne();
       reading = !_head->writing;
       _head = _head->next;
@@ -52,6 +56,7 @@ private:
       // continue to wake threads up until there are no readers left
       if( reading ) {
         while( _head && _head->writing == false ) {
+          _head->awakened = true;
           _head->wakeup.notifyOne();
           _head = _head->next;
         }
@@ -77,18 +82,22 @@ public:
     _mutex.lock();
 
     if( _head != 0 || _writers ) {
-      wait_queue_entry entry;
+      do {
+        wait_queue_entry entry;
 
-      entry.writing = false;
-      entry.next = 0;
+        entry.writing = false;
+        entry.next = 0;
 
-      _enqueue( entry );
+        _enqueue( entry );
 
-      // wait for our time to come
-      entry.wakeup.wait( _mutex );
+        // wait for our time to come
+        entry.wakeup.wait( _mutex );
+      }
+      while( _writers );
     }
-
     _readers++;
+    assert( !_writers );
+
     _mutex.unlock();
   }
     
@@ -96,20 +105,25 @@ public:
     _mutex.lock();
 
     if( _head != 0 || _readers || _writers ) {
-      wait_queue_entry entry;
+      do {
+        wait_queue_entry entry;
 
-      entry.writing = true;
-      entry.next = 0;
+        entry.writing = true;
+        entry.next = 0;
 
-      _enqueue( entry );
+        _enqueue( entry );
 
-      // wait for our time to come
-      entry.wakeup.wait( _mutex );
+        // wait for our time to come
+        entry.wakeup.wait( _mutex );
+      } 
+      while( _readers || _writers );
     }
 
     assert( _writers == 0 );
     _writers++;
     _mutex.unlock();
+
+    assert( !_readers && _writers == 1 );
   }
 
   void unlockWrite() {
@@ -134,6 +148,29 @@ public:
 
     _mutex.unlock();
   }
+
+  void yieldWrite() {
+    assert( !_readers && _writers == 1 );
+
+    if( _head ) {
+      unlockWrite();
+      lockWrite();
+    }
+
+    assert( !_readers && _writers == 1 );
+  }
+
+  void yieldRead() {
+    assert( _readers && _writers == 0 );
+
+    if( _head ) {
+      unlockRead();
+      lockRead();
+    }
+
+    assert( _readers && _writers == 0 );
+  }
+
 };
 
 #endif // INDRI_READERSWRITERSLOCK_HPP

@@ -20,6 +20,7 @@ public:
   UINT64 initialize();
   void deinitialize();
   UINT64 work();
+  bool hasWork();
 };
 
 #endif // INDRI_REPOSITORYLOADTHREAD_HPP

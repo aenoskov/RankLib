@@ -60,6 +60,7 @@
 #include "indri/MemoryIndex.hpp"
 #include "indri/DiskIndex.hpp"
 #include "indri/ref_ptr.hpp"
+#include "indri/DeletedDocumentList.hpp"
 #include <string>
 
 /*! Encapsulates document manager, index, and field indexes. Provides access 
@@ -105,6 +106,8 @@ private:
   Mutex _addLock; /// protects addDocument
 
   class CompressedCollection* _collection;
+  DeletedDocumentList _deletedList;
+
   Parameters _parameters;
   std::vector<Transformation*> _transformations;
   std::vector<Field> _fields;
@@ -128,7 +131,7 @@ private:
   Load _computeLoad( indri::atomic::value_type* loadArray );
 
   void _buildFields();
-  void _buildChain();
+  void _buildChain( Parameters& parameters );
   void _buildTransientChain( Parameters& parameters );
 
   void _copyParameters( Parameters& options );
@@ -153,6 +156,8 @@ private:
   void _startThreads();
   void _stopThreads();
 
+  void _addMemoryIndex();
+
 public:
   Repository() {
     _collection = 0;
@@ -165,6 +170,9 @@ public:
   /// add a parsed document to the repository.
   /// @param document the document to add.
   void addDocument( ParsedDocument* document );
+  /// delete a document from the repository
+  /// @param documentID the internal ID of the document to delete
+  void deleteDocument( int documentID );
   /// @return the indexed fields for this collection
   const std::vector<Field>& fields() const;
   /// @return the tags for this collection
@@ -197,14 +205,14 @@ public:
   /// Indexes in this repository
   index_state indexes();
 
-  /// Add a new memory index
-  void addMemoryIndex();
-
   /// Write the most recent state out to disk
   void write();
 
   /// Merge all indexes together
   void merge();
+
+  /// List of deleted documents in this repository
+  DeletedDocumentList& deletedList();
 
   /// Returns the average number of documents added each minute in the last 1, 5 and 15 minutes
   Load queryLoad();

@@ -11,6 +11,8 @@
 #define INDRI_READERLOCKABLE_HPP
 
 #include "indri/ReadersWritersLock.hpp"
+#include <iostream> // DEBUG
+#include "indri/Thread.hpp"
 
 class ReaderLockable : public Lockable {
 private:

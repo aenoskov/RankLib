@@ -94,6 +94,15 @@ UINT64 RepositoryMaintenanceThread::work() {
 }
 
 //
+// hasWork
+//
+
+bool RepositoryMaintenanceThread::hasWork() {
+  ScopedLock l( _requestLock );
+  return _requests.size() > 0;
+}
+
+//
 // write
 //
 

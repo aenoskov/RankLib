@@ -57,10 +57,9 @@ void IndexWriter::_writeBatch( SequentialWriteBuffer* buffer, int document, int 
 void IndexWriter::_writeManifest( const std::string& path ) {
   Parameters manifest;
 
-  std::cout << "write manifest " << path << std::endl;
-
   manifest.set( "type", "DiskIndex" );
   manifest.set( "code-build-date", __DATE__ );
+  manifest.set( "indri-distribution", INDRI_DISTRIBUTION );
 
   manifest.set( "corpus", "" );
   Parameters corpus = manifest["corpus"];
@@ -101,9 +100,6 @@ void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
 //
 
 void IndexWriter::write( std::vector<Index*>& indexes, const std::string& path ) {
-
-  std::cout << "----- merge: " << indexes.size() << "-----------" << std::endl;
-
   Path::create( path );
 
   std::string frequentStringPath = Path::combine( path, "frequentString" );
@@ -164,7 +160,6 @@ void IndexWriter::write( std::vector<Index*>& indexes, const std::string& path )
   _documentLengths.close();
   _invertedFile.close();
   _directFile.close();
-
 
   // write a manifest file
   _writeManifest( manifestPath );

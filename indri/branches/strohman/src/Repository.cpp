@@ -130,9 +130,12 @@ void Repository::_buildTransientChain( Parameters& parameters ) {
 // _buildChain
 //
 
-void Repository::_buildChain() {
-  // TODO: for now, we'll normalize everything, although this should be a parameter
-  _transformations.push_back( new NormalizationTransformation() );
+void Repository::_buildChain( Parameters& parameters ) {
+  bool dontNormalize = parameters.exists( "normalize" ) && ( false == (bool) parameters["normalize"] );
+
+  if( dontNormalize == false ) {
+    _transformations.push_back( new NormalizationTransformation() );
+  }
 
   for( size_t i=0; i<_fields.size(); i++ ) {
     if( _fields[i].parserName == "NumericFieldAnnotator" ) {
@@ -157,6 +160,10 @@ void Repository::_buildChain() {
 //
 
 void Repository::_copyParameters( Parameters& options ) {
+  if( options.exists( "normalize" ) ) {
+    _parameters.set( "normalize", (std::string) options["normalize"] );
+  }
+
   if( options.exists("field") ) {
     _parameters.set( "field", "" );
     _parameters["field"] = options["field"];
@@ -321,11 +328,11 @@ void Repository::create( const std::string& path, Parameters* options ) {
       _copyParameters( *options );
 
     _buildFields();
-    _buildChain();
+    _buildChain( _parameters );
 
     std::string indexPath = Path::combine( path, "index" );
     std::string collectionPath = Path::combine( path, "collection" );
-    
+
     if( !Path::exists( indexPath ) )
       Path::create( indexPath );
 
@@ -377,22 +384,24 @@ void Repository::openRead( const std::string& path, Parameters* options ) {
   if( options )
     queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
+  _parameters.loadFile( Path::combine( path, "manifest" ) );
+
   _buildFields();
-  _buildChain();
+  _buildChain( _parameters );
 
   if( options )
     _buildTransientChain( *options );
 
-  _parameters.loadFile( Path::combine( path, "manifest" ) );
-
   std::string indexPath = Path::combine( path, "index" );
   std::string collectionPath = Path::combine( path, "collection" );
   std::string indexName = Path::combine( indexPath, "index" );
+  std::string deletedName = Path::combine( path, "deleted" );
 
   _openIndexes( _parameters, indexPath );
 
   _collection = new CompressedCollection();
   _collection->openRead( collectionPath );
+  _deletedList.read( deletedName );
 
   _startThreads();
 }
@@ -420,14 +429,14 @@ void Repository::open( const std::string& path, Parameters* options ) {
   _parameters.loadFile( Path::combine( path, "manifest" ) );
 
   _buildFields();
-  _buildChain();
+  _buildChain( _parameters );
 
   if( options )
     _buildTransientChain( *options );
 
   // open all indexes, add a memory index
   _openIndexes( _parameters, indexPath );
-  addMemoryIndex();
+  _addMemoryIndex();
 
   // remove that initial state (only disk indexes)
   _states.erase( _states.begin() );
@@ -435,6 +444,10 @@ void Repository::open( const std::string& path, Parameters* options ) {
   // open compressed collection
   _collection = new CompressedCollection();
   _collection->open( collectionPath );
+  
+  // read deleted documents in
+  std::string deletedName = Path::combine( indexPath, "deleted" );
+  _deletedList.read( deletedName );
 
   _startThreads();
 }
@@ -477,13 +490,21 @@ void Repository::addDocument( ParsedDocument* document ) {
 }
 
 //
-// addMemoryIndex
+// deleteDocument
+//
+
+void Repository::deleteDocument( int documentID ) {
+  _deletedList.markDeleted( documentID );
+}
+
+//
+// _addMemoryIndex
 //
 // Add a new MemoryIndex to accept all new updates.  This allows
 // the current MemoryIndex to be written to disk.
 //
 
-void Repository::addMemoryIndex() {
+void Repository::_addMemoryIndex() {
   ScopedLock alock( _addLock );
   ScopedLock slock( _stateLock );
 
@@ -645,7 +666,7 @@ void Repository::_write() {
   std::cout << "=========================== adding memory index ==== " << std::endl;
 
   // make a new MemoryIndex, cutting off the old one from updates
-  addMemoryIndex();
+  _addMemoryIndex();
 
   // if we just added the first, no need to write the "old" one
   if( state->size() == 0 )
@@ -763,7 +784,7 @@ void Repository::_merge() {
     mergers->assign( state->begin(), state->end() - 1 );
   } else {
     // current index isn't empty, so add a new one and write the old ones
-    addMemoryIndex();
+    _addMemoryIndex();
   }
 
   // no need to merge when there's only one index (or none)
@@ -835,6 +856,14 @@ CompressedCollection* Repository::collection() {
 }
 
 //
+// deletedList
+//
+
+DeletedDocumentList& Repository::deletedList() {
+  return _deletedList;
+}
+
+//
 // _writeParameters
 //
 
@@ -867,15 +896,21 @@ void Repository::close() {
     // TODO: make sure all the indexes get deleted
     std::string manifest = "manifest";
     std::string paramPath = Path::combine( _path, manifest );
+    std::string deletedPath = Path::combine( _path, "deleted" );
 
     if( !_readOnly ) {
       write();
-      _writeParameters( paramPath );
     }
 
     // have to stop threads after the write request,
     // so the indexes actually get written
     _stopThreads();
+
+    if( !_readOnly ) {
+      _deletedList.write( deletedPath );
+      _writeParameters( paramPath );
+    }
+
     _closeIndexes();
 
     _collection->close();
@@ -906,7 +941,7 @@ Repository::index_state Repository::indexes() {
 //
 
 void Repository::write() {
-  if( !_maintenanceThread )
+  if( _maintenanceThread )
     _maintenanceThread->write();
 }
 

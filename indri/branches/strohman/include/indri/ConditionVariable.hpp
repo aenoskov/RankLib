@@ -4,6 +4,8 @@
 //
 // 15 November 2004 -- tds
 //
+// Implementation based on code from the ACE library (Schmidt)
+//
 
 #ifndef INDRI_CONDITIONVARIABLE_HPP
 #define INDRI_CONDITIONVARIABLE_HPP
@@ -17,8 +19,8 @@
 class ConditionVariable {
 private:
 #ifdef WIN32
-  HANDLE _singleEvent;
-  HANDLE _allEvent;
+  HANDLE _event;
+  int _waiters;
 #else
   pthread_cond_t _condition;
 #endif
@@ -26,8 +28,8 @@ private:
 public:
   ConditionVariable() {
     #ifdef WIN32
-        _singleEvent = ::CreateEvent( NULL, FALSE, FALSE, NULL );
-        _allEvent = ::CreateEvent( NULL, TRUE, FALSE, NULL );
+        _event = ::CreateEvent( NULL, FALSE, FALSE, NULL );
+        _waiters = 0;
     #else
         pthread_cond_init( &_condition, NULL );
     #endif
@@ -35,8 +37,7 @@ public:
 
   ~ConditionVariable() {
     #ifdef WIN32
-      ::CloseHandle( _singleEvent );
-      ::CloseHandle( _allEvent );
+      ::CloseHandle( _event );
     #else
       pthread_cond_destroy( &_condition );
     #endif
@@ -44,11 +45,8 @@ public:
 
   void wait( Mutex& mutex ) {
 #ifdef WIN32
-    mutex.unlock();
-
-    HANDLE waitHandles[2] = { _singleEvent, _allEvent };
-    ::WaitForMultipleObjects( 2, waitHandles, FALSE, INFINITE );
-
+    HRESULT result = ::SignalObjectAndWait( mutex._mutex, _event, INFINITE, FALSE );
+    assert( SUCCEEDED(result) );
     mutex.lock();
 #else
     pthread_cond_wait( &_condition, &mutex._mutex );
@@ -57,13 +55,9 @@ public:
 
   bool wait( Mutex& mutex, UINT64 microseconds ) {
 #ifdef WIN32
-    mutex.unlock();
-
-    HANDLE waitHandles[2] = { _singleEvent, _allEvent };
-    DWORD result = ::WaitForMultipleObjects( 2, waitHandles, FALSE, DWORD(microseconds/1000) );
-
+    HRESULT result = ::SignalObjectAndWait( mutex._mutex, _event, DWORD(microseconds/1000), FALSE );
+    assert( SUCCEEDED(result) );
     mutex.lock();
-
     return result != WAIT_TIMEOUT;
 #else
     mutex.unlock();
@@ -87,7 +81,7 @@ public:
 
   void notifyOne( ) {
 #ifdef WIN32
-    ::PulseEvent( _singleEvent );
+    ::SetEvent( _event );
 #else
   pthread_cond_signal( &_condition );
 #endif
@@ -95,7 +89,7 @@ public:
 
   void notifyAll( ) {
 #ifdef WIN32
-    ::PulseEvent( _allEvent );
+    ::SetEvent( _event );
 #else
     pthread_cond_broadcast( &_condition );
 #endif

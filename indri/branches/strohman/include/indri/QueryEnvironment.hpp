@@ -120,9 +120,10 @@ public:
   /// \brief Add a local repository
   /// @param pathname the path to the repository.
   void addIndex( const std::string& pathname );
-  /// \brief Add a repository object
-  /// @param a repository instance
-  void addRepository( Repository& repository );
+  /// Add an IndexEnvironment object.  Unlike the other add calls, this one
+  /// will not close the index when QueryEnvironment::close is called.
+  /// @param an IndexEnvironment instance
+  void addIndex( class IndexEnvironment& environment );
   /// Close the QueryEnvironment.
   void close();
   /// \brief Run an Indri query language query. @see ScoredExtentResult

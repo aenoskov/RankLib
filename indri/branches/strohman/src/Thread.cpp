@@ -50,6 +50,14 @@ void Thread::join() {
   #endif
 }
 
+int Thread::id() {
+#ifdef WIN32
+  return ::GetCurrentThreadId( );
+#else
+  return 0;
+#endif
+}
+
 void Thread::sleep( int milliseconds ) {
 #ifdef WIN32
   ::Sleep( milliseconds );

@@ -24,7 +24,7 @@ class Mutex : public Lockable {
 
 private:
 #ifdef WIN32
-  CRITICAL_SECTION _cs;
+  HANDLE _mutex;
 #else // POSIX
   pthread_mutex_t _mutex;
 #endif
@@ -32,7 +32,7 @@ private:
 public:
   Mutex() {
 #ifdef WIN32
-    ::InitializeCriticalSection( &_cs );
+    _mutex = ::CreateMutex( NULL, FALSE, NULL );
 #else
     pthread_mutex_init( &_mutex, NULL );
 #endif
@@ -40,7 +40,7 @@ public:
 
   ~Mutex() {
 #ifdef WIN32
-    ::DeleteCriticalSection( &_cs );
+    ::CloseHandle( _mutex );
 #else
     pthread_mutex_destroy( &_mutex );
 #endif
@@ -48,7 +48,7 @@ public:
 
   void lock() {
 #ifdef WIN32
-    ::EnterCriticalSection( &_cs );
+    ::WaitForSingleObject( _mutex, INFINITE );
 #else
     int result = pthread_mutex_lock( &_mutex );
     assert( result == 0 );
@@ -57,16 +57,16 @@ public:
 
   bool tryLock() {
 #ifdef WIN32
-    BOOL result = TryEnterCriticalSection( &_cs );
-    return result ? true : false;
+    HRESULT result = ::WaitForSingleObject( _mutex, 0 );
+    return (result == WAIT_OBJECT_0) || (result == WAIT_ABANDONED);
 #else
-    return pthread_mutex_trylock( &_mutex ) == 0 ? true : false;
+    return pthread_mutex_trylock( &_mutex ) == 0;
 #endif
   }
 
   void unlock() {
 #ifdef WIN32
-    ::LeaveCriticalSection( &_cs );
+    ::ReleaseMutex( _mutex );
 #else
     int result = pthread_mutex_unlock( &_mutex );
     assert( result == 0 );

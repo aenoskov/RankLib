@@ -271,6 +271,10 @@ greedy_vector<ScoredExtentResult>& WeightedAndNode::score( int documentID, int b
 }
 
 bool WeightedAndNode::hasMatch( int documentID ) {
+  // advance candidates
+  while( _candidatesIndex < _candidates.size() && _candidates[_candidatesIndex] <= documentID )
+    _candidatesIndex++;
+
   for( unsigned int i=0; i<_children.size(); i++ ) {
     if( _children[i].node->hasMatch( documentID ) )
       return true;

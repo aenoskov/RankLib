@@ -131,6 +131,12 @@
 				RelativePath=".\Copier.cpp">
 			</File>
 			<File
+				RelativePath=".\DeletedDocumentList.cpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\DeletedDocumentList.hpp">
+			</File>
+			<File
 				RelativePath=".\DirectoryIterator.cpp">
 			</File>
 			<File

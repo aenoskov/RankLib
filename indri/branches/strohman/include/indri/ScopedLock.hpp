@@ -31,7 +31,8 @@ public:
   }
 
   void unlock() {
-    _lockable->unlock();
+    if( _lockable )
+      _lockable->unlock();
     _lockable = 0;
   }
 };

@@ -23,6 +23,7 @@ public:
   UtilityThread();
   virtual ~UtilityThread() {};
 
+  virtual bool hasWork() = 0;
   virtual UINT64 work() = 0;
   virtual UINT64 initialize() = 0;
   virtual void deinitialize() = 0;

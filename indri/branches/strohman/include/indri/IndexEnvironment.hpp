@@ -115,11 +115,7 @@ private:
                            const std::string& extension );
 
 public:
-  // DEBUG CODE TODO
-  Repository& repository() {
-    return _repository;
-  }
-  // END DEBUG CODE TODO
+  friend class QueryEnvironment;
 
   IndexEnvironment();
   ~IndexEnvironment();
@@ -167,6 +163,8 @@ public:
   /// set the amount of memory to use for internal structures
   /// @param memory the number of bytes to use.
   void setMemory( UINT64 memory );
+  /// set normalization of case; default is true (normalize during indexing and at query time)
+  void setNormalization( bool flag );
   /// create a new index and repository
   /// @param repositoryPath the path to the repository
   /// @param callback IndexStatus object to be notified of indexing progress.
@@ -192,6 +190,9 @@ public:
   /// add an already parsed document to the index and repository
   /// @param document the document to add
   void addParsedDocument( ParsedDocument* document );
+
+  /// delete an existing document
+  void deleteDocument( int documentID );
 };
 
 #endif // INDRI_INDEXENVIRONMENT_HPP

@@ -43,6 +43,9 @@ void UtilityThread::run() {
     waitTime = work();
   }
 
+  while( hasWork() )
+    work();
+
   deinitialize();
 }
 

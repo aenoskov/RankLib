@@ -45,3 +45,13 @@ UINT64 RepositoryLoadThread::work() {
   return FIVE_SECONDS;
 }
 
+//
+// hasWork
+//
+
+bool RepositoryLoadThread::hasWork() {
+  return false;
+}
+
+
+
