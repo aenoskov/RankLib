@@ -31,6 +31,9 @@ class NetworkServerProxy : public QueryServer {
 private:
   NetworkMessageStream* _stream;
 
+  INT64 _numericRequest( XMLNode* node );
+  std::string _stringRequest( XMLNode* node );
+
 public:
   NetworkServerProxy( NetworkMessageStream* stream );
 
