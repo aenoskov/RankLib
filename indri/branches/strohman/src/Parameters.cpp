@@ -509,7 +509,7 @@ void Parameters::loadFile( const std::string& filename ) {
     LEMUR_RETHROW( e, "Had trouble parsing parameter file '" + filename + "'" );
   }
 
-  delete buffer;
+  delete[] buffer;
   input.close();
 }
 
