@@ -56,5 +56,5 @@ bool indri::index::DiskTermListFileIterator::nextEntry() {
 //
 
 bool indri::index::DiskTermListFileIterator::finished() {
-  return _buffer.position() < _fileSize;
+  return _buffer.position() >= _fileSize;
 }

@@ -19,12 +19,16 @@
 #include "indri/DiskTermData.hpp"
 #include "indri/TermBitmap.hpp"
 #include "indri/DiskDocListIterator.hpp"
+#include "indri/DiskIndex.hpp"
 #include "indri/DocumentDataIterator.hpp"
+#include "indri/MemoryIndex.hpp"
 
 // TODO DEBUG TODO
 #include <iostream>
+
 #include "indri/IndriTimer.hpp"
 const int KEYFILE_MEMORY_SIZE = 128*1024;
+const int OUTPUT_BUFFER_SIZE = 32*1024;
 
 using namespace indri::index;
 
@@ -50,6 +54,7 @@ void IndexWriter::_writeSkip( SequentialWriteBuffer* buffer, int document, int l
 //
 
 void IndexWriter::_writeBatch( SequentialWriteBuffer* buffer, int document, int length, Buffer& data ) {
+  assert( length < 100*1000*1000 );
   _writeSkip( buffer, document, length );
   buffer->write( data.front(), data.position() );
   data.clear();
@@ -139,9 +144,19 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
   _invertedFile.create( invertedFilePath );
   _directFile.create( directFilePath );
 
-  _invertedOutput = new SequentialWriteBuffer( _invertedFile, 1024*1024 );
+  _invertedOutput = new SequentialWriteBuffer( _invertedFile, OUTPUT_BUFFER_SIZE );
 
   std::vector<WriterIndexContext*> contexts;
+
+  // begin DEBUG TODO
+  std::cout << "==== WRITING INDEXES ====" << std::endl;
+  for( int m = 0; m<indexes.size(); m++ ) {
+    if( dynamic_cast<indri::index::MemoryIndex*>(indexes[m]) )
+      std::cout << m << " MemoryIndex" << std::endl;
+    else
+      std::cout << m << " DiskIndex " << dynamic_cast<indri::index::DiskIndex*>(indexes[m])->path() << std::endl;
+  }
+  // end DEBUG TODO
 
   _buildIndexContexts( contexts, indexes );
   _writeInvertedLists( contexts );
@@ -380,7 +395,6 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
 
   // leave some room for the topdocs list
   if( hasTopdocs ) {
-    _invertedOutput->write( &topdocsCount, sizeof(int) );
     _invertedOutput->seek( topdocsSpace + initialPosition );
   }
 
@@ -450,6 +464,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
   if( hasTopdocs ) {
     _invertedOutput->seek( initialPosition );
     _invertedOutput->write( &topdocsCount, sizeof(int) );
+    assert( topdocs.size() == topdocsCount );
 
     // write these into the topdocs list in order from smallest fraction to largest fraction,
     // where fraction = c(w;D)/|D|
@@ -509,7 +524,7 @@ void IndexWriter::_storeFrequentTerms() {
 
   // store data in a file, too
   SequentialWriteBuffer writeBuffer( _frequentTermsData, 1024*1024 );
-  Buffer intermediateBuffer( 16*1024 );
+  Buffer intermediateBuffer( 128*1024 );
   RVLCompressStream stream( intermediateBuffer );
 
   for( int i=0; i<_topTerms.size(); i++ ) { 
@@ -733,6 +748,7 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
   // have to grab a list of all the old frequent terms first--how is this done?
   VocabularyIterator* vocabulary = context->index->frequentVocabularyIterator();
   indri::index::Index* index = context->index;
+  int documentsWritten = 0;
   
   vocabulary->startIteration();
 
@@ -764,6 +780,7 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
   while( !iterator->finished() ) {
     writeList.clear();
     TermList* list = iterator->currentEntry();
+    assert( list );
 
     // copy and translate terms
     for( int i=0; i<list->terms().size(); i++ ) {
@@ -806,18 +823,23 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
     documentData.offset = directOutput->tell() + writeStart + sizeof(UINT32);
 
     dataOutput->write( &documentData, sizeof(DocumentData) );
-    UINT32 termLength = documentData.indexedLength;
+    int termLength = documentData.indexedLength;
+    assert( termLength > 0 );
     lengthsOutput->write( &termLength, sizeof(UINT32) );
     
     iterator->nextEntry();
     dataIterator->nextEntry();
+    documentsWritten++;
   }
+
+  //assert( documentsWritten == _corpus.totalDocuments );
 
   delete iterator;
   delete dataIterator;
   delete translator;
   directOutput->write( outputBuffer.front(), outputBuffer.size() );
   directOutput->flush();
+  lengthsOutput->flush();
   outputBuffer.clear();
 }
 

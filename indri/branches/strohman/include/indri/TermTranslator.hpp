@@ -43,6 +43,7 @@ namespace indri {
       }
 
       int operator() ( int termID ) {
+        assert( termID >= 0 );
         int result = 0;
 
         if( termID < _previousFrequentCount ) {

@@ -224,9 +224,11 @@ int indri::index::DiskIndex::documentLength( int documentID ) {
     return 0;
 
   int length;
-  UINT64 offset = sizeof(length) + documentOffset;
+  UINT64 offset = sizeof(UINT32) * documentOffset;
 
-  _documentLengths.read( &length, offset, sizeof(length) );
+  size_t actual = _documentLengths.read( &length, offset, sizeof(UINT32) );
+  assert( actual == sizeof(UINT32) );
+  assert( length >= 0 );
   return length;
 }
 
