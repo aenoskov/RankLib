@@ -42,7 +42,7 @@ static bool maintenance_should_merge( Repository::index_state& state, Repository
   //   is all weighted by the number of indexes we have to merge.
 
   return couldUseMerge &&
-         (indexesToMerge > 100 || (addRatio/500) < indexesToMerge);
+         (indexesToMerge > 100 || (addRatio/50) < indexesToMerge);
 }
 
 //
