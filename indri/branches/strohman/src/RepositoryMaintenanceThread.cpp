@@ -30,7 +30,7 @@ static float maintenance_smoothed_load( Repository::Load& load ) {
 
 static bool maintenance_should_merge( Repository::index_state& state, Repository::Load& documentLoad, Repository::Load& queryLoad ) {
   float addRatio = maintenance_smoothed_load( documentLoad ) / 
-                   maintenance_smoothed_load( queryLoad );
+                   (maintenance_smoothed_load( queryLoad ) + 1);
 
   bool couldUseMerge = state->size() >= 2;
   int indexesToMerge = state->size(); 
