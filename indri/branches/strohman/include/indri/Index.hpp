@@ -30,6 +30,14 @@ namespace indri {
         bool numeric;
       };
       
+      virtual ~Index() {};
+
+      //
+      // Actions
+      //
+
+      virtual void close() = 0;
+
       //
       // Counts
       //

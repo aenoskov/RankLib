@@ -59,6 +59,7 @@
 #include "indri/Transformation.hpp"
 #include "indri/MemoryIndex.hpp"
 #include "indri/DiskIndex.hpp"
+#include "indri/ref_ptr.hpp"
 #include <string>
 
 /*! Encapsulates document manager, index, and field indexes. Provides access 
@@ -72,17 +73,26 @@ public:
     bool numeric;
   };
 
-private:
-  std::vector<indri::index::Index*> _indexes;
+  typedef std::vector<indri::index::Index*> index_vector;
+  typedef indri::ref_ptr<index_vector> index_state;
 
-  class indri::index::MemoryIndex* _mutableIndex;
+private:
+  Mutex _stateLock; /// protects against state changes
+  std::vector<index_state> _states;
+  index_state _active;
+  int _indexCount;
+
+  Mutex _addLock; /// protects addDocument
+
   class CompressedCollection* _collection;
   Parameters _parameters;
   std::vector<Transformation*> _transformations;
   std::vector<Field> _fields;
+  std::vector<indri::index::Index::FieldDescription> _indexFields;
 
   std::string _path;
   bool _readOnly;
+
 
   INT64 _memory;
 
@@ -91,6 +101,15 @@ private:
   void _buildTransientChain( Parameters& parameters );
 
   void _copyParameters( Parameters& options );
+
+  void _removeStates( std::vector<index_state>& toRemove );
+  void _swapState( indri::index::Index* oldIndex, indri::index::Index* newIndex );
+  void _remove( const std::string& path );
+
+  void _openIndexes( Parameters& params, const std::string& parentPath );
+  std::vector<index_state> _statesContaining( indri::index::Index* index );
+  void _closeIndexes();
+  std::vector<indri::index::Index::FieldDescription> _fieldsForIndex( std::vector<Repository::Field>& _fields );
 
 public:
   Repository() {
@@ -134,7 +153,13 @@ public:
   void close();
 
   /// Indexes in this repository
-  std::vector<indri::index::Index*> indexes();
+  index_state indexes();
+
+  /// Add a new memory index
+  void addMemoryIndex();
+
+  /// Write the most recent state out to disk
+  void write();
 };
 
 #endif // INDRI_REPOSITORY_HPP

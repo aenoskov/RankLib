@@ -70,7 +70,7 @@ private:
   Repository& _repository;
   ListCache _cache;
 
-  indri::index::Index* _indexWithDocument( int documentID );
+  indri::index::Index* _indexWithDocument( Repository::index_state& state, int documentID );
 
 public:
   LocalQueryServer( Repository& repository );

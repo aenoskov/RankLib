@@ -246,10 +246,10 @@ void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
 //
 
 const InferenceNetwork::MAllResults& InferenceNetwork::evaluate() {
-  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  Repository::index_state indexes = _repository.indexes();
   
-  for( int i=0; i<indexes.size(); i++ ) {
-    indri::index::Index& index = *indexes[i];
+  for( int i=0; i<indexes->size(); i++ ) {
+    indri::index::Index& index = *(*indexes)[i];
 
     // TODO: index->lockIterators();
     // TODO: index->lockStatistics();

@@ -22,7 +22,8 @@ void indri::index::DocListMemoryBuilderIterator::startIteration() {
 // reset
 //
 
-void indri::index::DocListMemoryBuilderIterator::reset( const DocListMemoryBuilder& builder ) {
+void indri::index::DocListMemoryBuilderIterator::reset( DocListMemoryBuilder& builder ) {
+  builder.flush();
   reset( builder._lists );
 }
 
@@ -30,13 +31,13 @@ void indri::index::DocListMemoryBuilderIterator::reset( const DocListMemoryBuild
 // reset
 //
 
-void indri::index::DocListMemoryBuilderIterator::reset( const greedy_vector< std::pair<char*,char*>, 4 >& lists ) {
+void indri::index::DocListMemoryBuilderIterator::reset( const greedy_vector< DocListMemoryBuilderSegment, 4 >& lists ) {
   _lists = &lists;
   _current = _lists->begin();
   
   if( _current != _lists->end() ) {
-    _list = _current->first;
-    _listEnd = _current->second;
+    _list = _current->base;
+    _listEnd = _current->data;
   } else {
     _list = 0;
     _listEnd = 0;
@@ -59,9 +60,9 @@ indri::index::DocListMemoryBuilderIterator::DocListMemoryBuilderIterator() {
 // DocListMemoryBuilderIterator constructor
 //
 
-indri::index::DocListMemoryBuilderIterator::DocListMemoryBuilderIterator( const class DocListMemoryBuilder& builder )
+indri::index::DocListMemoryBuilderIterator::DocListMemoryBuilderIterator( class DocListMemoryBuilder& builder )
 {
-  reset( builder._lists );
+  reset( builder );
 }
 
 //
@@ -109,8 +110,8 @@ bool indri::index::DocListMemoryBuilderIterator::nextEntry() {
       _current++;
     
     if( _current != _lists->end() ) {
-      _list = _current->first;
-      _listEnd = _current->second;
+      _list = _current->base;
+      _listEnd = _current->data;
       return nextEntry();
     }
 
