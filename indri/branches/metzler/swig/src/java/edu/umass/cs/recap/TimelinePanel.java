@@ -290,6 +290,8 @@ public class TimelinePanel extends JPanel {
 	public ScoredDocInfo getDocAt( Point p ) {
 		ScoredDocInfo ret = null;
 		for( int i = 0; i < ovals.size(); i++ ) {
+			if( viewable != null && !viewable[i] ) // can't select invisible documents
+				continue;
 			Shape s = (Ellipse2D.Double)ovals.elementAt( i );
 			if( s.contains( p ) )
 				return (ScoredDocInfo)results.elementAt( i );

@@ -33,6 +33,8 @@ public class RetrievalEngine {
 	// score for an unmatched sentence
 	private final double EPSILON = 1E-100;
 
+	private final double NOMATCH_SCORE = -100000.0;
+	
 	// Indri retrieval engine wrapper
 	private QueryEnvironment indri = null;
 
@@ -241,12 +243,12 @@ public class RetrievalEngine {
 			for( int i = 0; i < queryScores.length; i++ ) {
 				if( queryScores[i].score > maxScore )
 					maxScore = queryScores[i].score;
-				if( queryScores[i].score < minScore && queryScores[i].score > EPSILON )
+				if( queryScores[i].score < minScore && queryScores[i].score > NOMATCH_SCORE )
 					minScore = queryScores[i].score;
 			}
 			
 			for( int i = 0; i < queryScores.length; i++ ) {
-				ScoredExtentResult r = (ScoredExtentResult)queryScores[i];
+				ScoredExtentResult r = queryScores[i];
 
 				// normalize scores between 0 and 1 to allow thresholding
 				if( maxScore - minScore != 0.0 )
@@ -254,7 +256,6 @@ public class RetrievalEngine {
 				else
 					r.score = 1.0;
 				
-				//System.out.println( r.score );
 				Integer docNum = new Integer( r.document );
 				Vector v = (Vector)results.get( docNum );
 				if( v == null )
