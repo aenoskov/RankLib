@@ -693,7 +693,7 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInf
   for( int i=0; i<missing.size(); i++ ) {
     int missingTerm = missing[i].second;
     if( frequent->size() <= missingTerm ) 
-      frequent->resize( missingTerm+1, 0 );
+      frequent->resize( missingTerm+1, -1 );
     (*frequent)[missingTerm] = _lookupTermID( newInfrequentTerms, missing[i].first );
   }
 
