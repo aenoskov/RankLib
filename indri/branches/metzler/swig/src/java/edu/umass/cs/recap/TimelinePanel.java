@@ -38,7 +38,13 @@ public class TimelinePanel extends JPanel {
 	private ScoredDocInfo currentInfo = null;
 	
 	private int minYear = Integer.MAX_VALUE;
+	private int minDate = 31;
+	private int minMonth = 12;
+	
 	private int maxYear = Integer.MIN_VALUE;
+	private int maxDate = 1;
+	private int maxMonth = 1;
+	
 	private double maxScore = Double.MIN_VALUE;
 	
 	public TimelinePanel () {
@@ -64,21 +70,39 @@ public class TimelinePanel extends JPanel {
 	
 	private void init() {
 		minYear = Integer.MAX_VALUE;
+		minDate = 31;
+		minMonth = 12;
+		
 		maxYear = Integer.MIN_VALUE;
+		maxDate = 1;
+		maxMonth = 1;
+		
 		maxScore = -100000.0;
 		
 		for( int i = 0; i < results.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
+			int curMonth = info.month;
+			int curDate = info.date;
 			int curYear = info.year;
-			if( curYear < minYear )
+			if( curYear <= maxYear &&
+					( curMonth < maxMonth ||
+					( curMonth == maxMonth && curDate < maxDate ) ) ) { 
+				minMonth = curMonth;
+				minDate = curDate;
 				minYear = curYear;
-			if( curYear > maxYear )
+			}
+			if( curYear >= maxYear &&
+				( curMonth > maxMonth ||
+				( curMonth == maxMonth && curDate > maxDate ) ) ) { 
+				maxMonth = curMonth;
+				maxDate = curDate;
 				maxYear = curYear;
+			}
 			System.out.println("score="+info.score+",maxScore="+maxScore);
 			if( info.score > maxScore )
 				maxScore = info.score;
 		}
-		
+				
 		System.out.println("minYear="+minYear+",maxYear="+maxYear+",maxScore="+maxScore);
 	}
 	
@@ -113,7 +137,6 @@ public class TimelinePanel extends JPanel {
 			xPos += (int)(info.month-1)*( yearWidth / 12.0 );
 			xPos += (int)(info.date-1)*( yearWidth / (12.0 * 31.0 ) );
 			
-			// TODO: make this dependent on the score
 			int size = MIN_SIZE + (int)(( MAX_SIZE - MIN_SIZE )* ( Math.exp( info.score ) / Math.exp( maxScore ) ) );
 
 			// add oval for this document
@@ -158,5 +181,17 @@ public class TimelinePanel extends JPanel {
 				return (ScoredDocInfo)results.elementAt( i );
 		}
 		return ret;
+	}
+	
+	public String getStartDate() {
+		return minMonth + "/" + minDate + "/" + minYear;  
+	}
+	
+	public void setStartDate() {
+		
+	}
+	
+	public String getEndDate() {
+		return maxMonth + "/" + maxDate + "/" + maxYear;  
 	}
 }
