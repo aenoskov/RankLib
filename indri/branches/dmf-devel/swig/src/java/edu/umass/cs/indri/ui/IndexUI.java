@@ -46,7 +46,7 @@ public class IndexUI extends JPanel implements ActionListener,
     /** Help file for the application */
     private final static String helpFile = "properties/IndriIndex.html";
     /** The little icon */
-    private final static String iconFile = null;
+    private final static String iconFile = "properties/lemur_icon.gif";
     /** The big logo */
     private final static String logoFile = null;
     /** Indri FileClassEnvironments */
@@ -531,7 +531,7 @@ public class IndexUI extends JPanel implements ActionListener,
 	//Create and set up the window.
 	JFrame frame = new JFrame("Indri Index Builder");
 	frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	//	frame.setIconImage(createImageIcon(iconFile).getImage());
+	frame.setIconImage(createImageIcon(iconFile).getImage());
 	//Create and set up the content pane.
 	IndexUI newContentPane = new IndexUI();
 	newContentPane.setOpaque(true); //content panes must be opaque
