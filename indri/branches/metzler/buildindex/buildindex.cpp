@@ -479,6 +479,10 @@ int main(int argc, char * argv[]) {
     if( stemmerName.length() )
       env.setStemmer(stemmerName);
 
+	std::string segmenterName = parameters.get_Count("segmenter.name", "");
+	if( segmenterName.lenght() )
+		env.setSegmenter(segmenterName);
+
     std::vector<std::string> stopwords;
     if( copy_parameters_to_string_vector( stopwords, parameters, "stopper.word" ) )
       env.setStopwords(stopwords);
