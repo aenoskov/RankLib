@@ -8,6 +8,10 @@
 #ifndef INDRI_ATOMIC_HPP
 #define INDRI_ATOMIC_HPP
 
+#ifndef WIN32
+#include <bits/atomicity.h>
+#endif
+
 namespace indri {
   namespace atomic {
   #ifdef WIN32
@@ -24,11 +28,11 @@ namespace indri {
     typedef _Atomic_word value_type;
 
     inline void increment( value_type& variable ) {
-      __atomic_add( &variable, 1 );
+      __gnu_cxx::__atomic_add( &variable, 1 );
     }
 
     inline void decrement( value_type& variable ) {
-      __atomic_add( &variable, -1 );
+      __gnu_cxx::__atomic_add( &variable, -1 );
     }
   #endif
   };

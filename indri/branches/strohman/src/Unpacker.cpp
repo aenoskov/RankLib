@@ -149,7 +149,7 @@ namespace indri {
       return result;
     }
 
-    std::vector<std::string> Unpacker::getStringVector( const char* stringName ) {
+    std::vector<std::string> Unpacker::getStringVector( const char* name ) {
       std::vector<std::string> result;
       const XMLNode* vector = _current->getChild(name);
 

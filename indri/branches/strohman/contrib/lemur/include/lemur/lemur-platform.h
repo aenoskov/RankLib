@@ -30,6 +30,8 @@
   typedef unsigned int UINT32;
   typedef signed short INT16;
   typedef unsigned short UINT16;
+  typedef unsigned char UINT8;
+  typedef char INT8;
   typedef off_t FILE_OFFSET;
   typedef int socket_t;
 
@@ -59,6 +61,8 @@
   typedef signed short INT16;
   typedef signed char INT8;
   typedef unsigned int UINT32;
+  typedef unsigned char UINT8;
+  typedef char INT8;
   typedef int FILE_OFFSET;
   typedef SOCKET socket_t;
 

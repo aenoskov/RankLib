@@ -68,7 +68,7 @@ namespace indri {
 
       struct TopDocument {
         struct less {
-          bool operator() ( TopDocument& one, TopDocument& two ) {
+          bool operator() ( const TopDocument& one, const TopDocument& two ) const {
             double oneFrac = double(one.count) / double(one.length);
             double twoFrac = double(two.count) / double(two.length);
             return oneFrac < twoFrac;
@@ -76,7 +76,7 @@ namespace indri {
         };
 
         struct docid_less {
-          bool operator() ( TopDocument& one, TopDocument& two ) {
+          bool operator() ( const TopDocument& one, const TopDocument& two ) const {
             return one.document < two.document;
           }
         };

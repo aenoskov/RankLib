@@ -427,7 +427,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
     // write these into the topdocs list in order from smallest fraction to largest fraction,
     // where fraction = c(w;D)/|D|
     while( topdocs.size() ) {
-      DocListIterator::TopDocument& topDocument = topdocs.top();
+      DocListIterator::TopDocument topDocument = topdocs.top();
       
       _invertedOutput->write( &topDocument.document, sizeof(int) );
       _invertedOutput->write( &topDocument.count, sizeof(int) );

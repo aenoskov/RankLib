@@ -14,9 +14,9 @@ namespace indri {
   template<class T>
   class ref_ptr {
   private:
-    template<class T>
+    template<class TT>
     struct object_ref {
-      T* object;
+      TT* object;
       atomic::value_type counter;
     };
 

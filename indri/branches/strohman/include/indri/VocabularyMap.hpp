@@ -22,3 +22,5 @@ namespace indri {
 }
 
 #endif // INDRI_VOCABULARYMAP_HPP
+
+

@@ -144,3 +144,5 @@ inline void disktermdata_delete( indri::index::DiskTermData* diskData ) {
 }
 
 #endif // INDRI_DISKTERMDATA_HPP
+
+
