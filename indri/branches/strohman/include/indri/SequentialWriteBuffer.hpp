@@ -26,21 +26,39 @@ public:
   }
 
   void seek( UINT64 position ) {
-    flush();
+    if( position < _current.filePosition )
+      flush();
     _position = position;
     _current.filePosition = position;
   }
   
   char* write( size_t length ) {
-    // if this won't fit in the buffer, flush it
-    if( _current.buffer.position() > 0 && _current.buffer.size() - _current.buffer.position() < length ) {
+    assert( _position >= _current.filePosition );
+
+    UINT64 endBuffer = _current.filePosition + _current.buffer.size();
+    UINT64 endBufferData = _current.filePosition + _current.buffer.position();
+    UINT64 endWrite = length + _position;
+    char* writeSpot;
+
+    if( endBuffer < endWrite ) {
+      // it's not going to fit without flushing
       flush();
       _current.filePosition = _position;
+
+      endBuffer = _current.filePosition + _current.buffer.size();
+      endBufferData = _current.filePosition + _current.buffer.position();
     }
-    
-    // write this data to the buffer, update file pointer, and get out
+
+    if( endWrite > endBufferData ) {
+      // need to move the buffer pointer to the end, potentially resizing buffer
+      _current.buffer.write( endWrite - endBufferData );
+    }
+
+    writeSpot = _current.buffer.front() + (_position - _current.filePosition);
+    assert( writeSpot + length <= _current.buffer.front() + _current.buffer.position() );
     _position += length;
-    return _current.buffer.write( length );
+
+    return writeSpot;
   }
 
   void write( const void* buffer, size_t length ) {
@@ -58,6 +76,7 @@ public:
   }
 
   void flush() {
+    std::cout << "writing " << _current.buffer.position() << " bytes" << std::endl;
     _file.write( _current.buffer.front(), _current.filePosition, _current.buffer.position() );
     _current.buffer.clear();
     _current.filePosition = 0;
