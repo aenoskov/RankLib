@@ -61,13 +61,45 @@
 #include "indri/ScopedLock.hpp"
 #include "indri/Thread.hpp"
 
+const static int CLOSE_ITERATOR_RANGE = 5000;
+
+//
+// _moveDocListIterators
+//
+
+inline void InferenceNetwork::_moveDocListIterators( int candidate ) {
+  std::vector<indri::index::DocListIterator*>::iterator iter;
+
+  if( _closeIterators.size() && candidate < _closeIteratorBound ) {
+    // we're close to this document, so only advance the iterators that are close
+
+    for( iter = _closeIterators.begin(); iter != _closeIterators.end(); iter++ ) {
+      (*iter)->nextEntry( candidate );
+    }
+  } else {
+    _closeIterators.clear();
+    _closeIteratorBound = candidate + CLOSE_ITERATOR_RANGE;
+
+    for( iter = _docIterators.begin(); iter != _docIterators.end(); iter++ ) {
+      if( *iter ) {
+        (*iter)->nextEntry( candidate );
+
+        if( !(*iter)->finished() &&
+            (*iter)->currentEntry()->document < _closeIteratorBound ) {
+          _closeIterators.push_back( *iter );
+        }
+      }
+    }
+  }
+}
+
+//
+// _moveToDocument
+//
+
 void InferenceNetwork::_moveToDocument( int candidate ) {
   // move all document iterators
-  std::vector<indri::index::DocListIterator*>::iterator iter;
-  for( iter = _docIterators.begin(); iter != _docIterators.end(); iter++ ) {
-    if( *iter )
-      (*iter)->nextEntry( candidate );
-  }
+  _moveDocListIterators( candidate );
 
   // move all field iterators
   std::vector<indri::index::DocExtentListIterator*>::iterator fiter;
@@ -100,6 +132,9 @@ void InferenceNetwork::_indexFinished( indri::index::Index& index ) {
 //
 
 void InferenceNetwork::_indexChanged( indri::index::Index& index ) {
+  _closeIterators.clear();
+  _closeIteratorBound = -1;
+
   // doc iterators
   for( int i=0; i<_termNames.size(); i++ ) {
     indri::index::DocListIterator* iterator = index.docListIterator( _termNames[i] );
@@ -137,6 +172,10 @@ void InferenceNetwork::_indexChanged( indri::index::Index& index ) {
   }
 }
 
+//
+// _nextCandidateDocument
+//
+
 int InferenceNetwork::_nextCandidateDocument( DeletedDocumentList::read_transaction* deleted ) {
   int candidate = MAX_INT32;
 
@@ -147,6 +186,10 @@ int InferenceNetwork::_nextCandidateDocument( DeletedDocumentList::read_transact
   return deleted->nextCandidateDocument( candidate );
 }
 
+//
+// _evaluateDocument
+//
+
 void InferenceNetwork::_evaluateDocument( indri::index::Index& index, int document ) {
   int candidateLength = index.documentLength( document );
 
@@ -155,10 +198,19 @@ void InferenceNetwork::_evaluateDocument( indri::index::Index& index, int docume
   }
 }
 
+//
+// InferenceNetwork constructor
+//
+
 InferenceNetwork::InferenceNetwork( Repository& repository ) :
-  _repository(repository)
+  _repository(repository),
+  _closeIteratorBound(-1)
 {
 }
+
+//
+// InferenceNetwork destructor
+//
 
 InferenceNetwork::~InferenceNetwork() {
   delete_vector_contents<indri::index::DocExtentListIterator*>( _fieldIterators );

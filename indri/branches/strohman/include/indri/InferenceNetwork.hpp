@@ -83,6 +83,10 @@ private:
   std::vector<EvaluatorNode*> _evaluators;
   std::vector<EvaluatorNode*> _complexEvaluators;
   std::vector<TermScoreFunction*> _scoreFunctions;
+
+  greedy_vector<class indri::index::DocListIterator*> _closeIterators;
+  int _closeIteratorBound;
+
   Repository& _repository;
   MAllResults _results;
 
@@ -90,6 +94,8 @@ private:
   void _indexFinished( indri::index::Index& index );
 
   void _moveToDocument( int candidate );
+  void _moveDocListIterators( int candidate );
+
   int _nextCandidateDocument( DeletedDocumentList::read_transaction* deleted );
   void _evaluateDocument( indri::index::Index& index, int document );
   void _evaluateIndex( indri::index::Index& index );
