@@ -675,6 +675,7 @@ int IndexWriter::_lookupTermID( Keyfile& keyfile, const char* term ) {
 indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInfrequentTerms,
                                             Keyfile& newFrequentTerms,
                                             TermRecorder& oldFrequentTermsRecorder,
+                                            HashTable<int, int>* oldInfrequentHashTable,
                                             TermRecorder& newFrequentTermsRecorder,
                                             TermRecorder& newlyInfrequentTermsRecorder,
                                             TermBitmap* bitmap )
@@ -697,7 +698,6 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInf
   }
 
   // 3. map infrequent terms to frequent terms
-  HashTable<int, int>* wasInfrequentMap = new HashTable<int, int>();
   newlyInfrequentTermsRecorder.sort();
   std::vector< std::pair< const char*, int > >& newlyInfrequentPairs = newlyInfrequentTermsRecorder.pairs();
 
@@ -705,7 +705,7 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInf
     // lookup newlyInfrequentTerms[i]
     int oldTermID = newlyInfrequentPairs[i].second;
     int newTermID = _lookupTermID( newFrequentTerms, newlyInfrequentPairs[i].first );
-    wasInfrequentMap->insert( oldTermID, newTermID );
+    oldInfrequentHashTable->insert( oldTermID, newTermID );
   }
 
   // 4. infrequent to infrequent is easy--bitmap takes care of it
@@ -713,12 +713,12 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInf
   // new frequent count = previouslyFrequent - becameInfrequent + becameFrequent
 
   int oldFrequentCount = frequent->size();
-  int newFrequentCount = frequent->size() - missing.size() + wasInfrequentMap->size();
+  int newFrequentCount = frequent->size() - missing.size() + oldInfrequentHashTable->size();
 
   return new TermTranslator( oldFrequentCount,
                              newFrequentCount,
                              frequent,
-                             wasInfrequentMap,
+                             oldInfrequentHashTable,
                              bitmap );
 }
 
@@ -750,6 +750,7 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
   TermTranslator* translator = _buildTermTranslator( *_infrequentTerms.stringMap,
                                                      *_frequentTerms.stringMap,
                                                      *context->oldFrequent,
+                                                     context->oldInfrequent,
                                                      *context->newlyFrequent,
                                                      *context->newlyInfrequent,
                                                      context->bitmap );
