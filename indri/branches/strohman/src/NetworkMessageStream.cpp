@@ -241,3 +241,5 @@ void NetworkMessageStream::error( const std::string& errorMessage ) {
 Lockable& NetworkMessageStream::mutex() {
   return _lock;
 }
+
+
