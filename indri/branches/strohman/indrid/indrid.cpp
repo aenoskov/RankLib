@@ -87,6 +87,31 @@ as <tt>-index=/path/to/repository</tt> on the command line.
 #include "indri/NetworkServerStub.hpp"
 #include "indri/Parameters.hpp"
 #include "lemur/Exception.hpp"
+#include "indri/Mutex.hpp"
+#include "indri/ScopedLock.hpp"
+#include <time.h>
+
+//
+// verbose
+//
+
+static bool verbose = false;
+static Mutex loglock;
+
+//
+// log_message
+//
+
+void log_message( const char* peer, const char* message ) {
+  ScopedLock lock( loglock );
+  time_t utc;
+
+  time( &utc );
+  struct tm* now = localtime( &utc );
+  const char* currentTime = asctime(now);
+
+  std::cout << peer << " [" << currentTime << "]: " << message << std::endl;
+}
 
 //
 // connection_info
@@ -108,9 +133,18 @@ void connection_thread( void* c ) {
 
   NetworkMessageStream messageStream( info->stream );
   NetworkServerStub stub( info->server, &messageStream );
+  std::string peer = info->stream->peer();
 
-  stub.run();
+  log_message( peer.c_str(), "connected" );
+  
+  while( messageStream.alive() ) {
+    log_message( peer.c_str(), "received request" );
+    messageStream.read( stub ); 
+    log_message( peer.c_str(), "sent response" );
+  }
+
   info->active = false;
+  log_message( peer.c_str(), "disconnected" );
 }
 
 //
@@ -178,6 +212,7 @@ int main( int argc, char* argv[] ) {
 
     NetworkListener listener;
     int port = parameters.get( "port", INDRID_PORT );
+    verbose = parameters.get( "verbose", false );
     std::string repositoryPath = parameters["index"];
 
     // wrap the index in a local server that the stub can talk to

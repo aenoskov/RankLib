@@ -146,6 +146,7 @@ inline int BulkBlock::_find( const char* key, int keyLength, bool& exact ) {
 BulkBlock::BulkBlock( bool leaf ) {
   _buffer = new char[BULK_BLOCK_SIZE];
   *(UINT16*) _buffer = (leaf ? (1<<15) : 0);
+  _previous = _next = 0;
 }
 
 BulkBlock::~BulkBlock() {
@@ -246,6 +247,68 @@ inline char* BulkBlock::data() {
 int BulkBlock::dataSize() {
   return BULK_BLOCK_SIZE;
 }
+
+//
+// getID
+//
+
+UINT32 BulkBlock::getID() {
+  return _id;
+}
+
+//
+// setID
+
+void BulkBlock::setID( UINT32 id ) {
+  _id = id;
+}
+//
+
+//
+// link
+//
+
+void BulkBlock::link( BulkBlock* previous, BulkBlock* next ) {
+  _previous = previous;
+  _next = next;
+
+  if( previous )
+    previous->_next = this;
+
+  if( next )
+    next->_previous = this;
+}
+
+//
+// unlink
+//
+
+void BulkBlock::unlink() {
+  if( _previous )
+    _previous->_next = _next;
+
+  if( _next )
+    _next->_previous = _previous;
+
+  _next = _previous = 0;
+}
+
+//
+// next
+//
+
+BulkBlock* BulkBlock::next() {
+  return _next;
+}
+
+//
+// previous
+//
+
+BulkBlock* BulkBlock::previous() {
+  return _previous;
+}
+
 
 // ==============
 // BulkTreeWriter
@@ -358,37 +421,56 @@ BulkBlock* BulkTreeReader::_fetch( UINT32 id ) {
   BulkBlock* block;
 
   if( !result ) {
-    if( _cache.size() >= 200 ) {
-      block = &_spare;
+    if( _cache.size() == 256 ) {
+      block = _tail;
+      _tail = block->previous();
+      _cache.remove( block->getID() );
     } else {
       block = new BulkBlock;
-      _cache.insert( id, block );
     }
 
     _file->read( block->data(), id*BulkBlock::dataSize(), BulkBlock::dataSize() );
+    block->setID( id );
+    _cache.insert( id, block );
   } else {
     block = *result;
+    
+    if( _tail == block )
+      _tail = block->previous();
   }
+
+  // move to front of list
+  block->unlink();
+  block->link( 0, _head );
+  if( _tail == 0 )
+    _tail = block;
+  _head = block;
   
   return block;
 }
 
 BulkTreeReader::BulkTreeReader( File& file ) :
   _file(&file),
-  _ownFile(false)
+  _ownFile(false),
+  _head(0),
+  _tail(0)
 {
 }
 
 BulkTreeReader::BulkTreeReader( File& file, UINT64 length ) :
   _file(&file),
   _ownFile(false),
-  _fileLength(length)
+  _fileLength(length),
+  _head(0),
+  _tail(0)
 {
 }
 
 BulkTreeReader::BulkTreeReader() :
   _ownFile(false),
-  _file(0)
+  _file(0),
+  _head(0),
+  _tail(0)
 {
 }
 

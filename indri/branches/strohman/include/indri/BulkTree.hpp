@@ -17,6 +17,10 @@ class BulkBlock {
 private:
   char* _buffer;
 
+  BulkBlock* _previous;
+  BulkBlock* _next;
+  UINT32 _id;
+
   int _remainingCapacity();
   int _dataEnd();
   int _keyEnd( int index );
@@ -45,6 +49,14 @@ public:
   void clear();
   char* data();
   static int dataSize();
+
+  // linked list
+  void setID( UINT32 id );
+  UINT32 getID();
+  void link( BulkBlock* previous, BulkBlock* next );
+  void unlink();
+  BulkBlock* previous();
+  BulkBlock* next();
 };
 
 
@@ -84,8 +96,10 @@ private:
   File* _file;
   UINT64 _fileLength;
   bool _ownFile;
+  
+  BulkBlock* _head;
+  BulkBlock* _tail;
   HashTable< UINT32, BulkBlock* > _cache;
-  BulkBlock _spare;
 
   BulkBlock* _fetch( UINT32 id );
 

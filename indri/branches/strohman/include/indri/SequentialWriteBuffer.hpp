@@ -16,12 +16,15 @@ private:
   File& _file;
   InternalFileBuffer _current;
   UINT64 _position;
+  UINT64 _eof;
 
 public:
+  // Note: we assume that the file is empty
   SequentialWriteBuffer( File& file, size_t length ) :
     _file(file),
     _current(length),
-    _position(0)
+    _position(0),
+    _eof(0)
   {
   }
 
@@ -37,8 +40,7 @@ public:
     UINT64 startBuffer = _current.filePosition;
     char* writeSpot;
 
-    if( startBuffer > startWrite || endBuffer < endWrite || startWrite > endBufferData ) {
-      // it's not going to fit without flushing
+    if( startBuffer > startWrite || endBuffer < endWrite || (endBufferData < _eof && startWrite > endBufferData) ) {
       flush();
       _current.filePosition = _position;
 
@@ -80,6 +82,7 @@ public:
     _file.write( _current.buffer.front(), _current.filePosition, _current.buffer.position() );
     _current.buffer.clear();
     _current.filePosition += bytes;
+    _eof = lemur_compat::max( _current.filePosition, _eof );
   }
 };
 

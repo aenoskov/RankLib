@@ -26,7 +26,7 @@
 
 #include "indri/IndriTimer.hpp"
 const int KEYFILE_MEMORY_SIZE = 128*1024;
-const int OUTPUT_BUFFER_SIZE = 32*1024;
+const int OUTPUT_BUFFER_SIZE = 512*1024;
 
 using namespace indri::index;
 
@@ -410,7 +410,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
                       std::vector<DocListIterator::TopDocument>,
                       DocListIterator::TopDocument::less> topdocs;
   DocListIterator::TopDocument::less docLess;
-  double threshold;
+  double threshold = 0;
 
   int lastDocument = 0;
   int positions = 0;
@@ -435,7 +435,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
         int length = index->documentLength( documentData->document );
         int count = documentData->positions.size();
 
-        if( int(length * threshold) < positions ) {
+        if( int(length * threshold) < positions || topdocs.size() < topdocsCount ) {
           // form a topdocs entry for this document
           DocListIterator::TopDocument topDocument( documentData->document,
                                                     count,
