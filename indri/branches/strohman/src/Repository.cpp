@@ -488,7 +488,7 @@ void Repository::addDocument( ParsedDocument* document ) {
   }
 
   int documentID = dynamic_cast<indri::index::MemoryIndex*>(state->back())->addDocument( *document );
-  //_collection->addDocument( documentID, document );
+  _collection->addDocument( documentID, document );
 
   _countDocumentAdd();
 }
@@ -791,8 +791,8 @@ void Repository::_merge() {
   }
 
   // no need to merge when there's only one index (or none)
-  bool needsWrite = (state->size() > 1) ||
-                    (state->size() == 1 && dynamic_cast<indri::index::MemoryIndex*>((*state)[0]));
+  bool needsWrite = (mergers->size() > 1) ||
+                    (mergers->size() == 1 && dynamic_cast<indri::index::MemoryIndex*>((*mergers)[0]));
 
   if( !needsWrite )
     return;

@@ -56,6 +56,7 @@
 #define INDRI_DOCLISTITERATOR_HPP
 
 #include "greedy_vector"
+#include "indri/TermData.hpp"
 
 namespace indri {
   namespace index {
@@ -97,6 +98,9 @@ namespace indri {
 
       // get the iterator ready to return data; call this before calling currentEntry or nextEntry
       virtual void startIteration() = 0;
+
+      // get the termData structure associated with this term
+      virtual TermData* termData() = 0;
 
       // get a list of top documents for this iterator (must call startIteration() first)
       virtual const greedy_vector<TopDocument>& topDocuments() = 0;

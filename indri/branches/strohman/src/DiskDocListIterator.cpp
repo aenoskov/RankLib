@@ -49,10 +49,13 @@
 // DiskDocListIterator constructor
 //
 
-indri::index::DiskDocListIterator::DiskDocListIterator( SequentialReadBuffer* buffer, UINT64 startOffset )
+indri::index::DiskDocListIterator::DiskDocListIterator( SequentialReadBuffer* buffer, UINT64 startOffset, int fieldCount )
   :
   _file(buffer),
-  _startOffset(startOffset)
+  _startOffset(startOffset),
+  _fieldCount(fieldCount),
+  _termData(0),
+  _ownTermData(false)
 {
 }
 
@@ -62,16 +65,20 @@ indri::index::DiskDocListIterator::DiskDocListIterator( SequentialReadBuffer* bu
 
 indri::index::DiskDocListIterator::~DiskDocListIterator() {
   delete _file;
+  if( _ownTermData )
+    free(_termData);
 }
 
 //
 // setEndpoints
 //
 
-void indri::index::DiskDocListIterator::setStartOffset( UINT64 startOffset ) {
+void indri::index::DiskDocListIterator::setStartOffset( UINT64 startOffset, TermData* termData ) {
   _startOffset = startOffset;
   _topdocs.clear();
   _file->seek( _startOffset );
+  _termData = termData;
+  _ownTermData = false;
 }
 
 //
@@ -80,6 +87,29 @@ void indri::index::DiskDocListIterator::setStartOffset( UINT64 startOffset ) {
 
 const greedy_vector<indri::index::DocListIterator::TopDocument>& indri::index::DiskDocListIterator::topDocuments() {
   return _topdocs;
+}
+
+//
+// _readTermData
+//
+
+void indri::index::DiskDocListIterator::_readTermData( int headerLength ) {
+  if( !_termData ) {
+    Buffer header;
+
+    _file->read( header.write( headerLength ), headerLength );
+    RVLDecompressStream stream( header.front(), header.position() );
+
+    // header is RVLCompressed with the term first, followed by a termData structure
+    stream >> _term;
+    _termData = (TermData*) malloc( ::termdata_size( _fieldCount ) );
+    ::termdata_decompress( stream, _termData, _fieldCount );
+    _termData->term = _term;
+    _ownTermData = true;
+  } else {
+    // skip termData, we already have it
+    _file->seek( _file->position() + headerLength );
+  }
 }
 
 //
@@ -94,8 +124,8 @@ void indri::index::DiskDocListIterator::startIteration() {
   UINT32 headerLength;
   _file->read( &headerLength, sizeof(UINT32) );
 
-  // skip over the header
-  _file->seek( _file->position() + headerLength );
+  // read in termdata if necessary
+  _readTermData( headerLength );
 
   // read the control byte
   UINT8 control;
@@ -109,6 +139,8 @@ void indri::index::DiskDocListIterator::startIteration() {
   _data.positions.clear();
   _skipDocument = -1;
   _list = _listEnd = 0;
+
+  // read in the term data, if necessary
 
   // read in the topdocs information
   _readTopdocs();
@@ -251,6 +283,14 @@ void indri::index::DiskDocListIterator::_readEntry() {
 
 bool indri::index::DiskDocListIterator::isFrequent() const {
   return _isFrequent;
+}
+
+//
+// termData
+//
+
+indri::index::TermData* indri::index::DiskDocListIterator::termData() {
+  return _termData;
 }
 
 
