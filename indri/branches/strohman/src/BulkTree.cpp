@@ -138,6 +138,7 @@ int BulkBlock::_find( const char* key, int keyLength, bool& exact ) {
     return -1;
   }
 
+  exact = false;
   return left;
 }
 
