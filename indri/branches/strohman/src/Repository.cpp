@@ -660,6 +660,10 @@ void print_index_state( std::vector<Repository::index_state>& states ) {
 //
 
 void Repository::_write() {
+  // this is only legal if we're not readOnly
+  if( _readOnly )
+    return;
+
   // grab a copy of the current state
   index_state state = indexes();
   
@@ -689,6 +693,10 @@ void Repository::_write() {
 //
 
 void Repository::_merge( index_state& state ) {
+  // this is only legal if we're not readOnly
+  if( _readOnly )
+    return;
+
   // make a copy of the indexes in our state
   std::vector<indri::index::Index*> indexes = *(state.get());
 
@@ -765,6 +773,10 @@ void Repository::_merge( index_state& state ) {
 //
 
 void Repository::_merge() {
+  // this is only legal if we're not readOnly
+  if( _readOnly )
+    return;
+
   // grab a copy of the current state
   index_state state = indexes();
   index_state mergers = state;
