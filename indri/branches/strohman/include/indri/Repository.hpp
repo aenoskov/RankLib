@@ -146,7 +146,7 @@ public:
   }
   /// add a parsed document to the repository.
   /// @param document the document to add.
-  void addDocument( ParsedDocument* document );
+  int addDocument( ParsedDocument* document );
   /// delete a document from the repository
   /// @param documentID the internal ID of the document to delete
   void deleteDocument( int documentID );

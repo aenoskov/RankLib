@@ -259,7 +259,7 @@ void IndexEnvironment::addFile( const std::string& fileName, const std::string& 
 // addString
 //
 
-void IndexEnvironment::addString( const std::string& documentString, const std::string& fileClass, const std::vector<MetadataPair>& metadata ) {
+int IndexEnvironment::addString( const std::string& documentString, const std::string& fileClass, const std::vector<MetadataPair>& metadata ) {
   UnparsedDocument document;
   indri::Parser* parser;
   DocumentIterator* iterator;
@@ -274,23 +274,27 @@ void IndexEnvironment::addString( const std::string& documentString, const std::
   _getParsingContext( &parser, &iterator, fileClass );
 
   ParsedDocument* parsed = parser->parse( &document );
-  _repository.addDocument( parsed );
+  int documentID = _repository.addDocument( parsed );
 
   _documentsIndexed++;
   if( _callback ) (*_callback)( IndexStatus::DocumentCount, nothing, _error, _documentsIndexed, _documentsSeen );
+
+  return documentID;
 }
 
 //
 // addParsedDocument
 //
 
-void IndexEnvironment::addParsedDocument( ParsedDocument* document ) {
+int IndexEnvironment::addParsedDocument( ParsedDocument* document ) {
   std::string nothing;
 
   _documentsSeen++;
-  _repository.addDocument( document );
+  int documentID = _repository.addDocument( document );
   _documentsIndexed++;
   if( _callback ) (*_callback)( IndexStatus::DocumentCount, nothing, _error, _documentsIndexed, _documentsSeen );
+
+  return documentID;
 }
 
 //
