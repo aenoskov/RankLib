@@ -67,6 +67,8 @@ indri::lang::Node* indri::lang::Unpacker::_unpack( XMLNode* child ) {
     result = new FilterNode(*this);
   } else if( type == "ContextCounterNode" ) {
     result = new ContextCounterNode(*this);
+  } else if( type == "ContextSimpleCounterNode" ) {
+    result = new ContextSimpleCounterNode(*this);
   } else if( type == "ScoreAccumulatorNode" ) {
     result = new ScoreAccumulatorNode(*this);
   } else if( type == "AnnotatorNode" ) {
