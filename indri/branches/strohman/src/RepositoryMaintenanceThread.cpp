@@ -115,3 +115,5 @@ void RepositoryMaintenanceThread::merge() {
   ScopedLock l( _requestLock );
   _requests.push( MERGE );
 }
+
+

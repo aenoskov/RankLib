@@ -64,11 +64,12 @@ public:
     mutex.lock();
     return result != WAIT_TIMEOUT;
 #else
-    mutex.unlock();
     struct timeval tv;
     gettimeofday( &tv, 0 );
 
-    microseconds += tv.tv_sec * 10000000;
+    UINT64 seconds = tv.tv_sec;
+    seconds *= 1000 * 1000;
+    microseconds += seconds; 
     microseconds += tv.tv_usec;
 
     struct timespec ts;
@@ -76,8 +77,6 @@ public:
     ts.tv_nsec = (microseconds % 1000000) * 1000;
 
     int result = pthread_cond_timedwait( &_condition, &mutex._mutex, &ts );
-    mutex.lock();
-
     return result != ETIMEDOUT;
 #endif
   }
