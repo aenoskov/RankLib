@@ -118,7 +118,7 @@ namespace indri {
       void _writeBatch( SequentialWriteBuffer* buffer, int document, int length, Buffer& data );
 
       void _writeFieldLists( std::vector<indri::index::Index*>& indexes, const std::string& path );
-      void _writeFieldList( const std::string& fileName, std::vector<indri::index::DocExtentListIterator*> iterators );
+      void _writeFieldList( const std::string& fileName, int fieldIndex, std::vector<indri::index::DocExtentListIterator*> iterators );
 
       void _pushInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _fetchMatchingInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
@@ -153,8 +153,12 @@ namespace indri {
 
     public:
       IndexWriter();
-      void write( indri::index::Index& index, const std::string& fileName );
-      void write( std::vector<indri::index::Index*>& indexes, const std::string& fileName );
+      void write( indri::index::Index& index,
+                  std::vector<indri::index::Index::FieldDescription>& fields,
+                  const std::string& fileName );
+      void write( std::vector<indri::index::Index*>& indexes,
+                  std::vector<indri::index::Index::FieldDescription>& fields,
+                  const std::string& fileName );
     };
   }
 }

@@ -12,13 +12,29 @@
 //
 
 void indri::index::DocExtentListMemoryBuilderIterator::startIteration() {
+  _current = _lists->begin();
+
+  if( _current != _lists->end() ) {
+    _list = _current->base;
+    _listEnd = _current->data;
+  } else {
+    _list = 0;
+    _listEnd = 0;
+  }
+  
+  _data.document = 0;
+  _data.extents.clear();
+  _data.numbers.clear();
+
+  nextEntry();
 }
 
 //
 // reset
 //
 
-void indri::index::DocExtentListMemoryBuilderIterator::reset( const DocExtentListMemoryBuilder& builder ) {
+void indri::index::DocExtentListMemoryBuilderIterator::reset( DocExtentListMemoryBuilder& builder ) {
+  builder.flush();
   reset( builder._lists, builder._numeric );
 }
 
@@ -26,15 +42,15 @@ void indri::index::DocExtentListMemoryBuilderIterator::reset( const DocExtentLis
 // reset
 //
 
-void indri::index::DocExtentListMemoryBuilderIterator::reset( const greedy_vector< std::pair<char*,char*>, 4 >& lists, bool numeric ) {
+void indri::index::DocExtentListMemoryBuilderIterator::reset( const greedy_vector< DocExtentListMemoryBuilderSegment, 4 >& lists, bool numeric ) {
   _lists = &lists;
   _numeric = numeric;
   
   _current = _lists->begin();
   
   if( _current != _lists->end() ) {
-    _list = _current->first;
-    _listEnd = _current->second;
+    _list = _current->base;
+    _listEnd = _current->data;
   } else {
     _list = 0;
     _listEnd = 0;
@@ -54,14 +70,6 @@ void indri::index::DocExtentListMemoryBuilderIterator::reset( const greedy_vecto
 indri::index::DocExtentListMemoryBuilderIterator::DocExtentListMemoryBuilderIterator( const class DocExtentListMemoryBuilder& builder )
 {
   reset( builder._lists, builder._numeric );
-}
-
-//
-// finished
-//
-
-bool indri::index::DocExtentListMemoryBuilderIterator::finished() {
-  return _current == _lists->end() && _list == _listEnd;
 }
 
 //
@@ -112,6 +120,8 @@ bool indri::index::DocExtentListMemoryBuilderIterator::nextEntry() {
         _list = RVLCompress::decompress_signed_longlong( _list, number );
         _data.numbers.push_back( number );
       }
+
+      assert( _list <= _listEnd );
     }
   } else {    
     assert( _list == _listEnd );
@@ -121,8 +131,8 @@ bool indri::index::DocExtentListMemoryBuilderIterator::nextEntry() {
       _current++;
     
     if( _current != _lists->end() ) {
-      _list = _current->first;
-      _listEnd = _current->second;
+      _list = _current->base;
+      _listEnd = _current->data;
       return nextEntry();
     }
 
@@ -130,6 +140,7 @@ bool indri::index::DocExtentListMemoryBuilderIterator::nextEntry() {
     return false;
   }
 
+  assert( _list <= _listEnd );
   return true;
 }
       
@@ -138,5 +149,16 @@ bool indri::index::DocExtentListMemoryBuilderIterator::nextEntry() {
 //
 
 indri::index::DocExtentListIterator::DocumentExtentData* indri::index::DocExtentListMemoryBuilderIterator::currentEntry() {
-  return &_data;
+  if( !finished() )
+    return &_data;
+
+  return 0;
 }
+//
+// finished
+//
+
+bool indri::index::DocExtentListMemoryBuilderIterator::finished() {
+  return _current == _lists->end() && _list == _listEnd;
+}
+

@@ -40,7 +40,7 @@ namespace indri {
       File _directFile;
 
       std::vector<FieldStatistics> _fieldData;
-      std::vector<File> _fieldFiles;
+      std::vector<File*> _fieldFiles;
       int _documentBase;
       int _infrequentTermBase;
 

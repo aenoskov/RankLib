@@ -75,11 +75,12 @@ void IndexWriter::_writeManifest( const std::string& path ) {
 
   for( int i=0; i<_fields.size(); i++ ) {
     fields.append("field");
+    Parameters field = fields["field"];
 
-    fields[i].set("isNumeric", _fields[i].numeric);
-    fields[i].set("name", _fields[i].name);
-    fields[i].set("total-documents", _fieldData[i].documentCount);
-    fields[i].set("total-terms", (UINT64) _fieldData[i].totalCount);
+    field[i].set("isNumeric", _fields[i].numeric);
+    field[i].set("name", _fields[i].name);
+    field[i].set("total-documents", _fieldData[i].documentCount);
+    field[i].set("total-terms", (UINT64) _fieldData[i].totalCount);
   }
 
   manifest.writeFile( path );
@@ -89,18 +90,19 @@ void IndexWriter::_writeManifest( const std::string& path ) {
 // write
 //
 
-void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
+void IndexWriter::write( indri::index::Index& index, std::vector<indri::index::Index::FieldDescription>& fields, const std::string& path ) {
   std::vector< indri::index::Index* > indexes;
   indexes.push_back( &index );
-  write( indexes, path );
+  write( indexes, fields, path );
 }
 
 //
 // write
 //
 
-void IndexWriter::write( std::vector<Index*>& indexes, const std::string& path ) {
+void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index::Index::FieldDescription>& fields, const std::string& path ) {
   Path::create( path );
+  _fields = fields;
 
   std::string frequentStringPath = Path::combine( path, "frequentString" );
   std::string infrequentStringPath = Path::combine( path, "infrequentString" );
@@ -182,16 +184,18 @@ void IndexWriter::_writeFieldLists( std::vector<indri::index::Index*>& indexes, 
   if( indexes.size() == 0 )
     return;
   
-  for( int field=1; field<=_fields.size(); field++ ) {
+  for( int field=0; field<_fields.size(); field++ ) {
     std::stringstream fieldName;
-    fieldName << "field" << field;
+    int fieldID = field+1;
+    fieldName << "field" << fieldID;
     std::string fieldPath = Path::combine( path, fieldName.str() );
 
     std::vector<indri::index::DocExtentListIterator*> iterators;
     for( int i=0; i<indexes.size(); i++ )
-      iterators.push_back( indexes[i]->fieldListIterator( field ) ); 
+      iterators.push_back( indexes[i]->fieldListIterator( field+1 ) ); 
 
-    _writeFieldList( fieldPath, iterators );
+    _fieldData.push_back( FieldStatistics( _fields[field].name, _fields[field].numeric, 0, 0 ) );
+    _writeFieldList( fieldPath, field, iterators );
   }
 }
 
@@ -266,7 +270,7 @@ void IndexWriter::_writeStatistics( greedy_vector<WriterIndexContext*>& lists, i
 //  document / 
 //
 
-void IndexWriter::_writeFieldList( const std::string& fileName, std::vector<indri::index::DocExtentListIterator*> iterators ) {
+void IndexWriter::_writeFieldList( const std::string& fileName, int fieldIndex, std::vector<indri::index::DocExtentListIterator*> iterators ) {
   File outputFile;
   outputFile.create( fileName );
   SequentialWriteBuffer output( outputFile, 1024*1024 );
@@ -296,6 +300,9 @@ void IndexWriter::_writeFieldList( const std::string& fileName, std::vector<indr
         lastDocument = 0;
       }
 
+      assert( entry->document > lastDocument || lastDocument == 0 );
+      int terms = 0;
+
       // add document difference
       stream << ( entry->document - lastDocument );
       lastDocument = entry->document;
@@ -309,15 +316,27 @@ void IndexWriter::_writeFieldList( const std::string& fileName, std::vector<indr
       for( int j=0; j<count; j++ ) {
         Extent& extent = entry->extents[j];
 
+        assert( extent.begin - lastPosition >= 0 );
+        assert( extent.end - extent.begin >= 0 );
+
         stream << (extent.begin - lastPosition);
         lastPosition = extent.begin;
         stream << (extent.end - lastPosition);
         lastPosition = extent.end;
+        terms += (extent.end - extent.begin);
 
         if( entry->numbers.size() )
           stream << entry->numbers[j];
       }
+
+      assert( _fieldData.size() > fieldIndex );
+      _fieldData[fieldIndex].documentCount++;
+      _fieldData[fieldIndex].totalCount += terms;
+
+      iterator->nextEntry();
     }
+
+    delete iterator;
   }
 
   _writeBatch( &output, -1, dataBuffer.position(), dataBuffer );
@@ -451,7 +470,7 @@ void IndexWriter::_storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index
   _termDataBuffer.clear();
   RVLCompressStream idStream( _termDataBuffer );
 
-  disktermdata_compress( idStream, diskTermData, _fieldData.size(), indri::index::DiskTermData::WithString |
+  disktermdata_compress( idStream, diskTermData, _fields.size(), indri::index::DiskTermData::WithString |
                                                                     indri::index::DiskTermData::WithOffsets );
 
   pair.idMap->put( diskTermData->termID, idStream.data(), idStream.dataSize() );
@@ -460,7 +479,7 @@ void IndexWriter::_storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index
   _termDataBuffer.clear();
   RVLCompressStream stringStream( _termDataBuffer );
 
-  disktermdata_compress( stringStream, diskTermData, _fieldData.size(), indri::index::DiskTermData::WithTermID |
+  disktermdata_compress( stringStream, diskTermData, _fields.size(), indri::index::DiskTermData::WithTermID |
                                                                         indri::index::DiskTermData::WithOffsets );
 
   pair.stringMap->put( diskTermData->termData->term, stringStream.data(), stringStream.dataSize() );

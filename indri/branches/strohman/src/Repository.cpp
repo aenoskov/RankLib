@@ -446,7 +446,7 @@ void Repository::open( const std::string& path, Parameters* options ) {
   _collection->open( collectionPath );
   
   // read deleted documents in
-  std::string deletedName = Path::combine( indexPath, "deleted" );
+  std::string deletedName = Path::combine( path, "deleted" );
   _deletedList.read( deletedName );
 
   _startThreads();
@@ -663,17 +663,12 @@ void Repository::_write() {
   if( state->size() && state->back()->documentCount() == 0 )
     return;
 
-  std::cout << "=========================== adding memory index ==== " << std::endl;
-
   // make a new MemoryIndex, cutting off the old one from updates
   _addMemoryIndex();
 
   // if we just added the first, no need to write the "old" one
   if( state->size() == 0 )
     return;
-
-
-  std::cout << "=========================== beginning write ==== " << std::endl;
 
   // write out the last index
   index_state lastState = new std::vector<indri::index::Index*>;
@@ -702,15 +697,11 @@ void Repository::_merge( index_state& state ) {
   std::string indexPath = Path::combine( _path, "index" );
   std::string newIndexPath = Path::combine( indexPath, indexNumber.str() );
   indri::index::IndexWriter writer;
-  writer.write( indexes, newIndexPath );
-
-  std::cout << "=========================== write complete ==== " << std::endl;
+  writer.write( indexes, _indexFields, newIndexPath );
 
   // open the index we just wrote
   indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
   diskIndex->open( indexPath, indexNumber.str() );
-
-  std::cout << "=========================== index open ==== " << std::endl;
 
   // make a new state, replacing the old index for the new one
   _swapState( indexes, diskIndex );
@@ -736,8 +727,6 @@ void Repository::_merge( index_state& state ) {
     Thread::sleep( 100 );
   }
 
-  std::cout << "======================== all states unused ==========" << std::endl;
-
   // okay, now nobody is using the state, so we can get rid of those states
   // and the index we wrote
   for( int i=0; i<indexes.size(); i++ ) {
@@ -760,8 +749,6 @@ void Repository::_merge( index_state& state ) {
       Path::remove( path );
     }
   }
-
-  std::cout << "======================== all indexed deleted ==========" << std::endl;
 
   // remove all containing states
   _removeStates( containing );
@@ -907,6 +894,8 @@ void Repository::close() {
     _stopThreads();
 
     if( !_readOnly ) {
+      if( Path::exists( deletedPath ) )
+        lemur_compat::remove( deletedPath.c_str() );
       _deletedList.write( deletedPath );
       _writeParameters( paramPath );
     }

@@ -66,3 +66,11 @@ void Thread::sleep( int milliseconds ) {
 #endif
 }
 
+void Thread::yield() {
+#ifdef WIN32
+  ::SwitchToThread();
+#else
+  Thread::sleep(0);
+#endif
+}
+

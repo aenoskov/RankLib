@@ -32,6 +32,7 @@ public:
 
   static int id();
   static void sleep( int milliseconds );
+  static void yield();
 };
 
 #endif // INDRI_THREAD_HPP
