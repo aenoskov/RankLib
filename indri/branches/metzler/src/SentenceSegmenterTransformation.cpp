@@ -96,10 +96,15 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
 
     int curTermLength = curTerm.length();
     char lastChar = '\0';
-    if( curTermLength )
-      lastChar = curTerm[ curTermLength - 1 ];
+	while( curTermLength > 0 ) {
+      char tmpChar = curTerm[ curTermLength - 1 ];
+	  if( tmpChar != '\"' && tmpChar != '\'' && tmpChar != '`' || tmpChar != ' ' &&
+		  tmpChar != '<'  && tmpChar != '>')
+		lastChar = tmpChar;
+	  curTermLength--;
+	}
 
-    if( lastChar == '?' || lastChar == '!' ) {
+    if( lastChar == '?' || lastChar == '!' || lastChar == ';' ) {
       addTag = true;
     }
     else if( lastChar == '.' ) {
@@ -127,21 +132,10 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
     if( addTag ) {
       //std::cout << "SENTENCE = " << sentence << std::endl;
       //sentence = "";
-      TagExtent tag;
-      tag.name = "sentence";
-      tag.begin = sentenceBegin;
-      tag.end = i + 1;
-      tag.number = 0;
-
-      assert( tag.begin <= tag.end );
-      assert( tag.begin <= document->terms.size() );
-      assert( tag.end   <= document->terms.size() );
-      
-      document->tags.push_back( tag );
+	  addSentenceTag( document, sentenceBegin, i + 1 );
 	  numSentences++;
 
-      // new beginning of sentence position
-      sentenceBegin = i + 1;
+      sentenceBegin = i + 1; // new beginning of sentence position
     }
 
     prevTerm = curTerm;
@@ -150,17 +144,7 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
 
   // add tag to enclose the remaining data (if any)
   if( numTerms - sentenceBegin > 0 ) {
-	TagExtent tag;
-	tag.name = "sentence";
-	tag.begin = sentenceBegin;
-	tag.end = numTerms;
-	tag.number = 0;
-
-	assert( tag.begin <= tag.end );
-	assert( tag.begin <= document->terms.size() );
-	assert( tag.end   <= document->terms.size() );
-      
-	document->tags.push_back( tag );
+    addSentenceTag( document, sentenceBegin, numTerms );
 	numSentences++;
   }
 
@@ -179,6 +163,22 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
 
   return document;
 }
+
+void SentenceSegmenterTransformation::addSentenceTag( ParsedDocument* document, int begin, int end ) {
+  TagExtent tag;
+  tag.name = "sentence";
+  tag.begin = begin;
+  tag.end = end;
+  tag.number = 0;
+
+  assert( tag.begin <= tag.end );
+  assert( tag.begin <= document->terms.size() );
+  assert( tag.end   <= document->terms.size() );
+
+  if( MIN_SENTENCE_TOKENS < ( begin - end ) && ( begin - end ) < MAX_SENTENCE_TOKENS )
+	document->tags.push_back( tag );
+}
+
 
 void SentenceSegmenterTransformation::setHandler( ObjectHandler<ParsedDocument>& handler ) {
   _handler = &handler;

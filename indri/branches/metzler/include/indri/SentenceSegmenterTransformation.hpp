@@ -66,10 +66,15 @@
 #include "indri/Buffer.hpp"
 #include "indri/Transformation.hpp"
 
+#define MIN_SENTENCE_TOKENS  ( 3 )
+#define MAX_SENTENCE_TOKENS  ( 100 )
+
 class SentenceSegmenterTransformation : public Transformation {
 private:
   Buffer buffer;
   ObjectHandler<ParsedDocument>* _handler;
+
+  void addSentenceTag( ParsedDocument* document, int begin, int end );
 
 public:
   ParsedDocument* transform( ParsedDocument* document );
