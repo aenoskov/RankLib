@@ -40,7 +40,7 @@ public class RetrievalEngine {
 
 	// Cached metadata and ParsedDocuments
 	private RecapCache cache = null;
-
+	
 	// StyledDocument's font size
 	private int docFontSize;
 	
@@ -48,7 +48,7 @@ public class RetrievalEngine {
 	public RetrievalEngine( QueryEnvironment indri ) {
 		this.indri = indri;
 		this.cache = new RecapCache();
-		this.docFontSize = 12; 
+		this.docFontSize = 12; 		
 	}
 	
 	// runs a query with the given parameters
@@ -325,10 +325,8 @@ public class RetrievalEngine {
 		Style defaultStyle = StyleContext.getDefaultStyleContext().getStyle(StyleContext.DEFAULT_STYLE);
 		StyleConstants.setFontSize( defaultStyle, docFontSize );
 		
-		Style s = doc.addStyle( "match", defaultStyle );
-		StyleConstants.setBackground( s, Color.GREEN );
-		StyleConstants.setBold( s, true );
-				
+		initializeHighlighting( doc, defaultStyle );
+		
 		ParsedDocument theDoc = getParsedDocument( docID );
         
 		// insert document text into RecapStyledDocument
@@ -338,12 +336,14 @@ public class RetrievalEngine {
 		QueryAnnotationNode root = annotation.getQueryTree();
 		Map matches = annotation.getAnnotations();
 		
-		annotationHelper( docID, doc, theDoc, root, matches );
+		annotationHelper( docID, doc, theDoc, root, matches, 0 );
 				
 		return doc;
 	}
 
-	private void annotationHelper( int docID, DefaultStyledDocument doc, ParsedDocument theDoc, QueryAnnotationNode root, Map matches ) {
+	private int annotationHelper( int docID, DefaultStyledDocument doc,
+								   ParsedDocument theDoc, QueryAnnotationNode root,
+								   Map matches, int highlightNum ) {
 		// process root
 		if( root.type.equals( "RawScorerNode" ) ) {
 			ScoredExtentResult [] extents = (ScoredExtentResult [])matches.get( root.name );
@@ -357,22 +357,24 @@ public class RetrievalEngine {
 					try {
 						doc.replace( extentBegin, extentEnd - extentBegin,
 							     	 doc.getText(extentBegin, extentEnd-extentBegin),
-									 doc.getStyle("match") );
+									 doc.getStyle("highlight"+highlightNum) );						
 					}
 					catch(Exception e) {  }					
 				}
-			}
+				highlightNum = ( highlightNum + 1 ) % 5;
+			}			
 		}
-		System.out.println( root.type + " " + root.name + " "  + root.queryText );
+		//System.out.println( root.type + " " + root.name + " "  + root.queryText );
 		
 		// process children
 		QueryAnnotationNode [] children = root.children;
 		if( children == null || children.length == 0 )
-			return;
+			return highlightNum;
 		else {
 			for(int i = 0; i < children.length; i++ )
-				annotationHelper( docID, doc, theDoc, children[i], matches );
+				highlightNum = annotationHelper( docID, doc, theDoc, children[i], matches, highlightNum );
 		}
+		return highlightNum;
 	}
 
 	
@@ -505,5 +507,18 @@ public class RetrievalEngine {
 	
 	public void decreaseDocFontSize() {
 		docFontSize -= 2;
+	}
+	
+	private void initializeHighlighting( DefaultStyledDocument doc, Style defaultStyle ) {
+		String [] highlightNames = new String [] { "highlight0", "highlight1", "highlight2",
+			                           			   "highlight3", "highlight4" };
+		Color [] colorNames = new Color [] { Color.GREEN, Color.CYAN, Color.RED,
+				                             Color.MAGENTA, Color.ORANGE };  
+		
+		for(int i = 0; i < highlightNames.length; i++ ) {
+			Style s = doc.addStyle( highlightNames[i], defaultStyle );
+			StyleConstants.setBackground( s, colorNames[i] );
+			StyleConstants.setBold( s, true );
+		}		
 	}
 }
