@@ -63,7 +63,7 @@
 #include "indri/Parameters.hpp"
 #include "indri/StemmerFactory.hpp"
 #include "indri/NormalizationTransformation.hpp"
-#include "Exception.hpp"
+#include "lemur/Exception.hpp"
 #include <string>
 
 void Repository::_buildFields() {

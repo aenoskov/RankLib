@@ -11,7 +11,7 @@
 
 #include "greedy_vector"
 #include "FieldExtent.hpp"
-#include "RVLCompress.hpp"
+#include "lemur/RVLCompress.hpp"
 #include "indri/Buffer.hpp"
 
 namespace indri {

@@ -12,6 +12,9 @@
 
 #ifndef WIN32
 #include <pthread.h>
+#else
+#define _WIN32_WINNT 0x0400
+#include <windows.h>
 #endif
 
 class Mutex {
@@ -35,9 +38,9 @@ public:
 
   ~Mutex() {
 #ifdef WIN32
-    ::DestroyCriticalSection( &_cs );
+    ::DeleteCriticalSection( &_cs );
 #else
-  pthread_mutex_destroy( &_mutex );
+    pthread_mutex_destroy( &_mutex );
 #endif
   }
 
@@ -52,7 +55,7 @@ public:
 
   bool tryLock() {
 #ifdef WIN32
-    BOOL result = ::TryEnterCriticalSection( &_cs );
+    BOOL result = TryEnterCriticalSection( &_cs );
     return result ? true : false;
 #else
     return pthread_mutex_trylock( &_mutex ) == 0 ? true : false;

@@ -100,12 +100,6 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
-				RelativePath=".\src\File.cpp">
-			</File>
-			<File
-				RelativePath=".\src\lemur-compat.cpp">
-			</File>
-			<File
 				RelativePath=".\src\Keyfile.cpp">
 			</File>
 			<File
@@ -118,13 +112,10 @@
 				RelativePath=".\src\kstem.cpp">
 			</File>
 			<File
+				RelativePath=".\src\lemur-compat.cpp">
+			</File>
+			<File
 				RelativePath=".\src\porter_stemmer.cpp">
-			</File>
-			<File
-				RelativePath=".\src\Property.cpp">
-			</File>
-			<File
-				RelativePath=".\src\ReadBuffer.cpp">
 			</File>
 			<File
 				RelativePath=".\src\RVLCompress.cpp">
@@ -134,9 +125,6 @@
 			</File>
 			<File
 				RelativePath=".\src\WordSet.cpp">
-			</File>
-			<File
-				RelativePath=".\src\WriteBuffer.cpp">
 			</File>
 		</Filter>
 		<Filter
@@ -165,12 +153,6 @@
 				RelativePath=".\include\lemur\Index.hpp">
 			</File>
 			<File
-				RelativePath=".\include\lemur\lemur-compat.hpp">
-			</File>
-			<File
-				RelativePath=".\include\lemur\lemur-platform.h">
-			</File>
-			<File
 				RelativePath=".\include\lemur\InvFPTypes.hpp">
 			</File>
 			<File
@@ -184,6 +166,12 @@
 			</File>
 			<File
 				RelativePath=".\include\lemur\keyref.h">
+			</File>
+			<File
+				RelativePath=".\include\lemur\lemur-compat.hpp">
+			</File>
+			<File
+				RelativePath=".\include\lemur\lemur-platform.h">
 			</File>
 			<File
 				RelativePath=".\include\lemur\Parser.hpp">

@@ -14,7 +14,8 @@
 #include <sys/stat.h>
 #endif
 
-#include "Exception.hpp"
+#include "lemur/Exception.hpp"
+#include "indri/ScopedLock.hpp"
 
 bool File::create( const std::string& filename ) {
 #ifdef WIN32
@@ -101,10 +102,12 @@ size_t File::read( void* buffer, UINT64 position, size_t length ) {
   assert( _handle != INVALID_HANDLE_VALUE );
 
   ScopedLock sl( _mutex );
-  UINT64 actual;
+  LARGE_INTEGER actual;
   BOOL result;
+  LARGE_INTEGER largePosition;
+  largePosition.QuadPart = position;
 
-  result = SetFilePointerEx( _handle, position, &actual, FILE_BEGIN ); 
+  result = SetFilePointerEx( _handle, largePosition, &actual, FILE_BEGIN ); 
 
   if( !result )
     LEMUR_THROW( LEMUR_IO_ERROR, "Failed to seek to some file position" );
@@ -132,10 +135,12 @@ size_t File::write( const void* buffer, UINT64 position, size_t length ) {
   assert( _handle != INVALID_HANDLE_VALUE );
 
   ScopedLock sl( _mutex );
-  UINT64 actual;
+  LARGE_INTEGER actual;
   BOOL result;
+  LARGE_INTEGER largePosition;
+  largePosition.QuadPart = position;
 
-  result = ::SetFilePointerEx( _handle, position, &actual, FILE_BEGIN ); 
+  result = SetFilePointerEx( _handle, largePosition, &actual, FILE_BEGIN ); 
 
   if( !result )
     LEMUR_THROW( LEMUR_IO_ERROR, "Failed to seek to some file position" );
@@ -171,13 +176,13 @@ void File::close() {
 
 UINT64 File::size() {
 #ifdef WIN32
-  UINT64 length;
-  BOOL result = ::GetFileSize( _handle, &length );
+  LARGE_INTEGER length;
+  BOOL result = ::GetFileSizeEx( _handle, &length );
 
   if( !result )
     LEMUR_THROW( LEMUR_IO_ERROR, "Got an error while trying to retrieve file size" );
 
-  return length;
+  return length.QuadPart;
 #else // POSIX
   struct stat stats;
   fstat( _handle, &stats );

@@ -64,6 +64,7 @@
 #include "indri/Path.hpp"
 #include "indri/Parameters.hpp"
 #include "indri/Buffer.hpp"
+#include "indri/File.hpp"
 #include <algorithm>
 
 const int INPUT_BUFFER_SIZE = 1024;
@@ -137,7 +138,7 @@ static void zlib_read_document( z_stream_s& stream, File& infile, UINT64 offset,
   
   while(true) {
     if( !stream.avail_in ) {
-      UINT64 readSize = infile.read( offset, inputBuffer, sizeof inputBuffer );
+      UINT64 readSize = infile.read( inputBuffer, offset, sizeof inputBuffer );
       offset += readSize; 
       
       stream.avail_in = readSize;

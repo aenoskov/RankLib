@@ -34,7 +34,7 @@ public:
     
     // write this data to the buffer, update file pointer, and get out
     _position += length;
-    _current.buffer.write( length );
+    return _current.buffer.write( length );
   }
 
   void write( const char* buffer, size_t length ) {

@@ -57,6 +57,7 @@
 
 #include "indri/Parameters.hpp"
 #include "indri/Transformation.hpp"
+#include "indri/MemoryIndex.hpp"
 #include <string>
 
 /*! Encapsulates document manager, index, and field indexes. Provides access 
@@ -71,9 +72,8 @@ public:
   };
 
 private:
-  class IndriIndex* _index;
+  class indri::index::MemoryIndex* _mutableIndex;
   class CompressedCollection* _collection;
-  class TopdocsIndex* _topdocs;
   Parameters _parameters;
   std::vector<Transformation*> _transformations;
   std::vector<Field> _fields;
@@ -91,7 +91,6 @@ private:
 
 public:
   Repository() {
-    _index = 0;
     _collection = 0;
     _readOnly = false;
   }
@@ -112,9 +111,6 @@ public:
   std::string processTerm( const std::string& term );
   /// @return the compressed document collection
   class CompressedCollection* collection();
-  /// @return the indri document index
-  class IndriIndex* index();
-  class TopdocsIndex* topdocs();
   /// Create a new empty repository.
   /// @param path the directory to create the repository in
   /// @param options additional parameters
