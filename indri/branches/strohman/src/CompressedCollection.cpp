@@ -373,8 +373,12 @@ void CompressedCollection::openRead( const std::string& fileName ) {
 
 void CompressedCollection::close() {
   _lookup.close();
-  if( _output )
+  if( _output ) {
     _output->flush();
+    delete _output;
+    _output = 0;
+  }
+
   _storage.close();
 
   HashTable<const char*, Keyfile*>::iterator iter;

@@ -123,9 +123,6 @@
 			<File
 				RelativePath=".\src\string-set.c">
 			</File>
-			<File
-				RelativePath=".\src\WordSet.cpp">
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

@@ -25,25 +25,23 @@ const int ONE_MEGABYTE = 1024*1024;
 // Constructors
 //----------------------------
 
-indri::index::MemoryIndex::MemoryIndex() {
+indri::index::MemoryIndex::MemoryIndex() : _stringToTerm( 1024 * 1024 ) {
   _baseDocumentID = 0;
   _termListsBaseOffset = 0;
 }
 
-indri::index::MemoryIndex::MemoryIndex( int docBase ) {
+indri::index::MemoryIndex::MemoryIndex( int docBase ) : _stringToTerm( 1024 * 1024 ) {
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
 }
 
-indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields ) {
+indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields ) : _stringToTerm( 1024 * 1024 ) {
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
 
-
-      HashTable<const char*, int> _fieldLookup;
-      std::vector<FieldStatistics> _fieldData;
-      std::vector<indri::index::DocExtentListMemoryBuilder*> _fieldLists;
-
+  HashTable<const char*, int> _fieldLookup;
+  std::vector<FieldStatistics> _fieldData;
+  std::vector<indri::index::DocExtentListMemoryBuilder*> _fieldLists;
 
   for( size_t i=0; i<fields.size(); i++ ) {
     int fieldID = i+1;
@@ -69,11 +67,7 @@ indri::index::MemoryIndex::~MemoryIndex() {
   delete_vector_contents<DocExtentListMemoryBuilder*>( _fieldLists );
 
   // delete term entries
-  std::vector<term_entry*>::iterator entryIter;
-  for( entryIter = _idToTerm.begin(); entryIter != _idToTerm.end(); entryIter++ ) {
-    termdata_delete( (*entryIter)->termData, _fieldData.size() );
-    free( *entryIter );
-  }
+  _destroyTerms();
 }
 
 // ---------------------------
@@ -260,8 +254,9 @@ void indri::index::MemoryIndex::_writeFieldExtents( int documentID, greedy_vecto
 
 void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byteLength, int documentID, int documentLength, indri::index::TermList& locatedTerms ) {
   Buffer* addBuffer = 0;
+  int docDataLength = 10 + 5 * locatedTerms.terms().size() + 2 * sizeof(FieldExtent) * locatedTerms.fields().size();
   
-  if( !_termLists.size() || _termLists.back()->size() - _termLists.back()->position() < documentLength ) {
+  if( !_termLists.size() || _termLists.back()->size() - _termLists.back()->position() < docDataLength ) {
     // we need a new Buffer
     if( !_termLists.size() )
       _termListsBaseOffset = 0;
@@ -390,6 +385,10 @@ void indri::index::MemoryIndex::_destroyTerms() {
   }
 }
 
+//
+// addDocument
+//
+
 int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   ScopedLock sl( _lock );
   
@@ -497,7 +496,7 @@ indri::index::DocExtentListIterator* indri::index::MemoryIndex::fieldListIterato
     return 0;
   
   DocExtentListMemoryBuilder* builder = _fieldLists[fieldID-1];
-  return new DocExtentListMemoryBuilderIterator( builder );
+  return new DocExtentListMemoryBuilderIterator( *builder );
 }
 
 //
@@ -510,7 +509,7 @@ indri::index::DocExtentListIterator* indri::index::MemoryIndex::fieldListIterato
     return 0;
   
   DocExtentListMemoryBuilder* builder = _fieldLists[fieldID-1];
-  return new DocExtentListMemoryBuilderIterator( builder );
+  return new DocExtentListMemoryBuilderIterator( *builder );
 }
 
 //

@@ -72,7 +72,9 @@ indri::index::DocListMemoryBuilder::DocListMemoryBuilder() :
   _locationCountPointer(0),
   _lastLocation(0),
   _lastDocument(0),
-  _lastTermFrequency(0)
+  _lastTermFrequency(0),
+  _termFrequency(0),
+  _documentFrequency(0)
 {
 }
 
@@ -84,7 +86,7 @@ void indri::index::DocListMemoryBuilder::_grow() {
   char* lastList = _list;
   char* lastListBegin = _listBegin;
   char* lastListEnd = _listEnd;
-  size_t documentCopyAmount = _documentPointer - lastList;
+  size_t documentCopyAmount = lastList - _documentPointer;
 
   // actually add the new list
   unsigned int iterations = std::min<unsigned int>( GROW_TIMES, int(_lists.size()) );
@@ -100,9 +102,19 @@ void indri::index::DocListMemoryBuilder::_grow() {
   if( _locationCountPointer ) {
     memcpy( _list, _documentPointer, documentCopyAmount );
     // update the _locationCountPointer
-    _locationCountPointer = _listBegin + (_locationCountPointer - lastListBegin);
+    _locationCountPointer = _listBegin + (_locationCountPointer - _documentPointer);
     _list = _listBegin + documentCopyAmount;
+    _documentPointer = _listBegin;
+  } else {
+    _documentPointer = 0;
   }
+
+  assert( !_locationCountPointer || _listBegin < _locationCountPointer );
+  assert( !_locationCountPointer || _listEnd > _locationCountPointer );
+  assert( !_locationCountPointer || _list > _locationCountPointer );
+  assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
+  assert( !_documentPointer || _listBegin <= _documentPointer );
+  assert( !_documentPointer || _listEnd > _documentPointer );
 }
 
 //
@@ -117,6 +129,9 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
   if( locationsSize > 1 ) {
     // have to move everything around to make room, because we need more than
     // one byte to store this length.
+    assert( _list > _locationCountPointer );
+    assert( _listEnd > _locationCountPointer );
+    assert( _listBegin < _locationCountPointer );
 
     memmove( _locationCountPointer + locationsSize,
              _locationCountPointer + 1,
@@ -129,6 +144,10 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
   _lastTermFrequency = _termFrequency;
   _locationCountPointer = 0;
   _lastLocation = 0;
+
+  assert( !_locationCountPointer || _listBegin < _locationCountPointer );
+  assert( !_locationCountPointer || _listEnd > _locationCountPointer );
+  assert( !_locationCountPointer || _list > _locationCountPointer );
 }
 
 //
@@ -136,9 +155,15 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
 //
 
 void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int position ) {
-  if( _lastDocument != documentID && _lastDocument != 0 ) {
-    _terminateDocument();
-    
+  assert( !_locationCountPointer || _listBegin < _locationCountPointer );
+  assert( !_locationCountPointer || _listEnd > _locationCountPointer );
+  assert( !_locationCountPointer || _list > _locationCountPointer );
+
+  if( _lastDocument != documentID ) {
+    if( _lastDocument != 0 && _locationCountPointer ) {
+      _terminateDocument();
+    }
+
     _documentPointer = _list;
     _list = RVLCompress::compress_int( _list, documentID - _lastDocument );
     _locationCountPointer = _list;    
@@ -151,6 +176,11 @@ void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int p
   _lastLocation = position;
 
   _termFrequency++;
+
+  assert( !_locationCountPointer || _listBegin < _locationCountPointer );
+  assert( !_locationCountPointer || _listEnd > _locationCountPointer );
+  assert( !_locationCountPointer || _list > _locationCountPointer );
+  assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
 }
 
 //
@@ -165,7 +195,7 @@ inline size_t indri::index::DocListMemoryBuilder::_compressedSize( int documentI
     size += RVLCompress::compressedSize( _lastTermFrequency - _termFrequency ) - 1;
     size += RVLCompress::compressedSize( position );
   } else {
-    size += RVLCompress::compressedSize( _lastLocation - position );
+    size += RVLCompress::compressedSize( position - _lastLocation );
   }
 
   return size;
@@ -197,6 +227,7 @@ void indri::index::DocListMemoryBuilder::_growAddLocation( int documentID, int p
 
 void indri::index::DocListMemoryBuilder::addLocation( int documentID, int position ) {
   size_t remaining = size_t(_listEnd - _list);
+  assert( remaining < (MIN_SIZE<<(GROW_TIMES+1)) );
 
   if( remaining >= PLENTY_OF_SPACE ) {
     // common case -- lots of memory; just compress the posting and shove it in
@@ -210,6 +241,8 @@ void indri::index::DocListMemoryBuilder::addLocation( int documentID, int positi
       _growAddLocation( documentID, position, size );
     }
   }
+
+  assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
 }
 
 //
