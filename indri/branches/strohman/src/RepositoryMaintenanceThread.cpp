@@ -10,6 +10,7 @@
 #include "indri/ScopedLock.hpp"
 
 const UINT64 TIME_DELAY = 5*1000*1000;
+const UINT64 ACTIVE_DELAY = 1*1000*1000;
 
 //
 // constructor
@@ -86,7 +87,10 @@ UINT64 RepositoryMaintenanceThread::work() {
     _repository._write();
   }
 
-  return TIME_DELAY;
+  if( merge || write )
+    return ACTIVE_DELAY;
+  else
+    return TIME_DELAY;
 }
 
 //

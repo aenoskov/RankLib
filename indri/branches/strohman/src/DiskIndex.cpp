@@ -34,7 +34,7 @@ void indri::index::DiskIndex::_readManifest( const std::string& path ) {
   if( manifest.exists("fields") ) {
     Parameters fields = manifest["fields"];
 
-    if( manifest.exists("field") ) {
+    if( fields.exists("field") ) {
       Parameters field = fields["field"];
 
       for( int i=0; i<fields.size(); i++ ) {
@@ -126,10 +126,10 @@ indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( int termID 
   char buffer[16*1024];
   int actual;
 
-  bool result = _frequentStringToTerm.get( termID, buffer, actual, sizeof buffer );
+  bool result = _frequentIdToTerm.get( termID, buffer, actual, sizeof buffer );
 
   if( !result ) {
-    result = _infrequentStringToTerm.get( termID, buffer, actual, sizeof buffer );
+    result = _infrequentIdToTerm.get( termID, buffer, actual, sizeof buffer );
 
     if( !result )
       return 0;
@@ -137,7 +137,7 @@ indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( int termID 
   assert( result );
 
   RVLDecompressStream stream( buffer, actual );
-  return disktermdata_decompress( stream, _fieldData.size(), DiskTermData::WithTermID | DiskTermData::WithOffsets );
+  return disktermdata_decompress( stream, _fieldData.size(), DiskTermData::WithString | DiskTermData::WithOffsets );
 }
 
 //
@@ -204,8 +204,11 @@ int indri::index::DiskIndex::term( const std::string& t ) {
 std::string indri::index::DiskIndex::term( int termID ) {
   std::string result;
   indri::index::DiskTermData* diskTermData = _fetchTermData( termID );
-  result = diskTermData->termData->term;
-  ::disktermdata_delete( diskTermData );
+
+  if( diskTermData ) {
+    result = diskTermData->termData->term;
+    ::disktermdata_delete( diskTermData );
+  }
 
   return result;
 }

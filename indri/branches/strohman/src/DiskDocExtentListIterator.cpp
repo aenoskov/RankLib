@@ -107,7 +107,10 @@ bool indri::index::DiskDocExtentListIterator::nextEntry( int documentID ) {
 //
 
 indri::index::DiskDocExtentListIterator::DocumentExtentData* indri::index::DiskDocExtentListIterator::currentEntry() {
-  return &_data;
+  if( !finished() )
+    return &_data;
+
+  return 0;
 }
 
 //
