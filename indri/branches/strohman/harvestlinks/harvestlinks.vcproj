@@ -69,7 +69,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				GlobalOptimizations="TRUE"
-				AdditionalIncludeDirectories="..\index\keyfile;..\utility\include;..\index\include;..\retrieval\include;..\parsing\include;..\contrib\lemur\include"
+				AdditionalIncludeDirectories="..\include;..\contrib\lemur\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

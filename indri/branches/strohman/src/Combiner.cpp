@@ -374,6 +374,9 @@ void Combiner::combineBucket( const std::string& outputPath, const std::string& 
     redirectIn.getline( pathline, sizeof pathline );
     redirectIn.getline( docnoline, sizeof docnoline );
     
+    if( strcmp( "ALIAS=", aliasurl ) )
+      break;
+
     // look for the aliasurl in the hash table
     url_entry** entry = urlTable.find( aliasurl + sizeof "ALIAS=" - 1 );
     url_entry* new_entry = _newUrlEntry( aliasurl + sizeof "ALIAS=" - 1,
