@@ -72,92 +72,21 @@ namespace indri {
       const char* _listEnd;
 
     public:
-      void reset( const greedy_vector< std::pair<char*,char*>, 4 >& lists ) {
-        _lists = &lists;
-        
-        _current = _lists->begin();
-        
-        if( _current != _lists->end() ) {
-          _list = _current->first;
-          _listEnd = _current->second;
-        } else {
-          _list = 0;
-          _listEnd = 0;
-        }
-        
-        _data.document = 0;
-        _data.positions.clear();
-        
-        nextEntry();
-      }
+      DocListMemoryBuilderIterator();
+
+      void reset( const class DocListMemoryBuilder& builder );
+      void reset( const greedy_vector< std::pair<char*,char*>, 4 >& lists );
       
-      DocListMemoryBuilderIterator() {
-      }
-
-      DocListMemoryBuilderIterator( const greedy_vector< std::pair<char*,char*>, 4 >& lists ) {
-        reset( lists );
-      }
-      
-      bool finished() {
-        return _current == _lists->end() && _list == _listEnd;
-      }
-
-      bool nextEntry( int documentID ) {
-        do {
-          if( _data.document >= documentID )
-            return true;
-        }
-        while( nextEntry() );
-        
-        return false;
-      }
-      
-      bool nextEntry() {
-        if( _list < _listEnd ) {
-          int deltaDocument;
-          int positions;
-          
-          _list = RVLCompress::decompress_int( _list, deltaDocument );
-          _data.document += deltaDocument;
-          _data.positions.clear();
-
-          _list = RVLCompress::decompress_int( _list, positions );
-
-          int lastPosition = 0;
-          int deltaPosition;
-
-          for( int i=0; i<positions; i++ ) {
-            _list = RVLCompress::decompress_int( _list, deltaPosition );
-            lastPosition += deltaPosition;
-
-            _data.positions.push_back( lastPosition );
-          }
-        } else {    
-          assert( _list == _listEnd );
-
-          // no data left, go to the next segment
-          if( _current != _lists->end() )
-            _current++;
-          
-          if( _current != _lists->end() ) {
-            _list = _current->first;
-            _listEnd = _current->second;
-            return nextEntry();
-          }
-
-          // no more list segments
-          return false;
-        }
-      }
-      
-      indri::index::DocListIterator::DocumentData* currentEntry() {
-        return &_data;
-      }
+      bool finished();
+      bool nextEntry( int documentID );
+      bool nextEntry();
+      indri::index::DocListIterator::DocumentData* currentEntry();
     };
 
     class DocListMemoryBuilder {
     public:
       typedef DocListMemoryBuilderIterator iterator;
+      friend class DocListMemoryBuilderIterator;
 
     private:
       int _documentFrequency;
