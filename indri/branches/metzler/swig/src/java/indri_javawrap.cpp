@@ -530,8 +530,8 @@ jobject documentvector_copy( JNIEnv* jenv, DocumentVector* vec ) {
     // put it in the array
     jenv->SetObjectArrayElement( fieldsArray, i, f );
   }
-
-  delete vec;
+// don't delete this twice.
+//  delete vec;
   
   // build the document vector object
   result = jenv->NewObject( docVectorClazz, docVecConstructor );
