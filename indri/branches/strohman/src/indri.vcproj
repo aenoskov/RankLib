@@ -496,6 +496,9 @@
 				RelativePath="..\include\indri\delete_range.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\DeletedDocumentList.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\DenseVocabularyMap.hpp">
 			</File>
 			<File

@@ -59,11 +59,19 @@
 #include <sys/time.h>
 #endif
 
+//
+// IndriTimer
+//
+
 IndriTimer::IndriTimer()
   :
   _start(0)
 {
 }
+
+//
+// currentTime
+//
 
 UINT64 IndriTimer::currentTime() {
 #ifdef WIN32
@@ -81,13 +89,52 @@ UINT64 IndriTimer::currentTime() {
 #endif
 }
 
+//
+// start
+//
+
 void IndriTimer::start() {
+  _stopped = false;
   _start = currentTime();
 }
 
-UINT64 IndriTimer::elapsedTime() const {
-  return currentTime() - _start;
+//
+// stop
+//
+
+void IndriTimer::stop() {
+  _elapsed += (currentTime() - _start);
+  _start = 0;
+  _stopped = true;
 }
+
+//
+// reset
+//
+
+void IndriTimer::reset() {
+  _stopped = true;
+  _start = 0;
+  _elapsed = 0;
+}
+
+//
+// elapsedTime
+//
+
+UINT64 IndriTimer::elapsedTime() const {
+  UINT64 total = _elapsed;
+
+  if( !_stopped ) {
+    total += (currentTime() - _start);
+  }
+
+  return total;
+}
+
+//
+// printElapsedMicroseconds
+//
 
 void IndriTimer::printElapsedMicroseconds( std::ostream& out ) const {
   UINT64 elapsed = elapsedTime();
@@ -105,6 +152,10 @@ void IndriTimer::printElapsedMicroseconds( std::ostream& out ) const {
       << std::setw(6) << std::setfill('0')
       << microseconds;
 }
+
+//
+// printElapsedSeconds
+//
 
 void IndriTimer::printElapsedSeconds( std::ostream& out ) const {
   UINT64 elapsed = elapsedTime();

@@ -56,8 +56,8 @@
 #include "lemur/lemur-compat.hpp"
 #include "lemur/RVLCompress.hpp"
 
-const int MIN_SIZE = 64;
-const int GROW_TIMES = 12;
+const int MIN_SIZE = 128;
+const int GROW_TIMES = 11;
 const size_t PLENTY_OF_SPACE = 15; // docID, count, position: 5 bytes each
 
 //
@@ -109,7 +109,7 @@ void indri::index::DocListMemoryBuilder::_grow() {
 
   // actually add the new list
   unsigned int iterations = std::min<unsigned int>( GROW_TIMES, int(_lists.size()) );
-  size_t newSize = (MIN_SIZE << iterations) - 8; // subtract 8 here to give the heap some room for accounting
+  size_t newSize = MIN_SIZE << iterations; // subtract 8 here to give the heap some room for accounting
 
   _list = (char*) _allocator->allocate( newSize );
   _listBegin = _list;
@@ -177,7 +177,7 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
 // _safeAddLocation
 //
 
-void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int position ) {
+inline void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int position ) {
   assert( !_locationCountPointer || _listBegin < _locationCountPointer );
   assert( !_locationCountPointer || _listEnd > _locationCountPointer );
   assert( !_locationCountPointer || _list > _locationCountPointer );

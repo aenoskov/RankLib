@@ -21,6 +21,10 @@
 
 #define pow2_31 2147483648U
 
+#define RVL_COMPRESS_MASK                 ((1<<7)-1)
+#define RVL_COMPRESS_TERMINATE_BIT        (1<<7)
+#define RVL_COMPRESS_BYTE( d, in, b )     d[b] = (char) ((in >> 7*b) & ((1<<7)-1))
+#define RVL_COMPRESS_TERMINATE( d, b )    d[b] = d[b] | RVL_COMPRESS_TERMINATE_BIT
 
 class RVLCompress {
 public:
@@ -160,5 +164,153 @@ inline const char* RVLCompress::skip_ints( const char* source, int numInts ) {
   return source;
 }
 
+inline int RVLCompress::compressedSize( INT64 data ) {
+  if( data < pow2_7 ) {
+    return 1;
+  } else if ( data < pow2_14 ) {
+    return 2;
+  } else if ( data < pow2_21 ) {
+    return 3;
+  } else if ( data < pow2_28 ) {
+    return 4;
+  } else if ( data < UINT64(1)<<35 ) {
+    return 5;
+  } else if ( data < UINT64(1)<<42 ) {
+    return 6;
+  } else if ( data < UINT64(1)<<49 ) {
+    return 7;
+  } else if ( data < UINT64(1)<<56 ) {
+    return 8;
+  } else if ( data < UINT64(1)<<63 ) {
+    return 9;
+  } else {
+    return 10;
+  }
+}
+
+inline char* RVLCompress::compress_int( char* dest, int data ) {
+  if( data < (1<<7) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_TERMINATE( dest, 0 );
+    return dest + 1;
+  } else if( data < (1<<14) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_TERMINATE( dest, 1 );
+    return dest + 2;
+  } else if( data < (1<<21) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_TERMINATE( dest, 2 );
+    return dest + 3;
+  } else if( data < (1<<28) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_TERMINATE( dest, 3 );
+    return dest + 4;
+  } else {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_BYTE( dest, data, 4 );
+    RVL_COMPRESS_TERMINATE( dest, 4 );
+    return dest + 5;
+  }
+}
+
+inline char* RVLCompress::compress_longlong( char* dest, INT64 id ) {
+  UINT64 data = UINT64(id);
+
+  if( data < (UINT64(1)<<7) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_TERMINATE( dest, 0 );
+    return dest + 1;
+  } else if( data < (UINT64(1)<<14) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_TERMINATE( dest, 1 );
+    return dest + 2;
+  } else if( data < (UINT64(1)<<21) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_TERMINATE( dest, 2 );
+    return dest + 3;
+  } else if( data < (UINT64(1)<<28) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_TERMINATE( dest, 3 );
+    return dest + 4;
+  } else if( data < (UINT64(1)<<35) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_BYTE( dest, data, 4 );
+    RVL_COMPRESS_TERMINATE( dest, 4 );
+    return dest + 5;
+  } else if( data < (UINT64(1)<<42) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_BYTE( dest, data, 4 );
+    RVL_COMPRESS_BYTE( dest, data, 5 );
+    RVL_COMPRESS_TERMINATE( dest, 5 );
+    return dest + 6;
+  } else if( data < (UINT64(1)<<49) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_BYTE( dest, data, 4 );
+    RVL_COMPRESS_BYTE( dest, data, 5 );
+    RVL_COMPRESS_BYTE( dest, data, 6 );
+    RVL_COMPRESS_TERMINATE( dest, 6 );
+    return dest + 7;
+  } else if( data < (UINT64(1)<<56) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_BYTE( dest, data, 4 );
+    RVL_COMPRESS_BYTE( dest, data, 5 );
+    RVL_COMPRESS_BYTE( dest, data, 6 );
+    RVL_COMPRESS_BYTE( dest, data, 7 );
+    RVL_COMPRESS_TERMINATE( dest, 7 );
+    return dest + 8;
+  } else if( data < (UINT64(1)<<63) ) {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_BYTE( dest, data, 4 );
+    RVL_COMPRESS_BYTE( dest, data, 5 );
+    RVL_COMPRESS_BYTE( dest, data, 6 );
+    RVL_COMPRESS_BYTE( dest, data, 7 );
+    RVL_COMPRESS_BYTE( dest, data, 8 );
+    RVL_COMPRESS_TERMINATE( dest, 8 );
+    return dest + 9;
+  } else {
+    RVL_COMPRESS_BYTE( dest, data, 0 );
+    RVL_COMPRESS_BYTE( dest, data, 1 );
+    RVL_COMPRESS_BYTE( dest, data, 2 );
+    RVL_COMPRESS_BYTE( dest, data, 3 );
+    RVL_COMPRESS_BYTE( dest, data, 4 );
+    RVL_COMPRESS_BYTE( dest, data, 5 );
+    RVL_COMPRESS_BYTE( dest, data, 6 );
+    RVL_COMPRESS_BYTE( dest, data, 7 );
+    RVL_COMPRESS_BYTE( dest, data, 8 );
+    RVL_COMPRESS_BYTE( dest, data, 9 );
+    RVL_COMPRESS_TERMINATE( dest, 9 );
+    return dest + 10;
+  }
+}
 
 #endif
