@@ -297,6 +297,9 @@
 				RelativePath="..\include\indri\delete_range.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\DenseVocabularyMap.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\DirectoryIterator.hpp">
 			</File>
 			<File
@@ -676,6 +679,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\UnparsedDocument.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\VocabularyMap.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\Walker.hpp">

@@ -65,8 +65,32 @@ namespace indri {
         int document;
         greedy_vector<int> positions;
       };
+
+      struct TopDocument {
+        struct less {
+          bool operator() ( TopDocument& one, TopDocument& two ) {
+            double oneFrac = double(one.count) / double(one.length);
+            double twoFrac = double(two.count) / double(two.length);
+            return oneFrac < twoFrac;
+          }
+        };
+
+        TopDocument( int _document, int _count, int _length ) :
+          document(_document),
+          count(_count),
+          length(_length)
+        {
+        }
+
+        int document;
+        int count;
+        int length;
+      };
       
       virtual ~DocListIterator() {};
+
+      // get a list of top documents for this iterator
+      virtual const greedy_vector<TopDocument>& topDocuments() = 0;
 
       // get the iterator ready to return data; call this before calling currentEntry or nextEntry
       virtual void startIteration() = 0;
@@ -80,6 +104,9 @@ namespace indri {
 
       // return the current document entry if we're not finished, null otherwise.
       virtual DocumentData* currentEntry() = 0;
+    
+      // returns true if the iterator has no more entries
+      virtual bool finished() = 0;
     };
   }
 }

@@ -134,13 +134,48 @@ inline void termdata_delete( indri::index::TermData* termData, int fieldCount ) 
   }
 }
 
+inline void termdata_clear( indri::index::TermData* termData, int fieldCount ) {
+  termData->corpus.documentCount = 0;
+  termData->corpus.totalCount = 0;
+  termData->corpus.lastCount = 0;
+  termData->corpus.lastDocument = 0;
+
+  for( int i=0; i<fieldCount; i++ ) {
+    indri::index::TermFieldStatistics& field = termData->fields[i];
+
+    field.documentCount = 0;
+    field.totalCount = 0;
+    field.lastCount = 0;
+    field.lastDocument = 0;
+  }
+
+  termData->maxDocumentFraction = 0;
+  termData->maxDocumentFrequency = 0;
+  termData->minDocumentLength = MAX_INT32;
+}
+
+inline void termdata_merge( indri::index::TermData* termData, indri::index::TermData* merger, int fieldCount ) {
+  termData->corpus.documentCount += merger->corpus.documentCount;
+  termData->corpus.totalCount += merger->corpus.totalCount;
+
+  for( int i=0; i<fieldCount; i++ ) {
+    indri::index::TermFieldStatistics& field = termData->fields[i];
+    indri::index::TermFieldStatistics& mergeField = merger->fields[i];
+
+    field.documentCount += mergeField.documentCount;
+    field.totalCount += mergeField.totalCount;
+  }
+
+  termData->maxDocumentFraction = lemur_compat::max( termData->maxDocumentFraction, merger->maxDocumentFraction );
+  termData->maxDocumentFrequency = lemur_compat::max( termData->maxDocumentFrequency, merger->maxDocumentFrequency );
+  termData->minDocumentLength = lemur_compat::min( termData->minDocumentLength, termData->minDocumentLength );
+}
+
 inline int termdata_size( int fieldCount ) {
   return sizeof(indri::index::TermData) + fieldCount * sizeof(indri::index::TermFieldStatistics);
 }
 
-inline int termdata_compress( char* buffer, int size, int fieldCount, indri::index::TermData* termData ) {
-  RVLCompressStream stream( buffer, size );
-
+inline void termdata_compress( RVLCompressStream& stream, indri::index::TermData* termData, int fieldCount ) {
   // corpus statistics
   stream << termData->corpus.totalCount
          << termData->corpus.documentCount;
@@ -155,13 +190,9 @@ inline int termdata_compress( char* buffer, int size, int fieldCount, indri::ind
     stream << termData->fields[i].totalCount
           << termData->fields[i].documentCount;
   }
-
-  return stream.dataSize();
 }
 
-inline void termdata_decompress( const char* buffer, int size, int fieldCount, indri::index::TermData* termData ) {
-  RVLDecompressStream stream( buffer, size );
-  
+inline void termdata_decompress( RVLDecompressStream& stream, indri::index::TermData* termData, int fieldCount ) {
   // corpus statistics
   stream >> termData->corpus.totalCount
          >> termData->corpus.documentCount;

@@ -204,7 +204,7 @@ void CompressedCollection::_writeMetadataItem( ParsedDocument* document, int i, 
 void CompressedCollection::_writePositions( ParsedDocument* document, int& keyLength, int& valueLength ) {
   _positionsBuffer.clear();
   _positionsBuffer.grow( document->positions.size() * 10 );
-  RVLCompressStream compress( _positionsBuffer.write( _positionsBuffer.size() ), _positionsBuffer.size() );
+  RVLCompressStream compress( _positionsBuffer );
   int last = 0;
 
   if( !document->positions.size() )

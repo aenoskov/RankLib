@@ -39,7 +39,8 @@ namespace indri {
       virtual int term( const char* term ) = 0;
       virtual int term( const std::string& term ) = 0;
       virtual std::string term( int termID ) = 0;
-            
+
+      virtual int documentLength( int documentID ) = 0;
       virtual UINT64 documentCount() = 0;
       virtual UINT64 uniqueTermCount() = 0;
 

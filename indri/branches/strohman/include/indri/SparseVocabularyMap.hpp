@@ -8,6 +8,11 @@
 #ifndef INDRI_SPARSEVOCABULARYMAP_HPP
 #define INDRI_SPARSEVOCABULARYMAP_HPP
 
+//
+// Status: this isn't complete yet--still need to figure out the right
+// interface, etc.  The bitmap idea seems good, though
+//
+
 class SparseVocabularyMap {
 public:
   struct map_entry {

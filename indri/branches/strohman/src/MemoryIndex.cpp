@@ -89,6 +89,14 @@ int indri::index::MemoryIndex::documentBase() {
 }
 
 //
+// documentLength
+//
+
+int indri::index::MemoryIndex::documentLength( int documentID ) {
+  return _documentData[ documentID - _baseDocumentID ].indexedLength;
+}
+
+//
 // term
 //
 
@@ -262,6 +270,8 @@ void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byt
 
     addBuffer = new Buffer(ONE_MEGABYTE);
     _termLists.push_back( addBuffer );
+  } else {
+    addBuffer = _termLists.back();
   }
   
   offset = _termListsBaseOffset + addBuffer->position();
@@ -349,6 +359,7 @@ indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( c
   int termLength = strlen(term);
   
   newEntry = (term_entry*) malloc( termLength+1 + sizeof(term_entry) );
+  newEntry->term = (char*) newEntry + sizeof(term_entry);
   strcpy( newEntry->term, term );
   new (newEntry) term_entry;
   
