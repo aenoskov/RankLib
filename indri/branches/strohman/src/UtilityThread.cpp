@@ -7,6 +7,7 @@
 
 #include "indri/UtilityThread.hpp"
 #include "indri/ScopedLock.hpp"
+#include "lemur/Exception.hpp"
 
 //
 // utility_thread_run
@@ -32,21 +33,26 @@ UtilityThread::UtilityThread() :
 void UtilityThread::run() {
   ScopedLock lock( _lock );
 
-  UINT64 waitTime = initialize();
+  try {
+    UINT64 waitTime = initialize();
 
-  while( _runThread ) {
-    bool noTimeout = _quit.wait( _lock, waitTime );
+    while( _runThread ) {
+      bool noTimeout = _quit.wait( _lock, waitTime );
 
-    if( noTimeout )
-      continue; // interrupted
+      if( noTimeout )
+        continue; // interrupted
 
-    waitTime = work();
+      waitTime = work();
+    }
+
+    while( hasWork() )
+      work();
+
+    deinitialize();
+  } catch( Exception& e ) {
+    std::cout << "UtilityThread exiting from exception " << e.what() << std::endl;
   }
 
-  while( hasWork() )
-    work();
-
-  deinitialize();
 }
 
 //
