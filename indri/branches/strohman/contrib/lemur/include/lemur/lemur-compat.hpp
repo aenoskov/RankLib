@@ -29,6 +29,12 @@
   #include <sys/types.h>
   #include <sys/stat.h>
   #define LEMUR_USES_ENUM_OPENMODE
+  #ifdef HOST_OS
+    #if HOST_OS == solaris
+      #define	BIG_ENDIAN	4321
+      #define BYTE_ORDER BIG_ENDIAN
+    #endif
+  #endif
 #endif
 
 #include <stdio.h>

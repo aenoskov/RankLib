@@ -1,4 +1,3 @@
-
 #if !defined(KEYCONST_H)
 #define KEYCONST_H
 
@@ -7,4 +6,3 @@
 #define buffer_lc 4120    /* sameas sizeof(struct ix_block) */
 
 #endif
-

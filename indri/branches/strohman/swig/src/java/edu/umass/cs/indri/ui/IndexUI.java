@@ -46,7 +46,9 @@ public class IndexUI extends JPanel implements ActionListener,
     /** Help file for the application */
     private final static String helpFile = "properties/IndriIndex.html";
     /** The little icon */
-    private final static String iconFile = null;
+    //    private final static String iconFile = "properties/lemur_icon.GIF";
+    //    private final static String iconFile = "properties/lemur.GIF";
+    private final static String iconFile = "properties/lemur_head_32.gif";
     /** The big logo */
     private final static String logoFile = null;
     /** Indri FileClassEnvironments */
@@ -87,11 +89,10 @@ public class IndexUI extends JPanel implements ActionListener,
     private void initGUI() {	
 	// starting with a JPanel using BorderLayout
 	// indexing tab to use GridBagLayout
-	//	indriIcon = createImageIcon(iconFile);
 	// reuse for each labeled component.
 	JLabel label;
 	// set up icon images
-	indriIcon = null;
+	indriIcon = createImageIcon(iconFile);
 	ImageIcon icon = null;  // no icon on tabs
 	// initialize help
 	makeHelp();
@@ -136,12 +137,13 @@ public class IndexUI extends JPanel implements ActionListener,
 	cfModel = new DefaultListModel();
 	collectionFiles = new JList(cfModel);
 	collectionFiles.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-	String fill = "123456789012345678901234567890123456789";
-	collectionFiles.setPrototypeCellValue(fill);
+	//	String fill = "123456789012345678901234567890123456789";
+	//	collectionFiles.setPrototypeCellValue(fill);
 	collectionFiles.setVisibleRowCount(5);
 	collectionFiles.setToolTipText("Browse to a directory and select " + 
 				       "input files or directories.");
 	JScrollPane listScrollPane = new JScrollPane(collectionFiles);
+	listScrollPane.setPreferredSize(new Dimension(400, 100));
 	// browse button for data files
 	cfbrowse = new JButton("Browse...");
 	cfbrowse.addActionListener(this);
@@ -193,11 +195,12 @@ public class IndexUI extends JPanel implements ActionListener,
 		
 	colFields = new JTextField("docno", 25);
 	colFields.setToolTipText("Comma delimited list of field names, " +
-				 "without spaces");
+				 "without spaces to index as metadata.");
 		
 	indFields = new JTextField("title", 25);
 	indFields.setToolTipText("Comma delimited list of field names, " +
-				 "without spaces");
+				 "without spaces to index as data for " +
+				 "field queries");
 	label = new JLabel("Collection Fields: ", JLabel.TRAILING);
 	label.setLabelFor(colFields);
 	constraints.gridx = 0;
@@ -268,11 +271,6 @@ public class IndexUI extends JPanel implements ActionListener,
 	constraints.gridx = 0;
 	panel.add(doStem, constraints);
 		
-	//	label = new JLabel("Stemmer: ", JLabel.TRAILING);
-	//	constraints.gridx = 1;
-	//	panel.add(label, constraints);
-		
-	//	constraints.gridx = 2;
 	constraints.gridx = 1;
 	constraints.anchor = GridBagConstraints.LINE_START;
 	panel.add(stemmers, constraints);
@@ -300,9 +298,7 @@ public class IndexUI extends JPanel implements ActionListener,
 	messages = new JTextArea(10,40);
 	messages.setEditable(false);
 		
-	JScrollPane messageScrollPane = 
-	    new JScrollPane(messages, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-			    JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+	JScrollPane messageScrollPane = new JScrollPane(messages);
 	panel4.add(messageScrollPane);
 	tabbedPane.addTab("Status", icon, panel4, "Status Messages");
 		
@@ -318,6 +314,13 @@ public class IndexUI extends JPanel implements ActionListener,
 	add(tabbedPane, BorderLayout.NORTH);
 	add(buttons, BorderLayout.CENTER);
 	add(status, BorderLayout.SOUTH);
+	// this way to make the tabbed pane be the one to grow on resize
+	// contents don't resize, however..
+	//	JPanel bp = new JPanel(new BorderLayout());
+	//	add(tabbedPane, BorderLayout.CENTER);
+	//	bp.add(buttons, BorderLayout.NORTH);
+	//	bp.add(status, BorderLayout.SOUTH);
+	//	add(bp, BorderLayout.SOUTH);
     }
     // gui helper functions.
     /** Create the applications menu bar.
@@ -410,9 +413,20 @@ public class IndexUI extends JPanel implements ActionListener,
 	    int returnVal = fc.showOpenDialog(this);
 	    if (returnVal == JFileChooser.APPROVE_OPTION) {
 		File [] files = fc.getSelectedFiles();
-		for (int i = 0; i < files.length; i++)
-		    cfModel.addElement(files[i].getAbsolutePath());
+		for (int i = 0; i < files.length; i++) {
+		    File file = files[i];
+		    String docpath = file.getAbsolutePath();
+		    // if user double clicked a directory to select,
+		    // we get the directory name as the selected file
+		    // in the intended directory.
+		    // so check that the file exists and is a directory.
+		    // if not, try the parent directory.
+		    if (! file.exists())
+			docpath = file.getParentFile().getAbsolutePath();
+		    cfModel.addElement(docpath);
+		}
 	    }
+	    
 	    fc.setMultiSelectionEnabled(false);
 	    fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 	    // remove the filter.
@@ -456,11 +470,15 @@ public class IndexUI extends JPanel implements ActionListener,
 	    }
 	} else if (source == hHelp) 	{
 	    // pop up a help dialog
-	    helpFrame.setVisible(true);
+	    if (! helpFrame.isShowing()) {
+		helpFrame.setLocationRelativeTo(tabbedPane);
+		helpFrame.setVisible(true);
+		helpFrame.toFront();
+	    }
 	} else if (source == hAbout) 	{
 	    JOptionPane.showMessageDialog(this, aboutText, "About", 
-					  JOptionPane.INFORMATION_MESSAGE);
-	    //  createImageIcon(logoFile));
+					  JOptionPane.INFORMATION_MESSAGE,
+					  createImageIcon(iconFile));
 	}
 	// at least one datafile and a name entered.
 	boolean enabled = (cfModel.getSize() > 0 && 
@@ -495,11 +513,8 @@ public class IndexUI extends JPanel implements ActionListener,
 	helpFrame = new JFrame("Indri Index Builder Help");
 	help.setPreferredSize(new Dimension(650, 400));
 	help.setEditable(false);
-	help.addHyperlinkListener(new DocLinkListener());
-	JScrollPane scroller =
-	    new JScrollPane(help, 
-			    JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-			    JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+	help.addHyperlinkListener(new DocLinkListener(indriIcon.getImage()));
+	JScrollPane scroller = new JScrollPane(help); 
 	try {
 	    help.setPage(helpURL);
 	} catch (IOException ex) {
@@ -508,7 +523,7 @@ public class IndexUI extends JPanel implements ActionListener,
 
 	helpFrame.getContentPane().add(scroller, BorderLayout.CENTER);
 	helpFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-	//	helpFrame.setIconImage(createImageIcon(iconFile).getImage());
+	helpFrame.setIconImage(indriIcon.getImage());
 	helpFrame.pack();
     }
 	
@@ -522,16 +537,14 @@ public class IndexUI extends JPanel implements ActionListener,
 	//Make sure we have nice window decorations.
 	JFrame.setDefaultLookAndFeelDecorated(true);
 	// For system look and feel
-	/*
-	  try {
-	  UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-	  } catch (Exception e) { 
-	  }
-	*/
+	try {
+	    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+	} catch (Exception e) { 
+	}
 	//Create and set up the window.
 	JFrame frame = new JFrame("Indri Index Builder");
 	frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	//	frame.setIconImage(createImageIcon(iconFile).getImage());
+	frame.setIconImage(createImageIcon(iconFile).getImage());
 	//Create and set up the content pane.
 	IndexUI newContentPane = new IndexUI();
 	newContentPane.setOpaque(true); //content panes must be opaque
@@ -693,8 +706,57 @@ public class IndexUI extends JPanel implements ActionListener,
 	    String stemmer = (String)stemmers.getSelectedItem();
 	    env.setStemmer(stemmer);
 	}
-		
+	// add an empty string option
 	String fileClass = (String)docFormat.getSelectedItem();
+	// augment the environment as required
+	Specification spec = env.getFileClassSpec(fileClass);
+	java.util.Vector vec = new java.util.Vector();
+	java.util.Vector incs = null;
+	if (spec.include.length > 0)
+	    incs = new java.util.Vector();
+    
+	// indexed fields
+	for (int i = 0; i < spec.index.length; i++)
+	    vec.add(spec.index[i]);
+	for (int i = 0; i < fields.length; i++) {
+	    if (vec.indexOf(fields[i]) == -1)
+		vec.add(fields[i]);
+	    // add to include tags only if there were some already.
+	    if (incs != null && incs.indexOf(fields[i]) == -1)
+		incs.add(fields[i]);
+	}
+	
+	if (vec.size() > spec.index.length) {
+	    // we added something.
+	    spec.index = new String[vec.size()];
+	    vec.copyInto(spec.index);
+	}
+	
+	// metadata fields.
+	vec.clear();
+	for (int i = 0; i < spec.metadata.length; i++)
+	    vec.add(spec.metadata[i]);
+	for (int i = 0; i < metafields.length; i++) {	    
+	    if (vec.indexOf(metafields[i]) == -1)
+		vec.add(metafields[i]);
+	    // add to include tags only if there were some already.
+	    if (incs != null && incs.indexOf(metafields[i]) == -1)
+		incs.add(metafields[i]);
+	}
+	
+	if (vec.size() > spec.metadata.length) {
+	    // we added something.
+	    spec.metadata = new String[vec.size()];
+	    vec.copyInto(spec.metadata);
+	}
+	// update include if needed.
+	if (incs != null && incs.size() > spec.include.length) {
+	    spec.include = new String[incs.size()];
+	    incs.copyInto(spec.include);
+	}
+	// update the environment.
+	env.addFileClass(spec);
+	
 	String [] datafiles = formatDataFiles();
 		
 	// create a new empty index (after parameters have been set).
@@ -709,6 +771,8 @@ public class IndexUI extends JPanel implements ActionListener,
 	// do the building.
 	for (int i = 0; i < datafiles.length; i++){
 	    String fname = datafiles[i];
+	    // if the fileClass is null, use 
+	    // env.addFile(fname);
 	    env.addFile(fname, fileClass);
 	    ensureMessagesVisible();
 	}
@@ -852,15 +916,15 @@ public class IndexUI extends JPanel implements ActionListener,
     class UIIndexStatus extends IndexStatus {
 	public void status(int code, String documentFile, String error, 
 			   int documentsIndexed, int documentsSeen) {
-	    if (code == IndexStatus.FileOpen) {
+	    if (code == action_code.FileOpen.swigValue()) {
 		messages.append("Documents: " + documentsIndexed + "\n");
 		messages.append("Opened " + documentFile + "\n");
-	    } else if (code == IndexStatus.FileSkip) {
+	    } else if (code == action_code.FileSkip.swigValue()) {
 		messages.append("Skipped " + documentFile + "\n");
-	    } else if (code == IndexStatus.FileError) {
+	    } else if (code == action_code.FileError.swigValue()) {
 		messages.append("Error in " + documentFile + " : " + error + 
 				"\n");
-	    } else if (code == IndexStatus.DocumentCount) {
+	    } else if (code == action_code.DocumentCount.swigValue()) {
 		if( (documentsIndexed % 50) == 0)
 		    messages.append( "Documents: " + documentsIndexed + "\n" );
 	    }

@@ -1,6 +1,6 @@
 /*                                                               */
-/* Copyright 1984,1985,1986,1988,1989,1990,2003,2004 by Howard Turtle */
-/*                                                               */
+/* Copyright 1984,1985,1986,1988,1989,1990,2003,2004,2005 by     */
+/*   Howard Turtle                                               */
 
 #define boolean int
 #define true 1
@@ -22,6 +22,10 @@
 #define show_errors true
 #define trace_io false
 #define short_lc sizeof(short)
+
+#if defined(CHILIAD_KF)
+#include "chiliad_redefs.h"
+#endif
 
 /*int
   get_buffer_cnt=0,
@@ -435,32 +439,8 @@ static void print_nth_key(struct ix_block *b, int n, char caption[])
   }
 }
 
-/* compare_key compares a key k with the suffix portion stored in an   */
-/*   index block.  It is used for searching when we allready know that */
-/*   the block prefix matches the key.  compare_key compares the  */
-/*   entire key including the prefix                                   */
-
-/*enum comparison compare_key(struct key *k, struct ix_block *b, int ix)
-{int r,lc1,lc2;
-
-  lc1 = k->lc - b->prefix_lc;
-  lc2 = b->keys[ix].lc;
-  if ( lc1<=lc2 ) {
-    r = memcmp(k->text+b->prefix_lc,(char *) b->keys+b->keys[ix].sc,lc1 );
-    if (r<0) return(less);
-    else if (r>0) return(greater);
-    else if ( lc1==lc2 ) return(equal);
-    else return(less);
-  }
-  else {
-    r = memcmp(k->text+b->prefix_lc,(char *) b->keys+b->keys[ix].sc,lc2 );
-    if (r<0) return(less);
-    else if (r>0) return(greater);
-    else if ( lc1==lc2 ) return(equal);
-    else return(greater);
-  }
-
-}*/
+/* compare_key compares a key k with the ix^th entry stored in an   */
+/*   index block.                                                   */
 
 enum comparison compare_key(struct key *k, struct ix_block *b, int ix)
 {int r,lc1,lc2;
@@ -916,20 +896,27 @@ static void write_page(struct fcb *f, struct leveln_pntr p, block_type_t *buf)
     }
 }*/
 
-static int write_page_and_flush(struct fcb *f, struct leveln_pntr p, void *buf)
-{int i,min_block,max_block,nbr_cnt=0; struct leveln_pntr pn;
 
-  min_block = p.block - 8;
-  max_block = min_block + 16;
+#define flush_window 256
+
+static int write_page_and_flush(struct fcb *f, struct leveln_pntr p, void *buf)
+{int i,min_block,max_block,nbr_cnt=0,nbr_list[flush_window]; struct leveln_pntr pn;
+
+  min_block = (p.block / flush_window) * flush_window;
+  max_block = min_block + flush_window;
   for (i=0; i<f->buffers_in_use; i++)
     if (f->buffer[i].modified && (f->buffer[i].lock_cnt==0) ) {
       pn = f->buffer[i].contents;
       if ( pn.segment==p.segment && pn.block>=min_block && pn.block<=max_block ) {
+        nbr_list[nbr_cnt] = i;
         nbr_cnt++;
-	/*        write_page(f,f->buffer[i].contents,&(f->buffer[i].b) );
-		  f->buffer[i].modified = false;*/
       }
     }
+  for (i=0; i<nbr_cnt; i++) {
+    write_page(f,f->buffer[nbr_list[i]].contents,&(f->buffer[nbr_list[i]].b) );
+    f->buffer[nbr_list[i]].modified = false;
+  }
+  /*  printf("wrote %d blocks\n",nbr_cnt);*/
   return(nbr_cnt);
 }
 
@@ -1065,13 +1052,23 @@ static int search_hash_chain(struct fcb *f, struct leveln_pntr block)
   return(bufix);
 }
 
+/* hash_chain_insrt inserts a buffer in a hash_chain  */
+/*   The block number is hashed and the hash table is */
+/*   checked.  If the hash table entry<0 then the     */
+/*   chain is empty and the buffer inserted as a      */
+/*   chain of length one.  If the entry>=0 then the   */
+/*   chain is searched and the buffer inserted.       */
+
 static void hash_chain_insert(struct fcb *f, int bufix)
 {int k,next,last=-1; struct leveln_pntr block;
 
   block = f->buffer[bufix].contents;
   k = hash_value(block,f->buf_hash_entries);
   next = f->buf_hash_table[k];
-  if ( next<0 ) f->buf_hash_table[k] = bufix;
+  if ( next<0 ) {
+    f->buf_hash_table[k] = bufix;
+    f->buffer[bufix].hash_next = -1;
+  }
   else {
     while ( next>=0 && gt_pntr(block,f->buffer[next].contents) ) {
       last = next; next = f->buffer[next].hash_next;
@@ -1095,7 +1092,7 @@ static void hash_chain_insert(struct fcb *f, int bufix)
 /* remove the buffer with index bufix from its hash chain */
 
 static void hash_chain_remove(struct fcb *f, int bufix)
-{int k,next,last; struct leveln_pntr block;
+{int k,next,last=0; struct leveln_pntr block;
 
   block = f->buffer[bufix].contents;
   k = hash_value(block,f->buf_hash_entries);
@@ -1198,9 +1195,9 @@ static int vacate_oldest_buffer(struct fcb *f)
     if ( f->buffer[oldest].modified ) {
       write_page(f,f->buffer[oldest].contents,&(f->buffer[oldest].b));
 
-      i = write_page_and_flush(f,f->buffer[oldest].contents,&(f->buffer[oldest].b));
+      /*    i = write_page_and_flush(f,f->buffer[oldest].contents,&(f->buffer[oldest].b));*/
       if ( trace_io ) {
-        printf("  wrote block %d/%d ",f->buffer[oldest].contents.segment,f->buffer[oldest].contents.block);
+        printf("  wrote block %d/%lu ",f->buffer[oldest].contents.segment,f->buffer[oldest].contents.block);
         print_buffer_caption(stdout,f,oldest);
         printf(" from buffer %d, %d others in window\n",oldest,i);
       }
@@ -1244,7 +1241,6 @@ static void set_empty_block_prefix(struct ix_block *b, struct key *prefix, int p
 static void initialize_index_block(struct ix_block *b, int index, int lvl,
   struct key *prefix, int prefix_lc)
 {
-/* printf("  initializing index block at level %d\n",lvl); */
   set_empty_block_prefix(b,prefix,prefix_lc);
   b->keys_in_block = 0;
   b->index_type = index;
@@ -1262,7 +1258,7 @@ static int get_index(struct fcb *f, struct leveln_pntr b)
   if ( not_found ) {
     read_page(f,b,&(f->buffer[bufix].b));
     if ( trace_io ) {
-      printf("  read block %d/%d ",b.segment,b.block);
+      printf("  read block %d/%lu ",b.segment,b.block);
       print_buffer_caption(stdout,f,bufix);
       printf(" into buffer %d\n",bufix);
     }
@@ -1611,7 +1607,7 @@ int copy_rec(struct fcb *f,struct level0_pntr *p, unsigned char rec[], int *rec_
     if ( *rec_lc>max_rec_lc ) {
       f->error_code = longrec_err; *rec_lc = max_rec_lc;
     }
-    if ( *rec_lc<=long_lc ) memcpy(rec,&p->sc,(size_t) *rec_lc);
+    if ( *rec_lc<min_disk_rec_lc ) memcpy(rec,&p->sc,(size_t) *rec_lc);
     else {
       file = file_index(f,p->segment);
       if ( f->error_code!=no_err ) return(f->error_code);
@@ -2043,8 +2039,8 @@ static boolean will_fit(struct key *k, levelx_pntr *p, struct ix_block *b, int i
 /*   split) can only occur if all keys have the new prefix length.         */
 
 static int compress_ix_block(struct ix_block *b, int prefix_lc, boolean trace)
-{int i,lc,prefix_difference,expected_pool_lc,original_prefix_lc,original_pool_lc,pool_sc,pntr_lc,
-old_key_sc,old_key_lc,old_pntr_sc,chars_in_use;
+{int i,prefix_difference,expected_pool_lc,pool_sc,pntr_lc,
+old_key_sc,old_pntr_sc,chars_in_use;
 struct ix_block copy; struct key prefix; char expansion[max_prefix_lc];
 
   if ( b->prefix_lc==prefix_lc ) { /* do nothing */ }
@@ -2101,64 +2097,6 @@ struct ix_block copy; struct key prefix; char expansion[max_prefix_lc];
   }
   return(b->chars_in_use);
 }
-
-static int compress_ix_block1(struct ix_block *b, int prefix_lc, boolean trace)
-{int i,prefix_difference,expected_pool_lc,original_prefix_lc,original_pool_lc; boolean prefix_ok=true; struct ix_block copy,copy_b;
-struct key k,prefix; levelx_pntr p;
-
- copy_b = *b;
-  if ( b->prefix_lc==prefix_lc ) { /* do nothing */ }
-  else {
-    prefix_difference = b->prefix_lc - prefix_lc;
-    expected_pool_lc = ix_pool_lc(b) + (prefix_difference * b->keys_in_block) - prefix_difference;
-    if ( trace ) {
-      printf("Compressing ix block from prefix_lc=%d to %d, pool_lc before=%d, after=%d\n",
-        b->prefix_lc,prefix_lc,ix_pool_lc(b),expected_pool_lc);
-    }
-    if ( expected_pool_lc>keyspace_lc ) {
-      if ( show_errors ) printf("**overflow in compress_ix_block\n");
-    }
-    else if (b->keys_in_block==0 ) { /* nothing to compress */
-      b->chars_in_use = 0;
-      b->prefix_lc = 0;
-    }
-    else {
-      original_prefix_lc = b->prefix_lc;
-      original_pool_lc = ix_pool_lc(b);
-      get_nth_key(b,&prefix,0);
-      if ( prefix.lc<prefix_lc && show_errors )
-        printf("**key used for prefix compression too short, lc=%d, prefix_lc=%d\n",prefix.lc,prefix_lc);
-      copy.keys_in_block = 0;
-      copy.chars_in_use = prefix_lc;
-      mvc(prefix.text,0,copy.keys,keyspace_lc-copy.chars_in_use,prefix_lc);
-      copy.index_type = b->index_type;
-      copy.prefix_lc = prefix_lc;
-      copy.level = b->level;
-      copy.next = b->next;
-      copy.prev = b->prev;
-      /*      move_keys(b,0,&copy,0,b->keys_in_block);*/
-      for (i=0; i<b->keys_in_block; i++) {
-	get_nth_key_and_pntr(b,&k,i,&p);
-	/*        if ( memcmp(k.text,prefix.text,(size_t)prefix_lc)!=0 ) prefix_ok = false;*/
-        simple_insert(&copy,i,&k,p);
-      }
-      if ( !prefix_ok && show_errors) {
-        printf("Uh oh. Bad prefix in compress_ix_block, prefix_lc=%d, prefix=",prefix_lc);
-        for (i=0; i<prefix_lc; i++) printf("%c",prefix.text[i]);
-        printf("\n");
-        print_index_block(stdout,b);
-      }
-      *b = copy;
-      if ( ix_pool_lc(b)!=expected_pool_lc && show_errors)
-        printf("**compressed ix block lc=%d doesn't match expected=%d, original prefix_lc=%d, prefix_lc=%d, keys=%d, original pool=%d\n",
-          ix_pool_lc(b),expected_pool_lc,original_prefix_lc,prefix_lc,b->keys_in_block,original_pool_lc);
-    }
-  }
-  compress_ix_block1(&copy_b,prefix_lc,trace);
-  if ( !eq_ix_block(b,&copy_b) ) printf("**In compress_ix_block, new compression failed\n");
-  return(b->chars_in_use);
-}
-
 
 /* check_ix_block_compression checks that the prefix length recorded in */
 /*   the block is consistent with the keys in the block.  If it is not  */
@@ -2412,7 +2350,7 @@ static boolean move_keys_to_left(struct ix_block *lt, struct ix_block *mid, int 
 /*   in ix_th entry of mid and n can have values 0..mid->keys_in_block.*/
 /*   if insert==0 then the new key/ptr pair will replace the ix^th     */
 /*   entry and n can have values 0..mid->keys_in_block-1.  The length  */
-/*   of the entire entry (key+ptr+key_ptr) is returned.                */ 
+/*   of the entire entry selected (key+ptr+key_ptr) is returned.       */
 
 static int choose_key(struct ix_block *mid, struct key *new_key, levelx_pntr *new_p,
   int ix, int n, struct key *choice, boolean insert)
@@ -2435,21 +2373,23 @@ static int choose_key(struct ix_block *mid, struct key *new_key, levelx_pntr *ne
 /*  bytes in its index pool.  If insert=true then k is a new key to     */
 /*  be inserted in location ix.  Otherwise, k will replace the entry    */
 /*  in ix. The number of keys to move is returned, the sizes of mid     */
-/*  and rt after moving are returned in mid_lc_out and rt_lc_out.       */
+/*  and rt after moving are returned in mid_lc_in_out and rt_lc_out.       */
 /*  and the prefix_lc's after moving are returned in mid_prefix_lc_out  */
 /*  and rt_prefix_lc_out.                                               */
 /*  Note that new_mid_lc may still exceed max_keyspace.                 */
 
 static int choose_right_move_cnt(struct fcb *f, struct ix_block *mid, struct ix_block *rt,
 struct key *k, levelx_pntr *new_p, int ix, boolean insert, int target,
-int *mid_lc_out, int *mid_prefix_lc_out, int *rt_lc_out, int *rt_prefix_lc_out)
+int *mid_lc_in_out, int *mid_prefix_lc_in_out, int *rt_lc_out, int *rt_prefix_lc_out)
 {int rt_cnt=0,lc,mid_prefix_lc,rt_prefix_lc,prefix_difference,mid_lc,rt_lc,
  mid_change,rt_change,new_mid_prefix_lc,new_rt_prefix_lc,move_ix;
  boolean done=false;
  struct key min_key,max_key,rt_mid_key,move_key;
 
-  if ( insert ) mid_lc = ix_pool_lc_after_insert(mid,k,new_p,ix,&mid_prefix_lc,false);
-  else  mid_lc = ix_pool_lc_after_replace(mid,k,new_p,ix,&mid_prefix_lc,false);
+ /*  if ( insert ) mid_lc = ix_pool_lc_after_insert(mid,k,new_p,ix,&mid_prefix_lc,false);
+     else  mid_lc = ix_pool_lc_after_replace(mid,k,new_p,ix,&mid_prefix_lc,false);*/
+  mid_lc = *mid_lc_in_out;
+  mid_prefix_lc = *mid_prefix_lc_in_out;
   rt_lc = ix_pool_lc(rt);
   rt_prefix_lc = rt->prefix_lc;
 
@@ -2461,7 +2401,6 @@ int *mid_lc_out, int *mid_prefix_lc_out, int *rt_lc_out, int *rt_prefix_lc_out)
 
   choose_key(mid,k,new_p,ix,0,&min_key,insert);
 
-  /*  get_max_key(rt,&max_key);*/
   if ( rt->keys_in_block>0 ) get_max_key(rt,&max_key);
   else choose_key(mid,k,new_p,ix,mid->keys_in_block+insert-1,&max_key,insert);
 
@@ -2473,7 +2412,8 @@ int *mid_lc_out, int *mid_prefix_lc_out, int *rt_lc_out, int *rt_prefix_lc_out)
     new_mid_prefix_lc = find_prefix_lc(&min_key,&rt_mid_key);
     if ( mid_prefix_lc!=new_mid_prefix_lc ) {
       prefix_difference = mid_prefix_lc - new_mid_prefix_lc;
-      mid_change = -(lc-new_mid_prefix_lc) + prefix_difference * (mid->keys_in_block - rt_cnt + 1) - prefix_difference;
+      /*      mid_change = -(lc-new_mid_prefix_lc) + prefix_difference * (mid->keys_in_block - rt_cnt + 1) - prefix_difference;*/
+      mid_change = -(lc-new_mid_prefix_lc) + prefix_difference * (mid->keys_in_block - rt_cnt + insert) - prefix_difference;
     }
     else mid_change = -(lc-new_mid_prefix_lc);
     new_rt_prefix_lc = find_prefix_lc(&move_key,&max_key);
@@ -2501,8 +2441,8 @@ int *mid_lc_out, int *mid_prefix_lc_out, int *rt_lc_out, int *rt_prefix_lc_out)
   if ( f->trace ) printf(" should move %d keys to rt, mid_lc=%d, rt_lc=%d, mid_prefix_lc=%d, rt_prefix_lc=%d\n",
     rt_cnt,mid_lc,rt_lc,mid_prefix_lc,rt_prefix_lc);
 
-  *mid_lc_out = mid_lc;
-  *mid_prefix_lc_out = mid_prefix_lc;
+  *mid_lc_in_out = mid_lc;
+  *mid_prefix_lc_in_out = mid_prefix_lc;
   *rt_lc_out = rt_lc;
   *rt_prefix_lc_out = rt_prefix_lc;
   return(rt_cnt);
@@ -2561,7 +2501,8 @@ static int choose_left_move_cnt(struct fcb *f, struct ix_block *lt, struct ix_bl
     new_mid_prefix_lc = find_prefix_lc(&mid_min_key,&rt_mid_key);
     if ( mid_prefix_lc!=new_mid_prefix_lc ) { 
       prefix_difference = mid_prefix_lc - new_mid_prefix_lc;
-      mid_change = -(lc-new_mid_prefix_lc) + prefix_difference * (mid_keys_in_block - lt_cnt + 1) - prefix_difference;
+      /*      mid_change = -(lc-new_mid_prefix_lc) + prefix_difference * (mid_keys_in_block - lt_cnt + 1) - prefix_difference;*/
+      mid_change = -(lc-new_mid_prefix_lc) + prefix_difference * (mid_keys_in_block - lt_cnt + insert) - prefix_difference;
     }
     else mid_change = -(lc-new_mid_prefix_lc);
     if ( f->trace ) {
@@ -2586,8 +2527,6 @@ static int choose_left_move_cnt(struct fcb *f, struct ix_block *lt, struct ix_bl
     printf("lt_lc=%d, lt_prefix=%d, mid_lc=%d, mid_prefix=%d\n",lt_lc,lt_prefix_lc,mid_lc,mid_prefix_lc);
   }
 
-  /*  if ( lt->keys_in_block==0 ) f->trace = false;*/
-
   *mid_lc_in_out = mid_lc;
   *mid_prefix_lc_in_out = mid_prefix_lc;
   *lt_lc_out = lt_lc;
@@ -2596,25 +2535,31 @@ static int choose_left_move_cnt(struct fcb *f, struct ix_block *lt, struct ix_bl
 
 }
 
+static void shuffle_length_mismatch(struct ix_block *b, char caption[], int expected_lc, struct key *k, boolean insert)
+{
+  if ( show_errors ) {
+    printf("**shuffle length mismatch for %s, index_type=%d, level=%d\n",caption,b->index_type,b->level);
+    print_key(b->index_type,k,"    key=");
+    printf(", actual_lc=%d, expected_lc=%d, insert=%d\n",ix_pool_lc(b),expected_lc,insert);
+  }
+}
 
 static boolean choose_split_points(struct fcb *f, struct ix_block *lt, struct ix_block *mid,
 struct ix_block *rt, struct key *k, levelx_pntr *new_p, int ix, boolean insert)
 {int lt_cnt=0,rt_cnt=0,lt_prefix_lc,mid_prefix_lc,rt_prefix_lc,lt_lc,mid_lc,rt_lc,target;
- boolean fits,insert_required;
- struct key min_key,lt_mid_key,rt_mid_key,move_key,temp;
+ boolean fits,moved_key_left,moved_key_right,key_not_moved;
+ struct key mid_max_key,move_key,temp;
 
   if ( f->trace ) {
     print_key(mid->index_type,k,"trying to move to nbrs, key=");
     printf(", lc=%d, pntr_lc=%d, ix=%d, level=%d, insert=%d\n",k->lc,pntr_lc(new_p,mid->level),ix,mid->level,insert);
   }
-  get_nth_key(lt,&min_key,0);
 
-  get_max_key(lt,&lt_mid_key);
-  get_max_key(mid,&rt_mid_key);
   lt_lc = ix_pool_lc(lt);
   lt_prefix_lc = lt->prefix_lc;
-  if ( insert ) mid_lc = ix_pool_lc_after_insert(mid,k,new_p,ix,&mid_prefix_lc,false);
-  else mid_lc = ix_pool_lc_after_replace(mid,k,new_p,ix,&mid_prefix_lc,false);
+  /*  if ( insert ) mid_lc = ix_pool_lc_after_insert(mid,k,new_p,ix,&mid_prefix_lc,false);
+      else mid_lc = ix_pool_lc_after_replace(mid,k,new_p,ix,&mid_prefix_lc,false);*/
+  mid_lc = ix_pool_lc_after_change(mid,k,new_p,ix,&mid_prefix_lc,insert,false);
   rt_lc = ix_pool_lc(rt);
   target = ( lt_lc + mid_lc + rt_lc) / 3;
   if ( lt_lc>target ) target = (mid_lc + rt_lc) / 2;
@@ -2623,8 +2568,10 @@ struct ix_block *rt, struct key *k, levelx_pntr *new_p, int ix, boolean insert)
   if ( f->trace ) printf("target=%d, lt_lc=%d, mid_lc=%d, rt_lc=%d\n",target,lt_lc,mid_lc,rt_lc);
 
   rt_cnt = choose_right_move_cnt(f,mid,rt,k,new_p,ix,insert,target,&mid_lc,&mid_prefix_lc,&rt_lc,&rt_prefix_lc);
-  choose_key(mid,k,new_p,ix,mid->keys_in_block-rt_cnt,&rt_mid_key,true);
+  /*  choose_key(mid,k,new_p,ix,mid->keys_in_block-rt_cnt,&mid_max_key,true);*/
+  choose_key(mid,k,new_p,ix,mid->keys_in_block-1+insert-rt_cnt,&mid_max_key,insert);
   lt_cnt = choose_left_move_cnt(f,lt,mid,k,new_p,ix,insert,mid->keys_in_block-rt_cnt,&mid_lc,&mid_prefix_lc,&lt_lc,&lt_prefix_lc);
+  /*  lt_cnt = choose_left_move_cnt(f,lt,mid,k,new_p,ix,insert,mid->keys_in_block-rt_cnt+insert,&mid_lc,&mid_prefix_lc,&lt_lc,&lt_prefix_lc);*/
 
   if ( f->trace ) {
     printf(" should move %d keys to lt, %d to rt ",lt_cnt,rt_cnt);
@@ -2633,21 +2580,23 @@ struct ix_block *rt, struct key *k, levelx_pntr *new_p, int ix, boolean insert)
   }
 
   if ( lt_cnt==0 ) get_nth_key(lt,&move_key,lt->keys_in_block-1);
-  else choose_key(mid,k,new_p,ix,lt_cnt-1,&move_key,true);
+  else choose_key(mid,k,new_p,ix,lt_cnt-1,&move_key,insert);
   fits = (lt_lc<=keyspace_lc && mid_lc<=keyspace_lc && rt_lc<keyspace_lc);
   if ( fits ) {
-    insert_required = (ix>(lt_cnt-1)) && (ix<=mid->keys_in_block-rt_cnt);
+    /*    key_not_moved = (ix>(lt_cnt-1)) && (ix<=mid->keys_in_block-rt_cnt);*/
+    /*    key_not_moved = (ix>(lt_cnt-1)) && (ix<mid->keys_in_block-rt_cnt);*/
     compress_ix_block(rt,rt_prefix_lc,f->trace);
-    move_keys_to_right(mid,rt,rt_cnt,k,new_p,ix,insert);
+    moved_key_right = move_keys_to_right(mid,rt,rt_cnt,k,new_p,ix,insert);
     if (block_prefix_lc(rt)!=rt->prefix_lc && show_errors)
-      printf("   rt_prefix after move should=%d, is=%d\n",block_prefix_lc(rt),rt->prefix_lc);
+      printf("   rt_prefix after move should be=%d, is=%d\n",block_prefix_lc(rt),rt->prefix_lc);
     compress_ix_block(lt,lt_prefix_lc,f->trace);
-    move_keys_to_left(lt,mid,lt_cnt,k,new_p,ix,insert);
+    moved_key_left = move_keys_to_left(lt,mid,lt_cnt,k,new_p,ix,insert);
     if (block_prefix_lc(lt)!=lt->prefix_lc && show_errors)
-      printf("   lt_prefix after move should=%d, is=%d\n",block_prefix_lc(lt),lt->prefix_lc);
+      printf("   lt_prefix after move should be=%d, is=%d\n",block_prefix_lc(lt),lt->prefix_lc);
     compress_ix_block(mid,mid_prefix_lc,f->trace);
-    if ( insert_required ) {
-      if ( !insert ) simple_delete(mid,ix-lt_cnt);
+    key_not_moved = !moved_key_right && !moved_key_left;
+    if ( key_not_moved ) {
+      if ( !insert && (ix-lt_cnt)<mid->keys_in_block ) simple_delete(mid,ix-lt_cnt);
       if ( simple_insert(mid,ix-lt_cnt,k,*new_p) ) ;
       else if ( show_errors ) printf("**simple_insert failed in choose_split_points, ix=%d, lt_cnt=%d, rt_cnt=%d\n",ix,lt_cnt,rt_cnt);
     }
@@ -2655,32 +2604,32 @@ struct ix_block *rt, struct key *k, levelx_pntr *new_p, int ix, boolean insert)
       printf("   mid_prefix after moves and insert=%d, in_block=%d\n",block_prefix_lc(mid),mid->prefix_lc);
     get_max_key(lt,&temp);
     if ( !eq_key(&temp,&move_key) && show_errors ) {
-      print_key(mid->index_type,&temp,"**actual lt max_key=\n");
-      print_key(mid->index_type,&move_key," doesn't match expected=\n");
+      print_key(mid->index_type,&temp,"**actual lt max_key=");
+      print_key(mid->index_type,&move_key," doesn't match expected=");
       printf("\n");
     }
     get_max_key(mid,&temp);
-    if ( !eq_key(&temp,&rt_mid_key) && show_errors ) {
-      print_key(mid->index_type,&temp,"**actual mid max_key=\n");
-      print_key(mid->index_type,&rt_mid_key," doesn't match expected=\n");
+    if ( !eq_key(&temp,&mid_max_key) && show_errors ) {
+      print_key(mid->index_type,&temp,"**actual mid max_key=");
+      print_key(mid->index_type,&mid_max_key," doesn't match expected=");
       printf("\n");
     }
-    if ( ix_pool_lc(lt)!=lt_lc && show_errors ) printf("**shuffle length mismatch lt actual=%d, expected=%d\n",ix_pool_lc(lt),lt_lc);
-    if ( ix_pool_lc(mid)!=mid_lc && show_errors ) printf("**shuffle length mismatch mid actual=%d, expected=%d\n",ix_pool_lc(mid),mid_lc);
-    if ( ix_pool_lc(rt)!=rt_lc && show_errors ) printf("**shuffle length mismatch rt actual=%d, expected=%d\n",ix_pool_lc(rt),rt_lc);
+    if ( ix_pool_lc(lt)!=lt_lc )   shuffle_length_mismatch(lt ,"lt", lt_lc ,k,insert);
+    if ( ix_pool_lc(mid)!=mid_lc ) shuffle_length_mismatch(mid,"mid",mid_lc,k,insert);
+    if ( ix_pool_lc(rt)!=rt_lc )   shuffle_length_mismatch(rt, "rt", rt_lc, k,insert);
     }
   return(fits);
 }
 
 static boolean shuffle_keys(struct fcb *f, int mid_ix, struct key *k, levelx_pntr *p, int ix, boolean insert)
-{int lt_ix,rt_ix,level,index_type; boolean gave=false; struct key lt_sep,old_lt_sep,mid_sep,old_mid_sep;
+{int lt_ix,rt_ix,level,index_type; boolean shuffled=false; struct key lt_sep,old_lt_sep,mid_sep,old_mid_sep;
 
   lock_buffer(f,mid_ix);
   get_max_key(&(f->buffer[mid_ix].b.ix),&old_mid_sep);
   level = f->buffer[mid_ix].b.ix.level;
   index_type = f->buffer[mid_ix].b.ix.index_type;
-  if ( null_pntr(f->buffer[mid_ix].b.ix.prev) ) gave = false;
-  else if ( null_pntr(f->buffer[mid_ix].b.ix.next) ) gave = false;
+  if ( null_pntr(f->buffer[mid_ix].b.ix.prev) ) shuffled = false;
+  else if ( null_pntr(f->buffer[mid_ix].b.ix.next) ) shuffled = false;
   else {
     lt_ix = get_index(f,f->buffer[mid_ix].b.ix.prev);
     lock_buffer(f,lt_ix);
@@ -2694,7 +2643,7 @@ static boolean shuffle_keys(struct fcb *f, int mid_ix, struct key *k, levelx_pnt
       print_index_block(stdout,&(f->buffer[rt_ix].b.ix));
     }
     if ( choose_split_points(f,&(f->buffer[lt_ix].b.ix),&(f->buffer[mid_ix].b.ix),&(f->buffer[rt_ix].b.ix),k,p,ix,insert) ) {
-      gave = true;
+      shuffled = true;
       if ( level<f->primary_level[index_type] ) {
         get_max_key(&(f->buffer[lt_ix].b.ix),&lt_sep);
         replace_max_key(f,index_type,&old_lt_sep,&lt_sep,f->buffer[lt_ix].contents,f->buffer[lt_ix].b.ix.level+1);
@@ -2705,7 +2654,7 @@ static boolean shuffle_keys(struct fcb *f, int mid_ix, struct key *k, levelx_pnt
       mark_modified(f,rt_ix);
     }
     if ( f->trace ) {
-      if ( gave ) {
+      if ( shuffled ) {
         printf("reshuffle succeeded, shuffled blocks are:\n");
         print_index_block(stdout,&(f->buffer[lt_ix].b.ix));
         print_index_block(stdout,&(f->buffer[mid_ix].b.ix));
@@ -2718,7 +2667,7 @@ static boolean shuffle_keys(struct fcb *f, int mid_ix, struct key *k, levelx_pnt
   }
   unlock_buffer(f,mid_ix);
 
-  return(gave);
+  return(shuffled);
 }
 
 /* create_new_primary creates a new primary block containing the key max  */
@@ -2959,7 +2908,7 @@ static void move_from_rec(struct fcb *f, char r[], struct level0_pntr *p)
 {size_t size,lc; FILE *file;
 
   if ( f->read_only ) f->error_code = read_only_err;
-  else if ( p->lc<=long_lc ) memcpy(&p->sc,r,(size_t)p->lc);
+  else if ( p->lc<min_disk_rec_lc ) memcpy(&p->sc,r,(size_t)p->lc);
   else {
     file = file_index(f,p->segment);
     if ( f->error_code!=no_err ) return;
@@ -3144,16 +3093,16 @@ static int kf_put_rec(struct fcb *f,int index, unsigned char t[], int key_lc, ch
   else {
     kf_get_ptr(f,index,t,key_lc,&p);
     if (f->error_code==no_err ) {
-      if ( rlc<=long_lc ) { /* new rec goes into pointer */
-        if ( p.lc>long_lc ) deallocate_rec(f,p);
+      if ( rlc<min_disk_rec_lc ) { /* new rec goes into pointer */
+        if ( p.lc>=min_disk_rec_lc ) deallocate_rec(f,p);
         have_space = true; p = dummy_ptr; p.lc = rlc;
       }
       else { /* new rec goes on disk */
-        if ( p.lc>long_lc && (rec_allocation_lc(rlc)==rec_allocation_lc(p.lc)) ) {
+        if ( p.lc>=min_disk_rec_lc && (rec_allocation_lc(rlc)==rec_allocation_lc(p.lc)) ) {
           have_space = true; p.lc = rlc;
         }
         else {
-          if ( p.lc>long_lc ) deallocate_rec(f,p);
+          if ( p.lc>=min_disk_rec_lc ) deallocate_rec(f,p);
           have_space =  allocate_rec(f,(long)rlc,&p);
         }
       }
@@ -3197,21 +3146,17 @@ static boolean contiguous(struct level0_pntr p1, struct level0_pntr p2)
 
 /* allocate_block allocates a new block and returns the buffer index */
 /*   in which it lies.  If there are any blocks on the free block    */
-/*   chain for this index level then that block is returned.  If the */
+/*   chain for this index level then the first block is returned.  If the */
 /*   free block chain is empty then block_allocation_unit blocks are */
 /*   allocated.  One is returned and the rest are initialized,       */
-/*   written, and placed on the free block chain for this level.     */
+/*   and placed on the free block chain for this level.     */
 
 static int allocate_block(struct fcb *f, int index_type, int level)
 {int i,bufix=0,temp; struct leveln_pntr p,p1; block_type_t b; struct key k;
 
   if ( null_pntr(f->first_free_block[level][index_type]) ) {
     if ( extend_file(f,(long)block_allocation_unit*block_lc,&p) ) {
-      bufix = vacate_oldest_buffer(f);
-      f->buffer[bufix].contents = p;
-      f->buffer[bufix].modified = true;
-      hash_chain_insert(f,bufix);
-      /* now add any remaining blocks to a free_block chain */
+      /* add blocks after the first to a free_block chain */
       p1.segment = p.segment;
       p1.block = p.block+1;
       initialize_index_block(&(b.ix),index_type,level,&k,0);
@@ -3231,6 +3176,10 @@ static int allocate_block(struct fcb *f, int index_type, int level)
         write_page(f,p1,&b);
         p1.block++;
 	}*/
+      bufix = vacate_oldest_buffer(f);
+      f->buffer[bufix].contents = p;
+      f->buffer[bufix].modified = true;
+      hash_chain_insert(f,bufix);
       /*      printf("  just allocated block %d/%d, empty block chain is\n",p.segment,p.block);
 	      print_empty_block_chain(stdout,f,index_type,level);*/
     }
@@ -3379,7 +3328,7 @@ static boolean allocate_rec(struct fcb *f, long lc, struct level0_pntr *p)
 
   if ( f->trace_freespace ) printf("allocating rec lc=%lu\n",lc);
   p->segment = 0; p->sc = 0; p->lc = lc;
-  if ( lc<=long_lc ) have_space = true;
+  if ( lc<min_disk_rec_lc ) have_space = true;
   else {
     rec_allocate_lc = rec_allocation_lc(lc);
     p0.segment = 0; p0.sc = 0; p0.lc = rec_allocate_lc;
@@ -3427,7 +3376,7 @@ static boolean allocate_rec(struct fcb *f, long lc, struct level0_pntr *p)
 }
 
 /* deallocate_rec deallocates any space allocated with pointer p. */
-/*   If p.lc<=long_lc then p doesn't point to a disk record, the  */
+/*   If p.lc<min_disk_rec_lc then p doesn't point to a disk record, the  */
 /*   data has been stored in p.sc.                                */
 
 
@@ -3435,7 +3384,7 @@ static void deallocate_rec(struct fcb *f, struct level0_pntr p)
 {int err,key_lc,start_key_lc,lc,rec_lc; struct level0_pntr p0,p1; char start_key[maxkey_lc],key[maxkey_lc];
 
   if ( f->trace_freespace ) printf("deallocating rec %d/%lu/%lu\n",p.segment,p.sc,p.lc);
-  if ( p.lc > long_lc ) { /* a real disk record */
+  if ( p.lc >= min_disk_rec_lc ) { /* a real disk record */
     p0 = p;
     p0.lc = rec_allocation_lc(p.lc);
     start_key_lc = pack_rec_key(start_key,p0);
@@ -3517,11 +3466,7 @@ int set_eof(struct fcb *f)
   return(f->error_code);
 }
 
-#if defined(CHILIAD_KF)
-int open_key_KF(struct fcb *f, char id[], int lc, int read_only)
-#else
 int open_key(struct fcb *f, char id[], int lc, int read_only)
-#endif
 {  
   /*  read_fib(f,id,false,read_only);*/
   read_fib(f,id,machine_is_little_endian(),read_only);
@@ -3535,11 +3480,7 @@ int open_key(struct fcb *f, char id[], int lc, int read_only)
   return(f->error_code);
 }
 
-#if defined(CHILIAD_KF)
-int close_key_KF(struct fcb *f)
-#else
 int close_key(struct fcb *f)
-#endif
 {int i; long lc; FILE *temp;
 
 /* printf("  get_buffer_cnt=%d, replace_buffer_cnt=%d\n",get_buffer_cnt,replace_buffer_cnt);*/
@@ -3555,7 +3496,7 @@ int close_key(struct fcb *f)
       if (f->buffer[i].modified){
         write_page(f,f->buffer[i].contents,&(f->buffer[i].b) );
         if ( trace_io ) {
-          printf("  wrote block %d/%d ",f->buffer[i].contents.segment,f->buffer[i].contents.block);
+          printf("  wrote block %d/%lu ",f->buffer[i].contents.segment,f->buffer[i].contents.block);
           print_buffer_caption(stdout,f,i);
           printf(" from buffer %d\n",i);
         }
@@ -3578,11 +3519,7 @@ int close_key(struct fcb *f)
   return(f->error_code);
 }
 
-#if defined(CHILIAD_KF)
-int create_key_KF(struct fcb *f, char id[], int lc)
-#else
 int create_key(struct fcb *f, char id[], int lc)
-#endif
 {int i,j,bufix; struct leveln_pntr b; struct key dummy;
 
   f->error_code = no_err; f->version = current_version;
@@ -3620,97 +3557,55 @@ int keyrec_lc(struct level0_pntr *p)
   else return(p->lc);
 }
 
-#if defined(CHILIAD_KF)
-int next_ptr_KF(struct fcb *f, char key[], int *key_lc, int max_key_lc, struct level0_pntr *p)
-#else
 int next_ptr(struct fcb *f, char key[], int *key_lc, int max_key_lc, struct level0_pntr *p)
-#endif
 {
   return( kf_next_ptr(f,user_ix,key,key_lc,max_key_lc,p) );
 }
 
-#if defined(CHILIAD_KF)
-int prev_ptr_KF(struct fcb *f, char key[], int *key_lc, int max_key_lc, struct level0_pntr *p)
-#else
 int prev_ptr(struct fcb *f, char key[], int *key_lc, int max_key_lc, struct level0_pntr *p)
-#endif
 {
   return( kf_prev_ptr(f,user_ix,key,key_lc,max_key_lc,p) );
 }
 
-#if defined(CHILIAD_KF)
-int get_ptr_KF(struct fcb *f, char t[], int key_lc, struct level0_pntr *p)
-#else
 int get_ptr(struct fcb *f, char t[], int key_lc, struct level0_pntr *p)
-#endif
 {
   return( kf_get_ptr(f,user_ix,t,key_lc,p) );
 }
 
 
-#if defined(CHILIAD_KF)
-int get_rec_KF(struct fcb *f,char t[],int key_lc, char r[],int *rlc,int max_lc)
-#else
 int get_rec(struct fcb *f,char t[],int key_lc, char r[],int *rlc,int max_lc)
-#endif
 {
   return( kf_get_rec(f,user_ix,t,key_lc,r,rlc,max_lc) );
 }
 
-#if defined(CHILIAD_KF)
-int next_rec_KF(struct fcb *f, char t[], int *key_lc, int max_key_lc,
-   char r[],int *rlc,int max_lc)
-#else
 int next_rec(struct fcb *f, char t[], int *key_lc, int max_key_lc,
    char r[],int *rlc,int max_lc)
-#endif
 {
   return( kf_next_rec(f,user_ix,t,key_lc,max_key_lc,r,rlc,max_lc) );
 }
 
-#if defined(CHILIAD_KF)
-int prev_rec_KF(struct fcb *f, char t[], int *key_lc, int max_key_lc,
-   char r[],int *rlc,int max_lc)
-#else
 int prev_rec(struct fcb *f, char t[], int *key_lc, int max_key_lc,
    char r[],int *rlc,int max_lc)
-#endif
 {
   return( kf_prev_rec(f,user_ix,t,key_lc,max_key_lc,r,rlc,max_lc) );
 }
 
-#if defined(CHILIAD_KF)
-int put_ptr_KF(struct fcb *f, char t[], int key_lc, struct level0_pntr *p)
-#else
 int put_ptr(struct fcb *f, char t[], int key_lc, struct level0_pntr *p)
-#endif
 {
   return( kf_put_ptr(f,user_ix,t,key_lc,*p) );
 }
 
-#if defined(CHILIAD_KF)
-int delete_ptr_KF(struct fcb *f, char t[], int key_lc)
-#else
 int delete_ptr(struct fcb *f, char t[], int key_lc)
-#endif
 {
   return( kf_delete_ptr(f,user_ix,t,key_lc) );
 }
 
-#if defined(CHILIAD_KF)
-int put_rec_KF(struct fcb *f,char t[], int key_lc, char r[], int rlc)
-#else
 int put_rec(struct fcb *f,char t[], int key_lc, char r[], int rlc)
-#endif
 {
   return( kf_put_rec(f,user_ix,t,key_lc,r,rlc) );
 }
 
-#if defined(CHILIAD_KF)
-int delete_rec_KF(struct fcb *f, unsigned char key[], int key_lc)
-#else
 int delete_rec(struct fcb *f, unsigned char key[], int key_lc)
-#endif
 {
   return( kf_delete_rec(f,user_ix,key,key_lc) );
 }
@@ -3744,9 +3639,9 @@ int get_subrec(
     if ( *bytes_actually_read>max_lc ) {
       f->error_code = longrec_err; *bytes_actually_read = max_lc;
     }
-    if ( p->lc<=long_lc ) {
-      if ( offset+bytes_to_read>long_lc ) {
-        f->error_code = longrec_err; *bytes_actually_read = long_lc-offset;
+    if ( p->lc<min_disk_rec_lc ) {
+      if ( offset+bytes_to_read>=min_disk_rec_lc ) {
+        f->error_code = longrec_err; *bytes_actually_read = min_disk_rec_lc - offset - 1;
       }
       memcpy(rec,(unsigned char *)(&p->sc)+offset,(size_t) *bytes_actually_read);
     }

@@ -7,20 +7,24 @@ LIBS=$(wildcard ../../obj/*.o) $(wildcard $(patsubst %, ../../contrib/%/obj/*.o,
 
 LDFLAGS = $(LIBPATH) $(LIBS) $(CPPLDFLAGS)
 SRC=interface/indri.i
+PHPSRC=php/indri.i
 LFLAGS=-shared
 OBJ=../obj
 OUTDIR=$(OBJ)/java/edu/umass/cs/indri
 OUTDIRUI=$(OBJ)/java/edu/umass/cs/indri/ui
 OUTDIRPROP=$(OBJ)/java/edu/umass/cs/indri/ui/properties
+OUTDIRPHP=$(OBJ)/php
 JSRC=java/edu/umass/cs/indri
 JSRCUI=java/edu/umass/cs/indri/ui
 JAVASRC = $(notdir $(wildcard $(JSRC)/*.java))
 JAVASRCUI = $(notdir $(wildcard $(JSRCUI)/*.java))
 ALLSRC= $(JAVASRC) $(JAVASRCUI)
-PROPS = $(patsubst %,$(OUTDIRPROP)/%, $(notdir $(wildcard $(JSRCUI)/properties/*.html)))
+PROPS = $(patsubst %,$(OUTDIRPROP)/%, $(notdir $(wildcard $(JSRCUI)/properties/*)))
 INTERFACES = $(wildcard interface/*.i)
+PHPINTERFACES = $(wildcard php/*.i)
 JAVAOBJ = $(patsubst %,$(OUTDIR)/%, $(JAVASRC:.java=.class)) $(patsubst %,$(OUTDIRUI)/%, $(JAVASRCUI:.java=.class))
 SOLIB=$(OBJ)/java/libindri.so
+PHPLIB=$(OUTDIRPHP)/libindri.so
 JARFILES=$(OBJ)/java/indri.jar $(OBJ)/java/RetUI.jar $(OBJ)/java/IndexUI.jar
 MFST=java/manifest.indri
 MFSTRET=java/manifest.RetUI
@@ -32,13 +36,25 @@ DOCARGS=-private -author -version
 DOCS=$(patsubst %,$(OUTDIR)/%,$(patsubst %.java,%.html,$(JAVASRC)))
 DOCSUI=$(patsubst %,$(OUTDIRUI)/%,$(patsubst %.java,%.html,$(JAVASRCUI)))
 DOC=$(JAVAHOME)/bin/javadoc -classpath java  $(DOCARGS)
+TARGETS=
+ifeq ($(WITH_SWIG), 1)
+  ifeq ($(WITH_JAVA), 1)
+    TARGETS += java-lib
+  endif
+  ifeq ($(WITH_PHP), 1)
+    TARGETS += php-lib
+  endif
+endif
+.PHONY: java-lib php-lib doc
 
-.PHONY: java-lib doc
+#all: java-lib php/indri_phpwrap.cpp
+#remove doc from target
+all: $(TARGETS)
 
-all: java-lib
 
+java-lib: $(OUTDIR) $(OUTDIRUI) $(OUTDIRPROP) $(OBJ)/java/docs $(PROPS) $(SOLIB) $(JARFILES)
 
-java-lib: $(OUTDIR) $(OUTDIRUI) $(OUTDIRPROP) $(PROPS) $(SOLIB) doc $(JARFILES)
+php-lib: $(OUTDIRPHP) $(PHPLIB)
 
 $(SOLIB): $(OBJ)/java/indri_javawrap.o $(LIBS)
 	$(CXX) $(LFLAGS) $< -o $@ $(LDFLAGS)
@@ -49,7 +65,7 @@ $(OBJ)/java/indri_javawrap.o: java/indri_javawrap.cpp
 java/indri_javawrap.cpp: $(INTERFACES)
 	$(SWIG) -c++ -java -package edu.umass.cs.indri -o java/indri_javawrap.cpp -outdir $(JSRC) $(INCLUDES) $(SRC) 
 
-$(OUTDIRPROP) $(OUTDIRUI) $(OUTDIR) $(OBJ)/java/docs:
+$(OUTDIRPROP) $(OUTDIRUI) $(OUTDIR) $(OBJ)/java/docs $(OUTDIRPHP):
 	$(INSTALL_DIR) $@
 
 $(OUTDIR)/%.class:$(JSRC)/%.java
@@ -73,15 +89,25 @@ $(OBJ)/java/IndexUI.jar: $(JAVAOBJ) $(MFSTIND)
 	rm -f $@
 	cd $(OBJ)/java; $(JAR) cmf ../../src/$(MFSTIND) IndexUI.jar edu docs
 
+php/indri_phpwrap.cpp: $(PHPINTERFACES)
+	$(SWIG) -php4 -c++ -o php/indri_phpwrap.cpp -outdir php $(INCLUDES) $(PHPSRC) 
+
+$(OUTDIRPHP)/indri_phpwrap.o: php/indri_phpwrap.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $< $(INCPATH) $(PHPINCLUDE)
+
+$(PHPLIB): $(OUTDIRPHP)/indri_phpwrap.o $(LIBS)
+	$(CXX) -g $(LFLAGS) $< -o $@ $(LDFLAGS)
+
+
 $(DOCS) $(DOCSUI): $(OBJ)/java/docs
 
-doc:
+doc: $(OBJ)/java/docs
 	$(DOC) -d $(OBJ)/java/docs -doctitle "Indri" -windowtitle "Indri" $(PCK) $(PCKUI)
 
 
 clean:
-	rm -rf $(OBJ)/java
-
+	rm -rf $(OBJ)/java $(OUTDIRPHP)
+## need to add target for php solib (and fix naming conventions)
 install:
 	$(INSTALL_DATA) $(JARFILES) $(pkgdatadir)
 	$(INSTALL_PROGRAM) $(SOLIB) $(libdir)

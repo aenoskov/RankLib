@@ -1,4 +1,8 @@
-
+#ifndef _KEYREF_H_
+#define _KEYREF_H_
+#if !defined(KEYDEF_H)
+#include "keyconst.h"
+#endif
 
 int keyrec_lc (void *pointer);
 int set_bof   (void *f);
@@ -19,3 +23,5 @@ int copy_rec  (void *f, void *pointer, void *rec, int *lc, int max_lc);
 int open_key  (void *f, char *id, int fcb_lc, int read_only);
 int create_key(void *f, char *id, int fcb_lc);
 int close_key (void *f);
+
+#endif
