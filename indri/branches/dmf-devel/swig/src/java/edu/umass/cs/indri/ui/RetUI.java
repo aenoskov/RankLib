@@ -28,7 +28,8 @@ public class RetUI extends JPanel implements ActionListener {
     /** Help file for the application */
     private final static String helpFile = "properties/IndriRetrieval.html";
 	/** Little lemur icon */
-	private final static String iconFile = "properties/lemur_icon.GIF";
+    //	private final static String iconFile = "properties/lemur_icon.GIF";
+	private final static String iconFile = "properties/lemur.GIF";
     /** Frame for help window */
     private JFrame helpFrame;
 	
@@ -707,6 +708,7 @@ public class RetUI extends JPanel implements ActionListener {
 	final int row = answerAll.getSelectionModel().getMinSelectionIndex();
 	// no selection.
 	if (row == -1) return;
+	// this runs twice?!?
 	Runnable r = new Runnable() {
 		public void run() {
 		    setCursor(wait);
@@ -724,8 +726,9 @@ public class RetUI extends JPanel implements ActionListener {
 		    // get the parsed document
 		    int [] ids = new int[1];
 		    ids[0] = currentDocId;
-		    
+		    System.out.println("Current doc is " + currentDocId);
 		    ParsedDocument[] docs = env.documents(ids);
+
 		    currentParsedDoc = docs[0];
 		    String myDocText = currentParsedDoc.text;
 		    //	String myDocText = docs[row].text;
@@ -933,7 +936,13 @@ public class RetUI extends JPanel implements ActionListener {
 	 */
 	public void valueChanged(ListSelectionEvent e) {
 	    // cleared selection?
-	    getDocText();
+	    // this runs twice, need to make this more specific.
+	    // don't run if part of a multiple event sequence.
+	    // eg one row deselected, then new row selected.
+	    // Ought to synchronize on the QueryEnvironment too
+	    // as it is not thread safe.
+	    if (! e.getValueIsAdjusting())
+		getDocText();
 	}
     }
 	
@@ -1037,7 +1046,9 @@ public class RetUI extends JPanel implements ActionListener {
 		    int rowIndex = rowAtPoint(p);
 		    int colIndex = columnAtPoint(p);
 		    int realColumnIndex = convertColumnIndexToModel(colIndex);
-		    if (realColumnIndex == 0)
+		    if (realColumnIndex == -1 || rowIndex == -1)
+			tip = null;
+		    else if (realColumnIndex == 0)
 			tip = names[rowIndex];
 		    else 
 			tip = (String) getValueAt(rowIndex, colIndex);
