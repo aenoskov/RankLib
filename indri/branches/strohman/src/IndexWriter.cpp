@@ -30,8 +30,6 @@ const int OUTPUT_BUFFER_SIZE = 512*1024;
 
 using namespace indri::index;
 
-#define LOGGING
-
 #ifdef LOGGING
 IndriTimer g_t;
 #define LOGSTART  { g_t.start(); }
@@ -157,7 +155,7 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
 
   std::vector<WriterIndexContext*> contexts;
 
-  LOGSTART
+  LOGSTART;
   
   LOGMESSAGE( "Starting write" );
   _buildIndexContexts( contexts, indexes );
@@ -423,12 +421,15 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
     Index* index = (*iter)->index;
     RVLCompressStream stream( listBuffer );
 
+    int listDocs = 0;
+    int listPositions = 0;
+
     while( !iterator->finished() ) {
       // get the latest entry from the list
       DocListIterator::DocumentData* documentData = iterator->currentEntry();
 
       // add to document counter
-      docs++;
+      docs++; listDocs++;
 
       // update the topdocs list
       if( hasTopdocs ) {
@@ -471,11 +472,16 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
       for( int i=0; i<documentData->positions.size(); i++ ) {
         stream << (documentData->positions[i] - lastPosition);
         lastPosition = documentData->positions[i];
-        positions++;
+        positions++; listPositions++;
       }
 
       iterator->nextEntry();
     }
+
+    indri::index::TermData* td = iterator->termData();
+
+    assert( listPositions == td->corpus.totalCount );
+    assert( listDocs == td->corpus.documentCount );
   }
 
   assert( docs == termData->corpus.documentCount );
@@ -831,7 +837,6 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
                                     SequentialWriteBuffer* lengthsOutput,
                                     SequentialWriteBuffer* dataOutput ) {
 
-  std::cout << "reading vocab" << std::endl;
   VocabularyIterator* vocabulary = context->index->frequentVocabularyIterator();
   indri::index::Index* index = context->index;
   
@@ -858,8 +863,6 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
   iterator->startIteration();
   TermList writeList;
   Buffer outputBuffer( 256*1024 );
-
-  std::cout << "DONE MAKING TERM TRANSLATOR" << std::endl;
 
   indri::index::DocumentDataIterator* dataIterator = context->index->documentDataIterator();
   dataIterator->startIteration();
