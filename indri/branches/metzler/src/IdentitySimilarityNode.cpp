@@ -46,6 +46,7 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
   INT64 contextLen = _children[0]->getContextSize();
 
   double uniqueQueryTerms = 0.0;
+  double idfSum = 0.0;
 
   /*std::cout << "documentID = " << documentID << std::endl;
   std::cout << "start = " << begin << std::endl;
@@ -84,10 +85,14 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
     if( variation == 0 ) { // coordinate level matching
       val = 1;
     }
-    else if( variation == 1 ) {
-      val = log( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
-      val *= 1.0 / (1.0 + my_abs( extentLen - queryLen ) );
-    }
+	else if( variation == 1 ) {
+		val = 1;
+		idfSum += log( ( 1.0 * docCount ) / ( 1.0 * df ) );
+	}
+    //else if( variation == 1 ) {
+    //  val = log( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+    //  val *= 1.0 / (1.0 + my_abs( extentLen - queryLen ) );
+    //}
     else if( variation == 2 ) {
       val = log( 1.0 + 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
       val *= 1.0 / (1.0 + log( 1.0 + my_abs( extentLen - queryLen ) ) );
@@ -148,13 +153,17 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
     // special, quirky case that must be handled
     // can this be done better?
     CachedFrequencyBeliefNode* cacheNode = dynamic_cast<CachedFrequencyBeliefNode*>(child);
-    if( cacheNode )
+    if( cacheNode && tf > 0 )
       cacheNode->advance();
   }
 
   // normalize the overlap measure by the number of unique query terms
   if( variation == 0 && uniqueQueryTerms != 0.0 )
 	  score *= 1.0 / uniqueQueryTerms;
+
+  if( variation == 1 && uniqueQueryTerms != 0.0 ) {
+	  score *= idfSum / uniqueQueryTerms;
+  }
 
   if( variation < 50 ) { // always return the log of "true" similarity value
 	  if( score == 0.0 )
