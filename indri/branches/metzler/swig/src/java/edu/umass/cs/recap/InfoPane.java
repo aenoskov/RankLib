@@ -384,8 +384,26 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		else if( buttonText.equals( "Exit" ) ) {
 			System.exit( 0 );
 		}
-		else if( buttonText.equals( "Reset") ) { // resets the timeline
+		else if( buttonText.equals( "Reset" ) ) { // resets the timeline
 			tlPanel.reset();
+		}
+		else if( buttonText.equals( "Hide month ticks" ) ) {
+			tlPanel.setMonthTicksVisible( false );
+		}
+		else if( buttonText.equals( "Show month ticks" ) ) {
+			tlPanel.setMonthTicksVisible( true );
+		}
+		else if( buttonText.equals( "Hide year ticks" ) ) {
+			tlPanel.setYearTicksVisible( false );
+		}
+		else if( buttonText.equals( "Show year ticks" ) ) {
+			tlPanel.setYearTicksVisible( true );
+		}
+		else if( buttonText.equals( "Separate sources" ) ) {
+			tlPanel.setSourcesCombined( false );
+		}
+		else if( buttonText.equals( "Combine sources" ) ) {
+			tlPanel.setSourcesCombined( true );
 		}
 		
 		// update these values each time a menu event occurs for simplicity
