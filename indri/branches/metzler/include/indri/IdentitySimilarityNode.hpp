@@ -75,6 +75,9 @@ private:
 
   int _variation;
 
+  int my_abs( int );
+  double my_abs( double );
+
 public:
   IdentitySimilarityNode( const std::string& name, int variation = 1 );
   IdentitySimilarityNode( const std::string& name, const std::vector<StatisticsBeliefNode*>& children, int variation = 1 );
