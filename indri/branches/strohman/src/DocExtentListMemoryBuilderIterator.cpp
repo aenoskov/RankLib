@@ -59,6 +59,7 @@ void indri::index::DocExtentListMemoryBuilderIterator::reset( const greedy_vecto
   _data.document = 0;
   _data.numbers.clear();
   _data.extents.clear();
+  _finished = false;
 
   nextEntry();
 }
@@ -137,6 +138,7 @@ bool indri::index::DocExtentListMemoryBuilderIterator::nextEntry() {
     }
 
     // no more list segments
+    _finished = true;
     return false;
   }
 
@@ -149,7 +151,7 @@ bool indri::index::DocExtentListMemoryBuilderIterator::nextEntry() {
 //
 
 indri::index::DocExtentListIterator::DocumentExtentData* indri::index::DocExtentListMemoryBuilderIterator::currentEntry() {
-  if( !finished() )
+  if( !_finished )
     return &_data;
 
   return 0;
@@ -159,6 +161,6 @@ indri::index::DocExtentListIterator::DocumentExtentData* indri::index::DocExtent
 //
 
 bool indri::index::DocExtentListMemoryBuilderIterator::finished() {
-  return _current == _lists->end() && _list == _listEnd;
+  return _finished;
 }
 

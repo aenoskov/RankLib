@@ -19,6 +19,8 @@ namespace indri {
       TermBitmap* _bitmap;
       int _previousFrequentCount;
       int _currentFrequentCount;
+      int _previousTermCount;
+      int _currentTermCount;
 
       std::vector<int>* _frequentMap;
       HashTable<int, int>* _wasInfrequentMap;
@@ -30,6 +32,8 @@ namespace indri {
 
       TermTranslator( int previousFrequentCount,
                       int currentFrequentCount,
+                      int previousTermCount,
+                      int currentTermCount,
                       std::vector<int>* frequentMap,
                       HashTable<int, int>* wasInfrequentMap,
                       TermBitmap* bitmap ) 
@@ -40,27 +44,34 @@ namespace indri {
       {
         _previousFrequentCount = previousFrequentCount;
         _currentFrequentCount = currentFrequentCount;
+        _previousTermCount = previousTermCount;
+        _currentTermCount = currentTermCount;
       }
 
       int operator() ( int termID ) {
         assert( termID >= 0 );
+        assert( termID <= _previousTermCount );
         int result = 0;
+        int* value;
 
-        if( termID < _previousFrequentCount ) {
+        if( termID <= _previousFrequentCount ) {
           // common case, termID is a frequent term
+          assert( _frequentMap->size() > termID );
           result = (*_frequentMap)[termID];
         } else {
           // term may have become frequent, so check the wasInfrequentMap
-          int* value = (*_wasInfrequentMap).find( termID );
+          value = (*_wasInfrequentMap).find( termID );
 
           if( value ) {
             result = *value;
           } else {
             // term wasn't frequent and isn't now either, so get it from the bitmap
-            result = _currentFrequentCount + _bitmap->get( termID - _previousFrequentCount + 1 );
+            result = 1 + _currentFrequentCount + _bitmap->get( termID - _previousFrequentCount - 1 );
           }
         }
 
+        assert( result >= 0 );
+        assert( result <= _currentTermCount );
         return result;
       }
     };

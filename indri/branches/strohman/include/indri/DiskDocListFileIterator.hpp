@@ -29,6 +29,7 @@ namespace indri {
       TermData* _termData;
       DiskDocListIterator _iterator;
       DocListData _docListData;
+      bool _finished;
 
       void _readEntry();
 

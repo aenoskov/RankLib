@@ -57,6 +57,7 @@ void indri::index::DiskDocExtentListIterator::startIteration() {
   _data.numbers.clear();
   _skipDocument = -1;
   _list = _listEnd = 0;
+  _finished = false;
 
   // read in the first entry
   _readSkip();
@@ -76,6 +77,7 @@ bool indri::index::DiskDocExtentListIterator::nextEntry() {
       return true;
     } else {
       // all done
+      _finished = true;
       return false;
     }
   }
@@ -99,7 +101,12 @@ bool indri::index::DiskDocExtentListIterator::nextEntry( int documentID ) {
     _readEntry();
   }
 
-  return _list != _listEnd;
+  if( _data.document >= documentID ) {
+    return true;
+  } else {
+    _finished = true;
+    return false;
+  }
 }
 
 //
@@ -118,7 +125,7 @@ indri::index::DiskDocExtentListIterator::DocumentExtentData* indri::index::DiskD
 //
 
 bool indri::index::DiskDocExtentListIterator::finished() const {
-  return _list != _listEnd || _skipDocument > 0;
+  return _finished;
 }
 
 //

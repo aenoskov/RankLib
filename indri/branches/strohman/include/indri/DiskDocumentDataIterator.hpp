@@ -22,6 +22,7 @@ namespace indri {
 
       DocumentData _documentData;
       File& _documentDataFile;
+      bool _finished;
 
     public:
       DiskDocumentDataIterator( File& documentDataFile );

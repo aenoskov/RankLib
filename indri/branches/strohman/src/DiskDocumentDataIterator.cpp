@@ -13,7 +13,8 @@
 
 indri::index::DiskDocumentDataIterator::DiskDocumentDataIterator( File& documentDataFile ) :
   _documentDataFile(documentDataFile),
-  _readBuffer( new SequentialReadBuffer( documentDataFile, 1024*1024 ) )
+  _readBuffer( new SequentialReadBuffer( documentDataFile, 1024*1024 ) ),
+  _finished(false)
 {
 }
 
@@ -33,6 +34,7 @@ void indri::index::DiskDocumentDataIterator::startIteration() {
   _fileSize = _documentDataFile.size();
   _readBuffer->seek( 0 );
   _readBuffer->read( &_documentData, sizeof(DocumentData) );
+  _finished = false;
 }
 
 //
@@ -40,10 +42,13 @@ void indri::index::DiskDocumentDataIterator::startIteration() {
 //
 
 bool indri::index::DiskDocumentDataIterator::nextEntry() {
-  if( !finished() )
+  if( _readBuffer->position() < _fileSize ) {
     _readBuffer->read( &_documentData, sizeof(DocumentData) );
+    return true;
+  }
 
-  return !finished();
+  _finished = true;
+  return false;
 }
 
 //
@@ -62,7 +67,7 @@ const indri::index::DocumentData* indri::index::DiskDocumentDataIterator::curren
 //
 
 bool indri::index::DiskDocumentDataIterator::finished() {
-  return _readBuffer->position() < _fileSize;
+  return _finished;
 }
 
 

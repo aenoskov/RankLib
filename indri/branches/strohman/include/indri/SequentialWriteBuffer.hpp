@@ -26,8 +26,6 @@ public:
   }
 
   void seek( UINT64 position ) {
-    flush();
-
     if( position < _current.filePosition ) {
       flush();
       _current.filePosition = position;
@@ -37,7 +35,6 @@ public:
   }
   
   char* write( size_t length ) {
-    flush();
     assert( _position >= _current.filePosition );
 
     UINT64 endBuffer = _current.filePosition + _current.buffer.size();

@@ -23,7 +23,7 @@
 				Optimization="0"
 				AdditionalIncludeDirectories="../include;../contrib/antlr/include;../contrib/xpdf/include;../contrib/lemur/include;../contrib/zlib/include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
-				MinimalRebuild="TRUE"
+				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				RuntimeTypeInfo="TRUE"
@@ -132,9 +132,6 @@
 			</File>
 			<File
 				RelativePath=".\DeletedDocumentList.cpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\DeletedDocumentList.hpp">
 			</File>
 			<File
 				RelativePath=".\DirectoryIterator.cpp">

@@ -60,8 +60,13 @@ namespace indri {
       }
 
       Buffer* _findBuffer( int from ) {
+        assert( from >= 0 );
+
         int left = 0;
         int right = _maps.size()-1;
+
+        if( _maps.size() == 0 )
+          return 0;
 
         while( right - left > 1 ) {
           int middle = (right - left) / 2;
@@ -105,9 +110,18 @@ namespace indri {
         return start;
       }
 
+      int _bitsSet( unsigned char c ) {
+        static int bset[] = { 0, 1, 1, 2,   // 0, 1, 2, 3
+                              1, 2, 2, 3,   // 4, 5, 6, 7
+                              1, 2, 2, 3,   // 8, 9, A, B
+                              2, 3, 3, 4 }; // C, D, E, F
+
+        return bset[ c & 0xf ] + bset[ (c>>4) ];
+      }
+
     public:
       TermBitmap() {
-        _lastFrom = 0;
+        _lastFrom = -1;
         _toBase = -10000;
         _fromBase = -10000;
       }
@@ -116,12 +130,16 @@ namespace indri {
         delete_vector_contents( _maps );
       }
 
+      int lastFrom() {
+        return _lastFrom;
+      }
+
       void add( int to ) {
         add( _lastFrom+1, to );
       }
 
       void add( int from, int to ) {
-        assert( from <= to );
+        assert( _lastFrom < from );
 
         const int availableSpace = ((32 - 8) * 8);
         int difference = to - _toBase;
@@ -151,6 +169,8 @@ namespace indri {
       }
 
       int get( int from ) {
+        assert( from <= _lastFrom );
+
         // first, binary search through the buffers themselves
         Buffer* buffer = _findBuffer( from );
         const char* spot = _findInBuffer( buffer, from );
@@ -162,32 +182,64 @@ namespace indri {
         int bits = 0;
         int found = 0;
 
-        while( (fromBase + found) < from ) {
-          // find a non-zero bit that's past index <bits>
-          unsigned char c;
-          bits++;
-          
-          // this goes to the index bits in the array, masks off previous bits, looking for non-zero bits
-          while( !(c = spot[bits/8] & (0xff << (bits%8))) )
-            bits = (bits & ~7) + 8;
-          
-          assert( bits < 24*8 );
-          assert( c );
+        // first, go byte by byte
+        unsigned char c;
+        int need = from - fromBase + 1; // number of bits we need to find (plus 1 for the zero bit)
 
-          // find the non-zero bit in c
-          for( int i=(bits%8); i<8; i++ ) {
-            if( c & 1<<i ) {
-              bits = (bits & ~7) + i;
-              break;
-            }
-          }
+        c = spot[bits/8];
+        int byteBits = _bitsSet( c );
 
-          // found another bit, so increment found counter
-          found++;
+        while( found + byteBits < need ) {
+          bits += 8;
+          found += byteBits;
+          c = spot[bits/8];
+          byteBits = _bitsSet( c );
         }
 
-        assert( (fromBase + found) == from );
+        // now, examine each bit
+        int i;
+        for( i=0; i<8; i++ ) {
+          if( c & 1<<i ) {
+            found++;
+
+            if( found == need )
+              break;
+          }
+        }
+
+        bits += i;
+        assert( (fromBase + found - 1) == from );
         return toBase + bits;
+      }
+
+
+      void _printChunk( char* spot ) {
+        int fromBase = *(INT32*)spot;
+        int toBase = *(INT32*)(spot+4);
+        spot += 8;
+        int found = 0;
+    
+        for( int i=0; i<24; i++ ) {
+          for( int j=0; j<8; j++ ) {
+            if( spot[i] & (1<<j) ) {
+              std::cout << (fromBase + found) << " " << (toBase + i*8 + j) << std::endl;
+              found++;
+            }
+          }
+        }
+      }
+
+      void print() {
+        return; 
+
+        for( int i=0; i<_maps.size(); i++ ) {
+          Buffer* b = _maps[i];
+          int chunkStart = 0;
+
+          for( ; chunkStart < b->position(); chunkStart += 32 ) {
+            _printChunk( b->front() + chunkStart );
+          }
+        }
       }
     };
   }

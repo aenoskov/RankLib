@@ -24,6 +24,7 @@ namespace indri {
       bool _numeric;
 
       DocumentExtentData _data;
+      bool _finished;
 
       void _readEntry();
       void _readSkip();

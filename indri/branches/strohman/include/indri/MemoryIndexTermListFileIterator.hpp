@@ -26,6 +26,7 @@ namespace indri {
       std::list<Buffer*>& _buffers;
       std::list<Buffer*>::iterator _buffersIterator;
       UINT64 _bufferBase;
+      bool _finished;
 
       std::vector<DocumentData>& _data;
       TermList _list;

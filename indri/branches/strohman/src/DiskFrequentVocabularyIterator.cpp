@@ -29,7 +29,9 @@ void indri::index::DiskFrequentVocabularyIterator::startIteration() {
     _file.read( _buffer.write( length ), 0, length );
   }
 
-  _stream.setBuffer( _buffer.front(), _buffer.size() );
+  _finished = false;
+  _stream.setBuffer( _buffer.front(), _buffer.position() );
+  nextEntry();
 }
 
 //
@@ -37,11 +39,15 @@ void indri::index::DiskFrequentVocabularyIterator::startIteration() {
 //
 
 bool indri::index::DiskFrequentVocabularyIterator::nextEntry() {
-  _data = ::disktermdata_decompress( _stream, _dataBuffer, _fieldCount, indri::index::DiskTermData::WithOffsets |
-                                                                        indri::index::DiskTermData::WithTermID | 
-                                                                        indri::index::DiskTermData::WithString );
-
-  return !finished();
+  if( !_stream.done() ) {
+    _data = ::disktermdata_decompress( _stream, _dataBuffer, _fieldCount, indri::index::DiskTermData::WithOffsets |
+                                                                          indri::index::DiskTermData::WithTermID | 
+                                                                          indri::index::DiskTermData::WithString );
+    return true;
+  } else {
+    _finished = true;
+    return false;
+  }
 }
 
 //
@@ -49,7 +55,7 @@ bool indri::index::DiskFrequentVocabularyIterator::nextEntry() {
 //
 
 bool indri::index::DiskFrequentVocabularyIterator::finished() {
-  return _current != _buffer.front() + _buffer.position();
+  return _finished;
 }
 
 //
@@ -57,5 +63,8 @@ bool indri::index::DiskFrequentVocabularyIterator::finished() {
 //
 
 indri::index::DiskTermData* indri::index::DiskFrequentVocabularyIterator::currentEntry() {
-  return _data;
+  if( !_finished )
+    return _data;
+
+  return 0;
 }

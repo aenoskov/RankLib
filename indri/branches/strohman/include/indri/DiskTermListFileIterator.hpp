@@ -20,7 +20,8 @@ namespace indri {
       File& _termListFile;
       SequentialReadBuffer _buffer;
       UINT64 _fileSize;
-    
+      bool _finished;
+
     public:
       DiskTermListFileIterator( File& termListFile );
 
