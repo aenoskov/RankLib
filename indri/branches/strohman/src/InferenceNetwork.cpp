@@ -68,15 +68,16 @@ const static int CLOSE_ITERATOR_RANGE = 5000;
 //
 
 inline void InferenceNetwork::_moveDocListIterators( int candidate ) {
-  std::vector<indri::index::DocListIterator*>::iterator iter;
-
   if( _closeIterators.size() && candidate < _closeIteratorBound ) {
     // we're close to this document, so only advance the iterators that are close
+    greedy_vector<indri::index::DocListIterator*>::iterator iter;
 
     for( iter = _closeIterators.begin(); iter != _closeIterators.end(); iter++ ) {
       (*iter)->nextEntry( candidate );
     }
   } else {
+    std::vector<indri::index::DocListIterator*>::iterator iter;
+
     _closeIterators.clear();
     _closeIteratorBound = candidate + CLOSE_ITERATOR_RANGE;
 
