@@ -34,6 +34,7 @@ private:
   double _maximumBackgroundScore;
   TermScoreFunction& _scoreFunction;
   greedy_vector<ScoredExtentResult> _scores;
+  greedy_vector<bool> _matches;
   std::string _name;
   bool _documentSmoothing;
 
@@ -58,7 +59,10 @@ public:
   double maximumScore();
   const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
+
   bool hasMatch( int documentID );
+  const greedy_vector<bool>& ListBeliefNode::hasMatch( int documentID, const greedy_vector<Extent>& matchExtents );
+
   const std::string& getName() const;
 };
 

@@ -29,6 +29,7 @@ private:
   BeliefNode* _child;
   ListIteratorNode* _field;
   greedy_vector<ScoredExtentResult> _scores;
+  greedy_vector<bool> _matches;
   std::string _name;
 
 public:
@@ -43,6 +44,7 @@ public:
   const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   bool hasMatch( int documentID );
+  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents );
   const std::string& getName() const;
 };
 

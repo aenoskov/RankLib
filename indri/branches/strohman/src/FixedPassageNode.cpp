@@ -119,6 +119,59 @@ bool FixedPassageNode::hasMatch( int documentID ) {
   return _child->hasMatch( documentID );
 }
 
+const greedy_vector<bool>& FixedPassageNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  _matches.clear();
+  _matches.resize( extents.size(), false );
+
+  // to match, we split up each extent into its passage components, then check to see if there are sub-matches there.
+  _subextents.clear();
+
+  size_t i=0; 
+  size_t j=0;
+
+  for( i=0; i<extents.size(); i++ ) {
+    int beginPassage = (extents[i].begin / _increment) * _increment;
+    int endPassage = beginPassage + _windowSize;
+
+    while( beginPassage < extents[i].end ) {
+      int begin = lemur_compat::max( beginPassage, extents[i].begin );
+      int end = lemur_compat::min( endPassage, extents[i].end );
+
+      _subextents.push_back( Extent( begin, end ) );
+
+      beginPassage += _increment;
+      endPassage = beginPassage + _windowSize;
+    }
+  }
+
+  // now that we have subextents, ask the child for regions that have results
+  const greedy_vector<bool>& childMatches = _child->hasMatch( documentID, _subextents );
+
+  // walk the extents and subextents simultaneously
+  i = 0;
+  j = 0;
+
+  while( i < childMatches.size() && j < extents.size() ) {
+    if( _subextents[i].begin < extents[j].begin ) {
+      i++;    
+      continue;
+    }
+
+    if( _subextents[i].end > extents[j].end ) {
+      j++;
+      continue;
+    }
+
+    assert( _subextents[i].begin >= extents[j].begin );
+    assert( _subextents[i].end <= extents[j].end );
+
+    if( childMatches[i] ) {
+      _matches[i] = true;
+    }
+  }
+
+  return _matches;
+}
 
 const std::string& FixedPassageNode::getName() const {
   return _name;

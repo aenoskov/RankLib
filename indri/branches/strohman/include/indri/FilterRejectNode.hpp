@@ -27,6 +27,7 @@
 class FilterRejectNode : public BeliefNode {
 private:
   greedy_vector<ScoredExtentResult> _extents;
+  greedy_vector<bool> _matches;
   ListIteratorNode* _filter;
   BeliefNode* _disallowed;
   std::string _name;
@@ -38,6 +39,8 @@ public:
   double maximumBackgroundScore();
   double maximumScore();
   bool hasMatch( int documentID );
+  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents );
+
   const greedy_vector<ScoredExtentResult>& score( int documentID, int start, int end, int documentLength );
   int nextCandidateDocument();
   void indexChanged( indri::index::Index& index );

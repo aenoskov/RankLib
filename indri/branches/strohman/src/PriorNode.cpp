@@ -40,6 +40,11 @@ bool PriorNode::hasMatch( int documentID ) {
   return false;
 }
 
+const greedy_vector<bool>& PriorNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const greedy_vector<ScoredExtentResult>& PriorNode::score( int documentID, int begin, int end, int documentLength ) {
   int key;
   double score;

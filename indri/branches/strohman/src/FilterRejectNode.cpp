@@ -55,6 +55,15 @@ bool FilterRejectNode::hasMatch( int documentID ) {
   _disallowed->hasMatch( documentID ));
 }
 
+const greedy_vector<bool>& FilterRejectNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  if( _filter->extents().size() == 0 ) {
+    return _disallowed->hasMatch( documentID, extents );
+  }
+
+  _matches.resize( false, extents.size() );
+  return _matches;
+}
+
 const std::string& FilterRejectNode::getName() const {
   return _name;
 }
@@ -62,7 +71,7 @@ const std::string& FilterRejectNode::getName() const {
 const greedy_vector<ScoredExtentResult>& FilterRejectNode::score( int documentID, int begin, int end, int documentLength ) {
   _extents.clear();
   // if the filter doesn't apply, return the child score.
-  if (_filter->extents().size() == 0 )
+  if ( _filter->extents().size() == 0 )
     return _disallowed->score( documentID, begin, end, documentLength );
   else
     return _extents;
