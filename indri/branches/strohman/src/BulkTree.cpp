@@ -19,16 +19,16 @@
 
 const int BULK_BLOCK_SIZE = 8*1024;
 
-int BulkBlock::_remainingCapacity() {
+inline int BulkBlock::_remainingCapacity() {
   int startDataSize = _dataEnd();
   return BULK_BLOCK_SIZE - startDataSize - count()*2*sizeof(UINT16);
 }
 
-int BulkBlock::_dataEnd() {
+inline int BulkBlock::_dataEnd() {
   return _valueEnd( count()-1 );
 }
 
-int BulkBlock::_keyEnd( int index ) {
+inline int BulkBlock::_keyEnd( int index ) {
   assert( index < count() );
 
   if( index <= -1 ) {
@@ -41,15 +41,15 @@ int BulkBlock::_keyEnd( int index ) {
   return keyEnd;
 }
 
-int BulkBlock::_keyStart( int index ) {
+inline int BulkBlock::_keyStart( int index ) {
   return _valueEnd( index-1 );
 }
 
-int BulkBlock::_valueStart( int index ) {
+inline int BulkBlock::_valueStart( int index ) {
   return _keyEnd( index );
 }
 
-int BulkBlock::_valueEnd( int index ) {
+inline int BulkBlock::_valueEnd( int index ) {
   assert( index < count() );
 
   if( index <= -1 ) {
@@ -62,11 +62,11 @@ int BulkBlock::_valueEnd( int index ) {
   return valueEnd;
 }
 
-bool BulkBlock::_canInsert( int keyLength, int dataLength ) {
+inline bool BulkBlock::_canInsert( int keyLength, int dataLength ) {
   return _remainingCapacity() >= (keyLength + dataLength + 2*sizeof(UINT16));
 }
 
-void BulkBlock::_storeKeyValueLength( int insertPoint, int keyLength, int valueLength ) {
+inline void BulkBlock::_storeKeyValueLength( int insertPoint, int keyLength, int valueLength ) {
   UINT16* blockEnd = (UINT16*) (_buffer + BULK_BLOCK_SIZE);
   int cnt = count();
 
@@ -74,7 +74,7 @@ void BulkBlock::_storeKeyValueLength( int insertPoint, int keyLength, int valueL
   blockEnd[ -(cnt*2+1) ] = (UINT16) valueLength + keyLength + insertPoint;
 }
 
-int BulkBlock::_compare( const char* one, int oneLength, const char* two, int twoLength ) {
+inline int BulkBlock::_compare( const char* one, int oneLength, const char* two, int twoLength ) {
   int result = memcmp( one, two, lemur_compat::min( oneLength, twoLength ) );
 
   if( result != 0 ) {
@@ -84,7 +84,7 @@ int BulkBlock::_compare( const char* one, int oneLength, const char* two, int tw
   return oneLength - twoLength;
 }
 
-int BulkBlock::_find( const char* key, int keyLength, bool& exact ) {
+inline int BulkBlock::_find( const char* key, int keyLength, bool& exact ) {
   int left = 0;
   int right = count() - 1;
 
@@ -152,11 +152,11 @@ BulkBlock::~BulkBlock() {
   delete[] _buffer;
 }
 
-int BulkBlock::count() {
+inline int BulkBlock::count() {
   return (*(UINT16*)_buffer) & ~(1<<15);
 }
 
-bool BulkBlock::leaf() {
+inline bool BulkBlock::leaf() {
   return ((*(UINT16*)_buffer) & (1<<15)) != 0;
 }
 
@@ -235,11 +235,11 @@ bool BulkBlock::insertFirstKey( BulkBlock& block, UINT32 blockID ) {
   return insert( block._buffer + startKey, endKey - startKey, (const char*) &blockID, sizeof(blockID) );
 }
 
-void BulkBlock::clear() {
+inline void BulkBlock::clear() {
   *(UINT16*) _buffer = (leaf() ? (1<<15) : 0);
 }
 
-char* BulkBlock::data() {
+inline char* BulkBlock::data() {
   return _buffer;
 }
 
