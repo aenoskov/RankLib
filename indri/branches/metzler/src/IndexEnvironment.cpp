@@ -120,6 +120,10 @@ void IndexEnvironment::setStemmer( const std::string& stemmer ) {
   _parameters.set("stemmer.name", stemmer);
 }
 
+void IndexEnvironment::setSegmenter( const std::string& segmenter ) {
+  _parameters.set("segmenter.name", segmenter);
+}
+
 void IndexEnvironment::addFileClass( const std::string& name, 
                                      const std::string& iterator,
                                      const std::string& parser,

@@ -57,8 +57,7 @@
 
 #include "indri/DirectoryIterator.hpp"
 #include <stack>
-/*! Provides iteration over a directory tree.
- */
+
 class FileTreeIterator {
 private:
   static FileTreeIterator _end;

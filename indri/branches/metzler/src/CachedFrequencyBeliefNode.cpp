@@ -74,6 +74,8 @@ double CachedFrequencyBeliefNode::maximumScore() {
   return _maximumScore;
 }
 
+void CachedFrequencyBeliefNode::advance() { _iter++; }
+
 const greedy_vector<ScoredExtentResult>& CachedFrequencyBeliefNode::score( int documentID, int begin, int end, int documentLength ) {
   assert( begin == 0 && end == documentLength ); // FrequencyListCopier ensures this condition
   const DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
@@ -92,13 +94,37 @@ const greedy_vector<ScoredExtentResult>& CachedFrequencyBeliefNode::score( int d
     count = 0;
     contextSize = documentLength;
   }
-
+  
   double score = _function.scoreOccurrence( count, contextSize );
 
   assert( score <= _maximumScore );
   _extents.push_back( ScoredExtentResult( score, documentID, begin, end ) );
 
   return _extents;
+}
+
+int CachedFrequencyBeliefNode::matches( int begin, int end ) {
+  const DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
+
+  int count = 0;
+  if( entry )
+    count = entry->count;
+  else
+    count = 0;
+  
+  return count;
+}
+
+int CachedFrequencyBeliefNode::contextSize( int begin, int end ) {
+  const DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
+
+  int contextSize = 0;
+  if( entry )
+    contextSize = entry->contextSize;
+  else
+    contextSize = end - begin;
+    
+  return contextSize;
 }
 
 bool CachedFrequencyBeliefNode::hasMatch( int documentID ) {

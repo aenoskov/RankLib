@@ -70,42 +70,42 @@ namespace indri {
   namespace index {
     class DocListInfo : public DocInfo {
     private:
-      DOCID_T _documentID;
-      TERMID_T _termID;
-      greedy_vector<LOC_T,32> _positions;
+      int _documentID;
+      int _termID;
+      greedy_vector<int,32> _positions;
 
     public:
       // DocInfo interface
-      DOCID_T docID() const {
+      int docID() const {
         return _documentID;
       }
 
-      COUNT_T termCount() const {
-        return COUNT_T(_positions.size());
+      int termCount() const {
+        return int(_positions.size());
       }
 
-      virtual const LOC_T* positions() const {
+      virtual const int* positions() const {
         return &_positions.front();
       }
 
       // Internal index use
-      TERMID_T termID() const {
+      int termID() const {
         return _termID;
       }
 
-      void setDocID( DOCID_T documentID ) {
+      void setDocID( int documentID ) {
         _documentID = documentID;
       }
 
-      void setTermID( TERMID_T termID ) {
+      void setTermID( int termID ) {
         _termID = termID;
       }
 
-      void addPosition( LOC_T position ) {
+      void addPosition( int position ) {
         _positions.push_back( position );
       }
 
-      void addPositions( LOC_T* positions, int count ) {
+      void addPositions( int* positions, int count ) {
         _positions.append( positions, positions + count );
       }
 

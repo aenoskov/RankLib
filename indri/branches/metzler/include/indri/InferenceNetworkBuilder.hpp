@@ -110,6 +110,7 @@ public:
   void after( indri::lang::PriorNode* priorNode );
   void after( indri::lang::WeightNode* weightNode );
   void after( indri::lang::CombineNode* combineNode );
+  void after( indri::lang::IdentSimNode* identSimNode );
   void after( indri::lang::OrNode* orNode );
   void after( indri::lang::NotNode* notSpecNode );
   void after( indri::lang::MaxNode* maxNode );

@@ -59,7 +59,7 @@
 #define INDRI_SUMNODE_HPP
 
 #include <vector>
-#include "lemur/lemur-platform.h"
+#include "lemur-platform.h"
 
 class SumNode : public BeliefNode {
 private:

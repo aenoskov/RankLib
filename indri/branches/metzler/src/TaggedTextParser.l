@@ -17,7 +17,8 @@ static long byte_position;
 
 %%
 
-\<[^\>]*\>                                    { byte_position +=parserleng; return TaggedTextTokenType::tag; }
+
+\<[^\>]*\>                                     { byte_position +=parserleng; return TaggedTextTokenType::tag; }
 [&]([a-zA-Z]+|[#][0-9])[;]                     { byte_position += parserleng; /* zap symbols */ }
 [a-zA-Z0-9'\.€-ÿ]+                   { byte_position += parserleng; return TaggedTextTokenType::word; }
 [\n]                                           { byte_position += parserleng; /* zap newline */ }

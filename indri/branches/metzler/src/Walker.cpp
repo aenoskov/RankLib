@@ -48,6 +48,8 @@ namespace indri {
    void Walker::after( class CachedFrequencyScorerNode* n ) { defaultAfter( n ); }
    void Walker::before( class PriorNode* n ) { defaultBefore( n ); }
    void Walker::after( class PriorNode* n ) { defaultAfter( n ); }
+   void Walker::before( class IdentSimNode* n ) { defaultBefore( n ); }
+   void Walker::after( class IdentSimNode* n ) { defaultAfter( n ); }
    void Walker::before( class OrNode* n ) { defaultBefore( n ); }
    void Walker::after( class OrNode* n ) { defaultAfter( n ); }
    void Walker::before( class NotNode* n ) { defaultBefore( n ); }

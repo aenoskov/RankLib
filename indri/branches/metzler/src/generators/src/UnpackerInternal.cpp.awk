@@ -6,7 +6,7 @@ BEGIN {
   print "#include \"indri/Unpacker.hpp\"";
   print "#include \"indri/QuerySpec.hpp\"";
   print "#include \"indri/XMLNode.hpp\"";
-  print "#include \"lemur/Exception.hpp\"";
+  print "#include \"Exception.hpp\"";
   print "";
 
   print    "indri::lang::Node* indri::lang::Unpacker::_unpack( XMLNode* child ) {";

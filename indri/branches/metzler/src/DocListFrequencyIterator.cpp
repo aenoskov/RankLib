@@ -52,7 +52,7 @@
 //
 
 #include "indri/DocListFrequencyIterator.hpp"
-
+#include "lemur/lemur-compat.hpp"
 
 indri::index::DocListFrequencyIterator::DocListFrequencyIterator( File& segment,
                                                                   int termID, 

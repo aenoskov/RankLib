@@ -52,7 +52,7 @@
 class DocPositionInfoList : public DocInfoList {
 public:
   /// fetch the next entry with docID >= <documentID>
-  virtual DocInfo* nextEntry( DOCID_T documentID ) = 0;
+  virtual DocInfo* nextEntry( int documentID ) = 0;
   // why is this required?
   virtual DocInfo* nextEntry() const = 0;
   virtual DocInfo* currentEntry() = 0;

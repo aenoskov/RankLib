@@ -70,6 +70,9 @@
 #include "indri/delete_range.hpp"
 #include "indri/WeightFoldingCopier.hpp"
 
+#include "indri/IndexTermProcessorWalker.hpp"
+#include "indri/QueryFrequencyWalker.hpp"
+
 #include "indri/Appliers.hpp"
 
 //
@@ -274,6 +277,17 @@ INT64 LocalQueryServer::documentCount( const std::string& term ) {
 }
 
 QueryServerResponse* LocalQueryServer::runQuery( std::vector<indri::lang::Node*>& roots, int resultsRequested, bool optimize ) {
+  //optimize = false;
+  
+  // process the index term nodes
+  IndexTermProcessorWalker termProcessWalker( _repository );
+  QueryFrequencyWalker qfWalker;
+  for( int i = 0; i < roots.size(); i++ ) {
+  	roots[i]->walk( termProcessWalker );
+  	roots[i]->walk( qfWalker );
+  }
+  qfWalker.setStatistics();
+  
   // use UnnecessaryNodeRemover to get rid of window nodes, ExtentAnd nodes and ExtentOr nodes
   // that only have one child
   ApplyCopiers<UnnecessaryNodeRemoverCopier> unnecessary( roots );

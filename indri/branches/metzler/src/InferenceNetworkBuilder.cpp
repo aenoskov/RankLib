@@ -66,6 +66,7 @@
 #include "indri/ScoredExtentAccumulator.hpp"
 #include "indri/WeightedAndNode.hpp"
 #include "indri/NullScorerNode.hpp"
+#include "indri/IdentitySimilarityNode.hpp"
 #include "indri/OrNode.hpp"
 #include "indri/NotNode.hpp"
 #include "indri/WeightedAndNode.hpp"
@@ -86,6 +87,7 @@
 #include "indri/CachedFrequencyBeliefNode.hpp"
 #include "indri/BooleanAndNode.hpp"
 #include "indri/TopdocsIndex.hpp"
+#include "indri/StatisticsBeliefNode.hpp"
 
 #include <stdexcept>
 
@@ -582,14 +584,16 @@ void InferenceNetworkBuilder::after( indri::lang::ContextCounterNode* contextCou
         contextCounterNode->getMaximumOccurrences(),
         contextCounterNode->getMinimumContextLength(), 
         contextCounterNode->getMaximumContextLength(),
-        contextCounterNode->getMaximumContextFraction() );
+        contextCounterNode->getMaximumContextFraction(),
+        contextCounterNode->getDocOccurrences() );
     } else if( contextCounterNode->hasCounts() ) {
       // the preprocessor filled in these counts, so we'll put in a placeholder,
       // but won't mark it as complex (so it won't be evaluated on each doc in the collection)
       contextCount = new ContextCountAccumulator(
         contextCounterNode->nodeName(),
         contextCounterNode->getOccurrences(),
-        contextCounterNode->getContextSize() );
+        contextCounterNode->getContextSize(),
+        contextCounterNode->getDocOccurrences() );
     } else if( contextCounterNode->hasContextSize() ) {
       // the preprocessor was able to compute the context size, but not the
       // occurrences for this term
@@ -623,6 +627,7 @@ void InferenceNetworkBuilder::after( indri::lang::ContextCounterNode* contextCou
       _network->addComplexEvaluatorNode( contextCount );
     }
 
+	contextCount->setDocCount( _repository.index()->docCount() );
     _network->addEvaluatorNode( contextCount );
     _nodeMap[ contextCounterNode ] = contextCount;
   }
@@ -677,10 +682,19 @@ void InferenceNetworkBuilder::after( indri::lang::CachedFrequencyScorerNode* cac
                                               *function,
                                               maximumBackgroundScore,
                                               maximumScore );
+                                                                           
+      CachedFrequencyBeliefNode *statsNode = dynamic_cast<CachedFrequencyBeliefNode*>(belief);
+      statsNode->setStatistics( list->occurrences,
+                                list->contextSize,
+                                list->docOccurrences,
+                                list->qf,
+                                cachedScorerNode->getDocCount(),
+                                list->queryLength );
+      
     } else {
       belief = new NullScorerNode( cachedScorerNode->nodeName(), *function );
     }
-
+    
     _network->addScoreFunction( function );
     _network->addBeliefNode( belief );
     _nodeMap[cachedScorerNode] = belief;
@@ -710,34 +724,43 @@ void InferenceNetworkBuilder::after( indri::lang::TermFrequencyScorerNode* termS
       // if it isn't a stopword, we can try to get it from the index
       if( !stopword ) {
         termID = _repository.index()->term( processed.c_str() );
-
+	
         if( termID != 0 ) {
           indri::index::DocListFrequencyIterator* frequencyList = _repository.index()->docFrequencyInfoList( termID );
+
           _network->addFrequencyIterator( frequencyList );
 
           UINT64 maxOccurrences;
-          double maximumScore;
-          double maximumBackgroundScore;
-          double maximumFraction;
-
-          TopdocsIndex::TopdocsList* topdocs = 0;
-
-          if( Parameters::instance().get( "topdocs", 1 ) )
-            topdocs = _repository.topdocs()->fetch( termID );
-
-          if( topdocs ) {
-            // this is the maximum fraction *not* in the topdocs list
-            maximumFraction = double(topdocs->smallest.count) / double(topdocs->smallest.length);
-          } else {
-            maximumFraction = termScorerNode->getMaxContextFraction();
-          }
-
-          maxOccurrences = UINT64( ceil( double(termScorerNode->getMaxContextLength()) * maximumFraction ) );
-
-          maximumScore = function->scoreOccurrence( maxOccurrences, termScorerNode->getMaxContextLength() );
-          maximumBackgroundScore = function->scoreOccurrence( 0, termScorerNode->getMinContextLength() );
-
-          belief = new TermFrequencyBeliefNode( termScorerNode->nodeName(), *frequencyList, topdocs, *function, maximumBackgroundScore, maximumScore );
+	  double maximumScore;
+	  double maximumBackgroundScore;
+	  double maximumFraction;
+	  
+	  TopdocsIndex::TopdocsList* topdocs = 0;
+	  
+	  if( Parameters::instance().get( "topdocs", 1 ) )
+	    topdocs = _repository.topdocs()->fetch( termID );
+	  
+	  if( topdocs ) {
+	    // this is the maximum fraction *not* in the topdocs list
+	    maximumFraction = double(topdocs->smallest.count) / double(topdocs->smallest.length);
+	  } else {
+	    maximumFraction = termScorerNode->getMaxContextFraction();
+	  }
+	  
+	  maxOccurrences = UINT64( ceil( double(termScorerNode->getMaxContextLength()) * maximumFraction ) );
+	  
+	  maximumScore = function->scoreOccurrence( maxOccurrences, termScorerNode->getMaxContextLength() );
+	  maximumBackgroundScore = function->scoreOccurrence( 0, termScorerNode->getMinContextLength() );
+	  
+	  belief = new TermFrequencyBeliefNode( termScorerNode->nodeName(), *frequencyList, topdocs, *function, maximumBackgroundScore, maximumScore );
+          
+          TermFrequencyBeliefNode *statsNode = dynamic_cast<TermFrequencyBeliefNode*>(belief);          
+      	  statsNode->setStatistics( termScorerNode->getOccurrences(),
+                                    termScorerNode->getContextSize(),
+                                    termScorerNode->getDocOccurrences(),
+                                    termScorerNode->getQF(),
+                                    termScorerNode->getDocCount(),
+                                    termScorerNode->getQueryLength() );
         }
       }
     }
@@ -783,6 +806,14 @@ void InferenceNetworkBuilder::after( indri::lang::RawScorerNode* rawScorerNode )
       double maximumBackgroundScore = INDRI_TINY_SCORE;
       
       belief = new ListBeliefNode( rawScorerNode->nodeName(), *iterator, context, rawIterator, *function, maximumBackgroundScore, maximumScore );
+
+	  ListBeliefNode *statsNode = dynamic_cast<ListBeliefNode*>(belief);
+      statsNode->setStatistics( rawScorerNode->getOccurrences(),
+                                rawScorerNode->getContextSize(),
+                                rawScorerNode->getDocOccurrences(),
+                                rawScorerNode->getQF(),
+                                rawScorerNode->getDocCount(),
+                                rawScorerNode->getQueryLength() );
     } else {
       belief = new NullScorerNode( rawScorerNode->nodeName(), *function );
     }
@@ -842,6 +873,27 @@ void InferenceNetworkBuilder::after( indri::lang::WSumNode* wsumNode ) {
 
     _network->addBeliefNode( weightedSumNode );
     _nodeMap[wsumNode] = weightedSumNode;
+  }
+}
+
+// converts IdentSimNode (from parsed query) into
+// an InferenceNetworkNode named IdentitySimilarityNode
+void InferenceNetworkBuilder::after( indri::lang::IdentSimNode* identSimNode ) {
+  if( _nodeMap.find( identSimNode ) == _nodeMap.end() ) {
+    // only add StatisticsBeliefNodes as children because
+    // it really makes no sense to add other types of belief
+    // nodes
+    std::vector<StatisticsBeliefNode*> children;
+    std::vector<BeliefNode*> translation = _translate<BeliefNode>( identSimNode->getChildren() );    
+    for( int i = 0; i < translation.size(); i++ ) {
+      StatisticsBeliefNode *statsNode = dynamic_cast<StatisticsBeliefNode*>(translation[i]);
+      if( statsNode )
+	children.push_back(statsNode);
+    }
+    IdentitySimilarityNode* simNode = new IdentitySimilarityNode( identSimNode->nodeName(), children, identSimNode->getVariation() );
+    
+    _network->addBeliefNode( simNode );
+    _nodeMap[identSimNode] = simNode;
   }
 }
 

@@ -61,8 +61,9 @@
 #include "indri/ListBeliefNode.hpp"
 #include "indri/DocListFrequencyIterator.hpp"
 #include "indri/TopdocsIndex.hpp"
+#include "indri/StatisticsBeliefNode.hpp"
 
-class TermFrequencyBeliefNode : public BeliefNode {
+class TermFrequencyBeliefNode : public StatisticsBeliefNode {
 private:
   TermScoreFunction& _function;
   greedy_vector<ScoredExtentResult> _extents;
@@ -90,6 +91,9 @@ public:
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   bool hasMatch( int documentID );
   const std::string& getName() const;
+  
+  int matches( int begin, int end );
+  int contextSize( int begin, int end );
 };
 
 #endif // INDRI_TERMFREQUENCYBELIEFNODE_HPP

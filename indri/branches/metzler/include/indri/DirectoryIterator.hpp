@@ -56,8 +56,7 @@
 #define INDRI_DIRECTORYITERATOR_HPP
 
 #include <string>
-/*! Provides iteration over directory entries. 
- */
+
 class DirectoryIterator {
 private:
   static DirectoryIterator _end;

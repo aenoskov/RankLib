@@ -48,6 +48,8 @@ namespace indri {
     Node* Copier::after( class CachedFrequencyScorerNode* oldNode, class CachedFrequencyScorerNode* newNode ) { return defaultAfter( oldNode, newNode ); }
     void Copier::before( class PriorNode* oldNode ) { defaultBefore( oldNode ); }
     Node* Copier::after( class PriorNode* oldNode, class PriorNode* newNode ) { return defaultAfter( oldNode, newNode ); }
+    void Copier::before( class IdentSimNode* oldNode ) { defaultBefore( oldNode ); }
+    Node* Copier::after( class IdentSimNode* oldNode, class IdentSimNode* newNode ) { return defaultAfter( oldNode, newNode ); }
     void Copier::before( class OrNode* oldNode ) { defaultBefore( oldNode ); }
     Node* Copier::after( class OrNode* oldNode, class OrNode* newNode ) { return defaultAfter( oldNode, newNode ); }
     void Copier::before( class NotNode* oldNode ) { defaultBefore( oldNode ); }

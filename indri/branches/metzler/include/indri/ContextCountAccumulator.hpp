@@ -81,6 +81,17 @@ private:
   UINT64 _occurrences;
   UINT64 _contextSize;
 
+  // document frequency
+  UINT64 _docOccurrences;
+
+  //int _qf;
+  //int _queryLength;
+    
+  // total documents
+  // there should only be a single copy of this associated
+  // with an InferenceNetwork, instead of one per ScorerNode
+  UINT64 _docCount;
+
   UINT64 _maximumContextSize;
   UINT64 _minimumContextSize;
   UINT64 _maximumOccurrences;
@@ -95,8 +106,8 @@ private:
   SimpleCopier _query;
 
 public:
-  ContextCountAccumulator( const std::string& name, UINT64 occurrences, UINT64 contextSize );
-  ContextCountAccumulator( const std::string& name, UINT64 occurrences, UINT64 contextSize, UINT64 maximumOccurrences, UINT64 minimumContextSize, UINT64 maximumContextSize, double maximumContextFraction );
+  ContextCountAccumulator( const std::string& name, UINT64 occurrences, UINT64 contextSize, UINT64 docOccurrences );
+  ContextCountAccumulator( const std::string& name, UINT64 occurrences, UINT64 contextSize, UINT64 maximumOccurrences, UINT64 minimumContextSize, UINT64 maximumContextSize, double maximumContextFraction, UINT64 docOccurrences );
   ContextCountAccumulator( const std::string& name, ListCache* listCache, ListCache::CachedList* cache, ListIteratorNode* matches, UINT64 collectionSize, UINT64 maxDocumentLength );
   ContextCountAccumulator( const std::string& name, ListCache* listCache, ListCache::CachedList* cache, ListIteratorNode* matches, ListIteratorNode* context );
 
@@ -105,6 +116,17 @@ public:
   UINT64 getOccurrences() const;
   UINT64 getContextSize() const;
 
+  UINT64 getDocOccurrences() const;
+
+/*  int getQF() const;
+  void setQF( int qf );
+
+  int getQueryLength() const;
+  void setQueryLength( int queryLength );*/
+
+  UINT64 getDocCount() const;
+  void setDocCount( UINT64 docCount );
+  
   const ListIteratorNode* getContextNode() const;
   const ListIteratorNode* getMatchesNode() const;
   const std::string& getName() const;

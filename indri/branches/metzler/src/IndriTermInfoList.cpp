@@ -62,13 +62,13 @@ namespace indri {
   namespace index {
     BagList::BagList( TermListBuilder* list ) : _list(list)
     {
-      greedy_vector<TERMID_T> termIDs = _list->terms();
-      count_iterator<TERMID_T> iter( termIDs.begin(), termIDs.end() );
+      greedy_vector<int> termIDs = _list->terms();
+      count_iterator<int> iter( termIDs.begin(), termIDs.end() );
       // indri indexes stopwords as [OOV], so skip those
       for( ; iter != termIDs.end(); ++iter ) {
-	if ((*iter).object != 0)
-	  _termCounts.push_back( std::make_pair( (*iter).object, 
-						 (*iter).count ) );
+        if( (*iter).object != 0 ) {
+	        _termCounts.push_back( std::make_pair( (*iter).object, (*iter).count ) );
+        }
       }
     }
       

@@ -59,29 +59,17 @@
 #include "indri/XMLNode.hpp"
 #include "indri/delete_range.hpp"
 
-/*! Parameters class for Indri index and retrieval methods. 
- *  Provides a map of key value pairs, where the key is a string
- *  and the values can be one of double, int, INT64, string, 
- *  or a Parameters object, encapsulated in a parameter_value struct.
- */
 class Parameters {
 public:
-  /// Container for parameter values
   struct parameter_value {
     typedef std::map<std::string, parameter_value*> MValue;
-    /// map of string to parameter_value pointers.
     MValue table;
     typedef std::vector<parameter_value*> VValue;
-    /// vector of parameter_value pointers
     std::vector<parameter_value*> array;
-    /// string representation of parameter value.
     std::string value;
 
   public:
-    /// create
     parameter_value() {}
-    /// Make a deep copy.
-    /// @param other the parameter_value to copy.
     parameter_value( const parameter_value& other ) {
       value = other.value;
 
@@ -96,7 +84,7 @@ public:
                                       new parameter_value( *(iter->second) ) ) );
       }
     }
-    /// clean up
+    
     ~parameter_value() {
       for( std::map<std::string, parameter_value*>::iterator iter = table.begin();
            iter != table.end();
@@ -107,7 +95,7 @@ public:
 
       delete_vector_contents<parameter_value*>(array);
     }
-    /// convert single value to an entry in the vector array.
+    
     void convertToArray() {
       if( !array.size() && ( table.size() || value.size() ) ) {
         parameter_value* child = new parameter_value;
@@ -121,9 +109,7 @@ public:
         array.push_back(child);
       }
     }
-    /// Get the value.
-    /// @return the value of the contents of the first element of array
-    /// if present, otherwise the contents of value.
+
     const std::string& getValue() {
       if( !array.size() )
         return value;
@@ -199,7 +185,7 @@ protected:
       case 'T':
       case 't':
       case '1':
-         return true;
+        return true;
    
       case 'F':
       case 'f':
@@ -213,21 +199,13 @@ protected:
   }
 
 public:
-  /// Create
   Parameters();
-  /// Clone
-  /// @param other the object to copy.
   Parameters( const Parameters& other );
-  /// Initialize with a parameter_value
-  /// @param value the item to insert.
   Parameters( parameter_value* value );
-  /// Initialize with a key path and parameter_value
-  /// @param path the key.
-  /// @param value the item to insert for that key.
   Parameters( const std::string& path, parameter_value* value );
-  /// Clean up.
+
   ~Parameters();
-  /// @return the value of the parameter as a double
+
   operator double () {
     const std::string& value = _getRoot()->getValue();
     return atof( value.c_str() );
@@ -238,10 +216,6 @@ public:
     return _asBoolean(value);
   }
 
-  /// Converts the value to an int, scaling by the multiplier if supplied.
-  /// Valid values are (case insensitive) K = 1000, M = 1000000, 
-  /// G = 1000000000.
-  /// @return the value of the parameter as an int
   operator int () {
     const std::string& value = _getRoot()->getValue();
 
@@ -258,10 +232,6 @@ public:
     return atoi( value.c_str() );
   }
 
-  /// Converts the value to an INT64, scaling by the multiplier if supplied.
-  /// Valid values are (case insensitive) K = 1000, M = 1000000, 
-  /// G = 1000000000.
-  /// @return the value of the parameter as an INT64
   operator INT64 () {
     const std::string& value = _getRoot()->getValue();
     INT64 multiplier = _multiplier( value );
@@ -277,15 +247,11 @@ public:
     return string_to_i64( value );
   }
 
-  /// @return the value of the parameter as a string
   operator std::string () {
     std::string value = _getRoot()->getValue();
     return value;
   }
 
-  /// assignment via deep copy.
-  /// @param other the item to copy.
-  /// @return this object
   const Parameters& operator= ( const Parameters& other ) {
     _collection->value = other._collection->value;
     
@@ -308,120 +274,44 @@ public:
     return *this;
   }
 
-  /// Retrieve the n'th entry.
-  /// @param index, the index of the entry to retrieve.
-  /// @return a Parameters object.
   Parameters get( int index );
-  /// Retrieve the entry associated with name.
-  /// @param name the key value.
-  /// @return a Parameters object.
   Parameters get( const std::string& name );
-  /// Retrieve the entry associated with name.
-  /// @param name the key value.
-  /// @return a Parameters object.
   Parameters get( const char* name );
 
   bool get( const std::string& name, bool def );
-  /// Retrieve the entry associated with name.
-  /// @param name the key value.
-  /// @param def the default value for the key
-  /// @return the value associated with the key or def if no entry
-  /// exists.
   int get( const std::string& name, int def );
-  /// Retrieve the entry associated with name.
-  /// @param name the key value.
-  /// @param def the default value for the key
-  /// @return the value associated with the key or def if no entry
-  /// exists.
   double get( const std::string& name, double def );
-  /// Retrieve the entry associated with name.
-  /// @param name the key value.
-  /// @param def the default value for the key
-  /// @return the value associated with the key or def if no entry
-  /// exists.
   INT64 get( const std::string& name, INT64 def );
   std::string get( const std::string& name, const char* def );
-  /// Retrieve the entry associated with name.
-  /// @param name the key value.
-  /// @param def the default value for the key
-  /// @return the value associated with the key or def if no entry
-  /// exists.
   std::string get( const std::string& name, const std::string& def );
 
-  /// Retrieve the n'th entry.
-  /// @param index the index of the entry to retrieve.
-  /// @return a Parameters object.
   Parameters operator[] ( int index );
-  /// Retrieve the entry indexed by path.
-  /// @param path the key of the entry to retrieve.
-  /// @return a Parameters object.
   Parameters operator[] ( const std::string& path );
-  /// Retrieve the entry indexed by path.
-  /// @param path the key of the entry to retrieve.
-  /// @return a Parameters object.
   Parameters operator[] ( const char* path );
-  /// Create a new empty parameter_value for the key given in path
-  /// @param path the key to create the value for
-  /// @return the Parameters object initialized with the new value.
-  Parameters append( const std::string& path );
-  /// Remove an entry from the table. Does nothing if the key does not
-  /// exist.
-  /// @param path the key to remove.
-  void remove( const std::string& path );
 
+  Parameters append( const std::string& path );
+  void remove( const std::string& path );
   void set( const std::string& name, bool value );
   void set( const std::string& name, const char* value );
-  /// Set the value  for the given key.
-  /// @param name the key
-  /// @param value the value
   void set( const std::string& name, const std::string& value );
-  /// Set the value  for the given key.
-  /// @param name the key
-  /// @param value the value
   void set( const std::string& name, int value );
-  /// Set the value  for the given key.
-  /// @param name the key
-  /// @param value the value
   void set( const std::string& name, UINT64 value );
-  /// Set the value  for the given key.
-  /// @param name the key
-  /// @param value the value
   void set( const std::string& name, double value );
-  /// Set the value of the Parameters object
-  /// @param value the value
   void set( const std::string& value );
 
-  /// @return the size of the object.
   size_t size();
-  /// @param index the index to probe.
-  /// @return true if an entry exists for this index, false otherwise.
   bool exists( int index );
-  /// @param name the key to probe.
-  /// @return true if an entry exists for this key, false otherwise.
   bool exists( const std::string& name );
 
-  /// Convert to XML
-  /// @return an XMLNode containing the parameters
   XMLNode* toXML();
 
-  /// Return the singleton instance of the Parameters class.
   static Parameters& instance();
 
-  /// Initialize from a string
-  /// @param text the text to parse
   void load( const std::string& text );
-  /// Initialize from a file
-  /// @param filename the filename to parse
   void loadFile( const std::string& filename );
-  /// Initialize from the command line
-  /// @param argc the number of command line arguments
-  /// @param argv the command line arguments
   void loadCommandLine( int argc, char** argv );
-  /// Write the Parameters table to the given string
-  /// @param text the string to write into.
+
   void write( std::string& text );
-  /// Write the Parameters table to the given filename
-  /// @param filename the filename to write into.
   void writeFile( const std::string& filename );
 };
 

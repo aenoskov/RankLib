@@ -90,7 +90,7 @@ namespace indri {
 
       // find the first document that contains this term that has an id >= documentID.
       // returns null if no such document exists.
-      DocInfo* nextEntry( DOCID_T documentID );
+      DocInfo* nextEntry( int documentID );
 
       // return the current document entry if we're not finished, null otherwise.
       DocInfo* currentEntry();

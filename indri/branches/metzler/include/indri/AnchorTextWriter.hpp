@@ -58,7 +58,7 @@
 #include <iostream>
 #include <algorithm>
 #include "indri/Path.hpp"
-#include "lemur/lemur-compat.hpp"
+#include "lemur-compat.hpp"
 
 class AnchorTextWriter : public ObjectHandler<ParsedDocument> {
 private:

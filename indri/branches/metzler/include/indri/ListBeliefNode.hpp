@@ -60,8 +60,9 @@
 #include "indri/greedy_vector"
 #include "indri/ListIteratorNode.hpp"
 #include "indri/ScoredExtentResult.hpp"
+#include "indri/StatisticsBeliefNode.hpp"
 
-class ListBeliefNode : public BeliefNode {
+class ListBeliefNode : public StatisticsBeliefNode {
 private:
   ListIteratorNode& _list;
   ListIteratorNode* _context;
@@ -95,6 +96,9 @@ public:
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   bool hasMatch( int documentID );
   const std::string& getName() const;
+
+  int matches( int begin, int end );
+  int contextSize( int begin, int end );
 };
 
 #endif // INDRI_TERMNODE_HPP
