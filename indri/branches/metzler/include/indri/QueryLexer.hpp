@@ -1,7 +1,7 @@
 #ifndef INC_QueryLexer_hpp_
 #define INC_QueryLexer_hpp_
 
-#line 55 "indrilang.g"
+#line 18 "indrilang.g"
 
   #include "indri/QuerySpec.hpp"
   #include "indri/DateParse.hpp"
@@ -21,7 +21,7 @@ ANTLR_BEGIN_NAMESPACE(indri)
 ANTLR_BEGIN_NAMESPACE(lang)
 class CUSTOM_API QueryLexer : public ANTLR_USE_NAMESPACE(antlr)CharScanner, public QueryLexerTokenTypes
 {
-#line 110 "indrilang.g"
+#line 73 "indrilang.g"
 
 private:
   bool _numbers;
@@ -54,6 +54,8 @@ public:
 	public: void mC_ANGLE(bool _createToken);
 	public: void mO_SQUARE(bool _createToken);
 	public: void mC_SQUARE(bool _createToken);
+	public: void mO_BRACE(bool _createToken);
+	public: void mC_BRACE(bool _createToken);
 	public: void mDBL_QUOTE(bool _createToken);
 	public: void mQUOTE(bool _createToken);
 	public: void mDOT(bool _createToken);

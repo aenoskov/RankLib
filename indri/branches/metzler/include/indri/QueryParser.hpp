@@ -1,7 +1,7 @@
 #ifndef INC_QueryParser_hpp_
 #define INC_QueryParser_hpp_
 
-#line 55 "indrilang.g"
+#line 18 "indrilang.g"
 
   #include "indri/QuerySpec.hpp"
   #include "indri/DateParse.hpp"
@@ -21,7 +21,7 @@ ANTLR_BEGIN_NAMESPACE(indri)
 ANTLR_BEGIN_NAMESPACE(lang)
 class CUSTOM_API QueryParser : public ANTLR_USE_NAMESPACE(antlr)LLkParser, public QueryLexerTokenTypes
 {
-#line 183 "indrilang.g"
+#line 148 "indrilang.g"
 
 private:
   // storage for allocated nodes
@@ -72,6 +72,8 @@ public:
 	public:  indri::lang::ScoredExtentNode*  wsumNode();
 	public:  indri::lang::ScoredExtentNode*  maxNode();
 	public:  indri::lang::PriorNode*  priorNode();
+	public:  indri::lang::FilRejNode*  filrejNode();
+	public:  indri::lang::FilReqNode*  filreqNode();
 	public:  ScoredExtentNode*  scoredRaw();
 	public:  RawExtentNode*  qualifiedTerm();
 	public:  ExtentOr*  context_list();
@@ -94,14 +96,14 @@ public:
 	public:  RawExtentNode*  unscoredTerm();
 	public:  indri::lang::UWNode*  uwNode();
 	public:  indri::lang::BAndNode*  bandNode();
-	public:  indri::lang::FilRejNode*  filrejNode();
-	public:  indri::lang::FilReqNode*  filreqNode();
 	public:  indri::lang::Field*  anyField();
 	public:  ExtentAnd*  field_list();
 	public:  FieldLessNode*  dateBefore();
 	public:  FieldGreaterNode*  dateAfter();
 	public:  FieldBetweenNode*  dateBetween();
 	public:  indri::lang::ExtentOr*  synonym_list();
+	public:  indri::lang::ExtentOr*  synonym_list_brace();
+	public:  indri::lang::ExtentOr*  synonym_list_alt();
 	public:  FieldLessNode*  lessNode();
 	public:  FieldGreaterNode*  greaterNode();
 	public:  FieldBetweenNode*  betweenNode();
@@ -124,10 +126,10 @@ protected:
 private:
 	static const char* tokenNames[];
 #ifndef NO_STATIC_CONSTS
-	static const int NUM_TOKENS = 60;
+	static const int NUM_TOKENS = 63;
 #else
 	enum {
-		NUM_TOKENS = 60
+		NUM_TOKENS = 63
 	};
 #endif
 	
