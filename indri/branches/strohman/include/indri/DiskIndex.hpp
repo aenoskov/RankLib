@@ -96,6 +96,9 @@ namespace indri {
       VocabularyIterator* infrequentVocabularyIterator();
 
       DocumentDataIterator* documentDataIterator();
+
+      Lockable* iteratorLock();
+      Lockable* statisticsLock();
     };
   }
 }

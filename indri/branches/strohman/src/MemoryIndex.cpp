@@ -26,17 +26,29 @@ const int ONE_MEGABYTE = 1024*1024;
 // Constructors
 //----------------------------
 
-indri::index::MemoryIndex::MemoryIndex() : _stringToTerm( 1024 * 1024 ) {
+indri::index::MemoryIndex::MemoryIndex() :
+  _readLock(_lock),
+  _writeLock(_lock),
+  _stringToTerm( 1024 * 1024 )
+{
   _baseDocumentID = 0;
   _termListsBaseOffset = 0;
 }
 
-indri::index::MemoryIndex::MemoryIndex( int docBase ) : _stringToTerm( 1024 * 1024 ) {
+indri::index::MemoryIndex::MemoryIndex( int docBase ) :
+  _readLock(_lock),
+  _writeLock(_lock),
+  _stringToTerm( 1024 * 1024 )
+{
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
 }
 
-indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields ) : _stringToTerm( 1024 * 1024 ) {
+indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields ) :
+  _readLock(_lock),
+  _writeLock(_lock),
+  _stringToTerm( 1024 * 1024 )
+{
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
 
@@ -435,7 +447,7 @@ void indri::index::MemoryIndex::_destroyTerms() {
 //
 
 int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
-  ScopedLock sl( _lock );
+  ScopedLock sl( _writeLock );
   
   unsigned int position = 0;
   unsigned int extentIndex = 0;
@@ -636,4 +648,62 @@ indri::index::DocumentDataIterator* indri::index::MemoryIndex::documentDataItera
   return new MemoryDocumentDataIterator( _documentData );
 }
 
+//
+// statisticsLock
+//
 
+Lockable* indri::index::MemoryIndex::statisticsLock() {
+  return &_readLock;
+}
+
+//
+// iteratorLock
+//
+
+Lockable* indri::index::MemoryIndex::iteratorLock() {
+  return &_readLock;
+}
+
+//
+// memorySize
+//
+
+size_t indri::index::MemoryIndex::memorySize() {
+  ScopedLock l( _readLock );
+
+  HashTable<const char*, term_entry*>::iterator iter;
+  size_t listDataSize = 0;
+
+  // inverted list data
+  for( iter = _stringToTerm.begin(); iter != _stringToTerm.end(); iter++ ) {
+    size_t listSize = (*iter->second)->list.memorySize();
+    size_t stringLength = strlen( (*iter->second)->term );
+    size_t dataSize = ::termdata_size( _fieldData.size() );
+    
+    listDataSize += (listSize + stringLength + dataSize);
+  }
+
+  // document metadata
+  size_t documentDataSize = _documentData.size() * sizeof(indri::index::DocumentData);
+
+  // document direct list data
+  size_t termListsSize = 0;
+  std::list<Buffer*>::iterator biter;
+
+  for( biter = _termLists.begin(); biter != _termLists.end(); biter++ ) {
+    termListsSize += (*biter)->size();
+  }
+
+  // field inverted lists
+  std::vector<indri::index::DocExtentListMemoryBuilder*>::iterator fiter;
+  size_t fieldListsSize = 0;
+
+  for( fiter = _fieldLists.begin(); fiter != _fieldLists.end(); fiter++ ) {
+    fieldListsSize += (*fiter)->memorySize();
+  }
+
+  return listDataSize +
+         documentDataSize +
+         termListsSize +
+         fieldListsSize;
+}

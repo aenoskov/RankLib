@@ -300,6 +300,7 @@ int main(int argc, char * argv[]) {
       t.start();
       results = env.runQuery( queryString, initialRequested );
       t.printElapsedMicroseconds( std::cout );
+      std::cout << std::endl;
 
       if( qe ) {
         expandedQuery = qe->expand( queryString, results );

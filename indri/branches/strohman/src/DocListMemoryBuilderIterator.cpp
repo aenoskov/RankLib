@@ -127,7 +127,10 @@ bool indri::index::DocListMemoryBuilderIterator::nextEntry() {
 //
 
 indri::index::DocListIterator::DocumentData* indri::index::DocListMemoryBuilderIterator::currentEntry() {
-  return &_data;
+  if( !finished() )
+    return &_data;
+
+  return 0;
 }
 
 //

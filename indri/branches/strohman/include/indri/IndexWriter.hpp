@@ -39,12 +39,15 @@ struct WriterIndexContext {
     }
   };
 
-  WriterIndexContext( indri::index::DocListFileIterator* iter, indri::index::Index* _index ) {
-    iterator = iter;
+  WriterIndexContext( indri::index::Index* _index ) {
     bitmap = new indri::index::TermBitmap;
     index = _index;
     infrequentIndex = 1;
 
+    if( index->iteratorLock() )
+      index->iteratorLock()->lock();
+    
+    iterator = index->docListFileIterator();
     iterator->startIteration();
 
     newlyFrequent = new indri::index::TermRecorder;
@@ -53,6 +56,9 @@ struct WriterIndexContext {
   }
 
   ~WriterIndexContext() {
+    if( index->iteratorLock() )
+      index->iteratorLock()->unlock();
+
     delete newlyFrequent;
     delete newlyInfrequent;
     delete bitmap;
@@ -116,11 +122,11 @@ namespace indri {
 
       void _pushInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _fetchMatchingInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
-      void _writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData );
+      void _writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, UINT64& startOffset );
       void _writeInvertedLists( std::vector<WriterIndexContext*>& contexts );
       void _storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
       void _storeFrequentTerms();
-      void _addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset );
+      void _addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& endOffset );
       void _storeMatchInformation( greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
 
       int _lookupTermID( Keyfile& keyfile, const char* term );

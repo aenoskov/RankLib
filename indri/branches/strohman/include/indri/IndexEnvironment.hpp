@@ -115,6 +115,12 @@ private:
                            const std::string& extension );
 
 public:
+  // DEBUG CODE TODO
+  Repository& repository() {
+    return _repository;
+  }
+  // END DEBUG CODE TODO
+
   IndexEnvironment();
   ~IndexEnvironment();
   /// Set document root path and anchor text root path.

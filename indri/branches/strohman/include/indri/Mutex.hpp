@@ -17,7 +17,9 @@
 #include <windows.h>
 #endif
 
-class Mutex {
+#include "indri/Lockable.hpp"
+
+class Mutex : public Lockable {
   friend class ConditionVariable;
 
 private:

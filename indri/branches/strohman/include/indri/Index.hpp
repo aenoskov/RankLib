@@ -18,6 +18,7 @@
 #include "indri/TermList.hpp"
 #include "indri/TermListFileIterator.hpp"
 #include "indri/DocumentDataIterator.hpp"
+#include "indri/Lockable.hpp"
 
 namespace indri {
   namespace index {
@@ -67,10 +68,7 @@ namespace indri {
       virtual UINT64 fieldDocumentCount( const std::string& field ) = 0;
       virtual UINT64 fieldDocumentCount( const std::string& field, const std::string& term ) = 0;
 
-      //
       // Lists
-      //
-      
       virtual DocListIterator* docListIterator( int termID ) = 0;
       virtual DocListIterator* docListIterator( const std::string& term ) = 0;
       virtual DocListFileIterator* docListFileIterator() = 0;
@@ -84,6 +82,10 @@ namespace indri {
       virtual VocabularyIterator* frequentVocabularyIterator() = 0;
       virtual VocabularyIterator* infrequentVocabularyIterator() = 0;
       virtual VocabularyIterator* vocabularyIterator() = 0;
+
+      // Locks
+      virtual Lockable* iteratorLock() = 0;
+      virtual Lockable* statisticsLock() = 0;
     };
   }
 }

@@ -332,6 +332,12 @@
 				RelativePath=".\Repository.cpp">
 			</File>
 			<File
+				RelativePath=".\RepositoryLoadThread.cpp">
+			</File>
+			<File
+				RelativePath=".\RepositoryMaintenanceThread.cpp">
+			</File>
+			<File
 				RelativePath=".\RMExpander.cpp">
 			</File>
 			<File
@@ -369,6 +375,9 @@
 			</File>
 			<File
 				RelativePath=".\UnpackerInternal.cpp">
+			</File>
+			<File
+				RelativePath=".\UtilityThread.cpp">
 			</File>
 			<File
 				RelativePath=".\Walker.cpp">
@@ -682,6 +691,9 @@
 				RelativePath="..\include\indri\LocalQueryServer.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\Lockable.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\MaxNode.hpp">
 			</File>
 			<File
@@ -775,10 +787,19 @@
 				RelativePath="..\include\indri\RawTextParser.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\ReaderLockable.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\ReadersWritersLock.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\Repository.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\RepositoryLoadThread.h">
+			</File>
+			<File
+				RelativePath="..\include\indri\RepositoryMaintenanceThread.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\RMExpander.hpp">
@@ -898,6 +919,9 @@
 				RelativePath="..\include\indri\UnparsedDocument.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\UtilityThread.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\VocabularyMap.hpp">
 			</File>
 			<File
@@ -914,6 +938,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\WordDocumentExtractor.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\WriterLockable.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\XMLNode.hpp">

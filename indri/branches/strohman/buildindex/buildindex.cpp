@@ -369,7 +369,24 @@ optional parameter with the default of no stopping.</dd>
 #include <map>
 #include "indri/IndriTimer.hpp"
 
+#include "indri/QueryEnvironment.hpp"
+#include "indri/Thread.hpp"
+
 static IndriTimer g_timer;
+
+void query_runner( void* p ) {
+
+  Thread::sleep( 500 );
+  for( int i=0; i<20; i++ ) {
+    std::string query = "smith college";
+
+    std::cout << "======= starting query" << std::endl;
+    std::vector<ScoredExtentResult> results = ((QueryEnvironment*) p)->runQuery( query, 100 );
+    std::cout << "======= query complete (" << results.size() << ")" << std::endl;
+
+    Thread::sleep( 5000 );
+  }
+}
 
 static void buildindex_start_time() {
   g_timer.start();
@@ -421,7 +438,7 @@ class StatusMonitor : public IndexStatus {
 
       default:
       case IndexStatus::DocumentCount:
-        if( !(documentsParsed % 50) )
+        if( !(documentsParsed % 10) )
           buildindex_print_status( "Documents: ", documentsParsed );
         
         if( !(documentsParsed % 250) )
@@ -501,6 +518,11 @@ int main(int argc, char * argv[]) {
     }
 
     Parameters corpus = parameters["corpus"];
+
+    // DEBUG CODE HERE
+    QueryEnvironment qenv;
+    qenv.addRepository( env.repository() );
+    Thread* t = new Thread( query_runner, &qenv );
 
     for( unsigned int i=0; i<corpus.size(); i++ ) {
       Parameters thisCorpus = corpus[i];

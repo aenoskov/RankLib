@@ -26,6 +26,9 @@
 #include "indri/FieldStatistics.hpp"
 #include "indri/CorpusStatistics.hpp"
 #include "indri/DocExtentListMemoryBuilder.hpp"
+#include "indri/ReadersWritersLock.hpp"
+#include "indri/ReaderLockable.hpp"
+#include "indri/WriterLockable.hpp"
 
 namespace indri {
   namespace index {
@@ -46,7 +49,9 @@ namespace indri {
       };
       
     private:
-      Mutex _lock;
+      ReadersWritersLock _lock;
+      ReaderLockable _readLock;
+      WriterLockable _writeLock;
 
       CorpusStatistics _corpusStatistics;
       int _baseDocumentID;
@@ -132,7 +137,11 @@ namespace indri {
 
       DocumentDataIterator* documentDataIterator();
       
+      Lockable* iteratorLock();
+      Lockable* statisticsLock();
+
       int addDocument( ParsedDocument& document );
+      size_t memorySize();
     };
   }
 }

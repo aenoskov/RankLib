@@ -75,6 +75,12 @@ namespace indri {
           }
         };
 
+        struct docid_less {
+          bool operator() ( TopDocument& one, TopDocument& two ) {
+            return one.document < two.document;
+          }
+        };
+
         TopDocument( int _document, int _count, int _length ) :
           document(_document),
           count(_count),
