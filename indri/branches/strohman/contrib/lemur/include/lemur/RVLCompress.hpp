@@ -49,6 +49,10 @@ public:
   static const char* decompress_signed_longlong( const char* source, INT64& data );
   static const char* decompress_int_count( const char* source, int* result, int numInts );
   static const char* skip_ints( const char* source, int numInts );
+
+private:
+  static char* _compress_bigger_int( char* dest, int data );
+  static char* _compress_bigger_longlong( char* dest, INT64 data );
 };
 
 inline UINT64 RVLCompress::foldNegatives( INT64 number ) {
@@ -132,19 +136,6 @@ inline const char* RVLCompress::decompress_longlong( const char* source, INT64& 
   return source + i + 1;
 }
 
-inline const char* RVLCompress::decompress_signed_longlong( const char* source, INT64& data ) {
-  INT64 number;
-  source = decompress_longlong( source, number );
-  data = unfoldNegatives( number );
-  return source;
-}
-
-inline char* RVLCompress::compress_signed_longlong( char* source, INT64 data ) {
-  UINT64 number;
-  number = foldNegatives( data );
-  return compress_longlong( source, number );
-}
-
 inline const char* RVLCompress::decompress_int_count( const char* source, int* result, int numInts ) {
   const char* ptr = source;
 
@@ -198,27 +189,8 @@ inline char* RVLCompress::compress_int( char* dest, int data ) {
     RVL_COMPRESS_BYTE( dest, data, 1 );
     RVL_COMPRESS_TERMINATE( dest, 1 );
     return dest + 2;
-  } else if( data < (1<<21) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_TERMINATE( dest, 2 );
-    return dest + 3;
-  } else if( data < (1<<28) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_TERMINATE( dest, 3 );
-    return dest + 4;
   } else {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_BYTE( dest, data, 4 );
-    RVL_COMPRESS_TERMINATE( dest, 4 );
-    return dest + 5;
+    return _compress_bigger_int( dest, data );
   }
 }
 
@@ -234,83 +206,22 @@ inline char* RVLCompress::compress_longlong( char* dest, INT64 id ) {
     RVL_COMPRESS_BYTE( dest, data, 1 );
     RVL_COMPRESS_TERMINATE( dest, 1 );
     return dest + 2;
-  } else if( data < (UINT64(1)<<21) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_TERMINATE( dest, 2 );
-    return dest + 3;
-  } else if( data < (UINT64(1)<<28) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_TERMINATE( dest, 3 );
-    return dest + 4;
-  } else if( data < (UINT64(1)<<35) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_BYTE( dest, data, 4 );
-    RVL_COMPRESS_TERMINATE( dest, 4 );
-    return dest + 5;
-  } else if( data < (UINT64(1)<<42) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_BYTE( dest, data, 4 );
-    RVL_COMPRESS_BYTE( dest, data, 5 );
-    RVL_COMPRESS_TERMINATE( dest, 5 );
-    return dest + 6;
-  } else if( data < (UINT64(1)<<49) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_BYTE( dest, data, 4 );
-    RVL_COMPRESS_BYTE( dest, data, 5 );
-    RVL_COMPRESS_BYTE( dest, data, 6 );
-    RVL_COMPRESS_TERMINATE( dest, 6 );
-    return dest + 7;
-  } else if( data < (UINT64(1)<<56) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_BYTE( dest, data, 4 );
-    RVL_COMPRESS_BYTE( dest, data, 5 );
-    RVL_COMPRESS_BYTE( dest, data, 6 );
-    RVL_COMPRESS_BYTE( dest, data, 7 );
-    RVL_COMPRESS_TERMINATE( dest, 7 );
-    return dest + 8;
-  } else if( data < (UINT64(1)<<63) ) {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_BYTE( dest, data, 4 );
-    RVL_COMPRESS_BYTE( dest, data, 5 );
-    RVL_COMPRESS_BYTE( dest, data, 6 );
-    RVL_COMPRESS_BYTE( dest, data, 7 );
-    RVL_COMPRESS_BYTE( dest, data, 8 );
-    RVL_COMPRESS_TERMINATE( dest, 8 );
-    return dest + 9;
   } else {
-    RVL_COMPRESS_BYTE( dest, data, 0 );
-    RVL_COMPRESS_BYTE( dest, data, 1 );
-    RVL_COMPRESS_BYTE( dest, data, 2 );
-    RVL_COMPRESS_BYTE( dest, data, 3 );
-    RVL_COMPRESS_BYTE( dest, data, 4 );
-    RVL_COMPRESS_BYTE( dest, data, 5 );
-    RVL_COMPRESS_BYTE( dest, data, 6 );
-    RVL_COMPRESS_BYTE( dest, data, 7 );
-    RVL_COMPRESS_BYTE( dest, data, 8 );
-    RVL_COMPRESS_BYTE( dest, data, 9 );
-    RVL_COMPRESS_TERMINATE( dest, 9 );
-    return dest + 10;
+    return _compress_bigger_longlong( dest, id );
   }
+}
+
+inline const char* RVLCompress::decompress_signed_longlong( const char* source, INT64& data ) {
+  INT64 number;
+  source = decompress_longlong( source, number );
+  data = unfoldNegatives( number );
+  return source;
+}
+
+inline char* RVLCompress::compress_signed_longlong( char* source, INT64 data ) {
+  UINT64 number;
+  number = foldNegatives( data );
+  return compress_longlong( source, number );
 }
 
 #endif

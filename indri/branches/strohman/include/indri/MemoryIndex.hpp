@@ -44,14 +44,32 @@ namespace indri {
         };
 
         term_entry( class RegionAllocator* allocator ) :
-          list(allocator)
+          list(allocator),
+          next(0)
         {
         }
-    
+
+        void clearMark() {
+          next = 0;
+        }
+
+        bool hasNext() {
+          return next != 0 && next != (term_entry*) 1;
+        }
+          
+        void mark() {
+          next = (term_entry*) 1;
+        }
+
+        bool marked() {
+          return next != 0;
+        }
+
         char* term;
         int termID;
-        indri::index::DocListMemoryBuilder list;
         TermData* termData;
+        term_entry* next;
+        indri::index::DocListMemoryBuilder list;
       };
       
     private:

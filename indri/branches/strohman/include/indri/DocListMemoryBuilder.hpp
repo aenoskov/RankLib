@@ -128,9 +128,7 @@ namespace indri {
 
       RegionAllocator* _allocator;
 
-      inline size_t _compressedSize( int documentID, int position );
-      inline void _safeAddLocation( int documentID, int position );
-      void _growAddLocation( int documentID, int position, size_t newDataSize );
+      inline void _safeAddLocation( int position );
       void _grow();
       void _terminateDocument();
 
@@ -139,7 +137,10 @@ namespace indri {
       ~DocListMemoryBuilder();
       const DocListMemoryBuilder& operator=( DocListMemoryBuilder& other );
       
-      void addLocation( int docID, int location );
+      void startDocument( int docID );
+      void addLocation( int location );
+      void endDocument();
+
       void clear();
       void flush();
       bool empty();

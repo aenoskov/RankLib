@@ -59,6 +59,8 @@
 const int MIN_SIZE = 128;
 const int GROW_TIMES = 11;
 const size_t PLENTY_OF_SPACE = 15; // docID, count, position: 5 bytes each
+const size_t TERMINATE_SPACE = 4; // need enough in case we have to grow
+const size_t LOCATION_SPACE = 5; // need enough in case we have to grow
 
 //
 // DocListMemoryBuilder constructor
@@ -177,29 +179,13 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
 // _safeAddLocation
 //
 
-inline void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int position ) {
+inline void indri::index::DocListMemoryBuilder::_safeAddLocation( int position ) {
   assert( !_locationCountPointer || _listBegin < _locationCountPointer );
   assert( !_locationCountPointer || _listEnd > _locationCountPointer );
   assert( !_locationCountPointer || _list > _locationCountPointer );
 
-  bool hasPointer = _locationCountPointer ? true : false;
-  int lastdoc = _lastDocument;
-
-  if( _lastDocument != documentID ) {
-    if( _locationCountPointer )
-      _terminateDocument();
-
-    _documentPointer = _list;
-    _list = RVLCompress::compress_int( _list, documentID - _lastDocument );
-    _locationCountPointer = _list;    
-    _list++;
-    _lastDocument = documentID;
-    _lastLocation = 0;
-  }
-
   _list = RVLCompress::compress_int( _list, position - _lastLocation );
   _lastLocation = position;
-
   _termFrequency++;
 
   assert( _locationCountPointer );
@@ -211,61 +197,58 @@ inline void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID
 }
 
 //
-// _compressedSize
-//
+// startDocument
+// 
 
-inline size_t indri::index::DocListMemoryBuilder::_compressedSize( int documentID, int position ) {
-  size_t size = 0;
+void indri::index::DocListMemoryBuilder::startDocument( int documentID ) {
+  size_t remaining = size_t(_listEnd - _list);
 
-  if( _lastDocument != documentID ) {
-    size += RVLCompress::compressedSize( documentID - _lastDocument ) + 1;
-    size += RVLCompress::compressedSize( _termFrequency - _lastTermFrequency ) - 1;
-    size += RVLCompress::compressedSize( position );
-  } else {
-    size += RVLCompress::compressedSize( position - _lastLocation );
-  }
+  if( remaining < PLENTY_OF_SPACE )
+    _grow();
 
-  return size;
+  _documentPointer = _list;
+  _list = RVLCompress::compress_int( _list, documentID - _lastDocument );
+  _locationCountPointer = _list;    
+  _list++;
+  _lastDocument = documentID;
+  _lastLocation = 0;
 }
 
 //
-// _growAddLocation
+// endDocument
 //
 
-void indri::index::DocListMemoryBuilder::_growAddLocation( int documentID, int position, size_t newDataSize ) {
-  // have to copy the last document if it's not complete, or if there's not enough room to complete it
-  bool terminateSpace = (RVLCompress::compressedSize( _termFrequency - _lastTermFrequency ) - 1) <= _listEnd - _list;
+void indri::index::DocListMemoryBuilder::endDocument() {
+  size_t remaining = size_t(_listEnd - _list);
 
-  // by terminating the document now, we save a document copy and a bit of space
-  if( _locationCountPointer && terminateSpace && documentID != _lastDocument )
-    _terminateDocument();
+  // comparison to constant saves some work in the common case
+  if( remaining < TERMINATE_SPACE &&
+      remaining < ((size_t)RVLCompress::compressedSize( _termFrequency - _lastTermFrequency ) - 1) )
+  {
+    _grow();
+  }
 
-  // grow the list, adding space for a document if necessary
-  _grow();
-
-  assert( newDataSize <= size_t(_listEnd - _list) );
-  _safeAddLocation( documentID, position );
+  _terminateDocument();
 }
 
 //
 // addLocation
 //
 
-void indri::index::DocListMemoryBuilder::addLocation( int documentID, int position ) {
+void indri::index::DocListMemoryBuilder::addLocation( int position ) {
   size_t remaining = size_t(_listEnd - _list);
   assert( _listEnd >= _list );
   assert( remaining < (MIN_SIZE<<(GROW_TIMES+1)) );
 
-  if( remaining >= PLENTY_OF_SPACE ) {
+  if( remaining >= LOCATION_SPACE ) {
     // common case -- lots of memory; just compress the posting and shove it in
-    _safeAddLocation( documentID, position );
+    _safeAddLocation( position );
   } else {
-    size_t size = _compressedSize( documentID, position );
+    size_t size = RVLCompress::compressedSize( position - _lastLocation );
 
     if( remaining >= size ) {
-      _safeAddLocation( documentID, position );
-    } else {
-      _growAddLocation( documentID, position, size );
+      _grow();
+      _safeAddLocation( position );
     }
   }
 
@@ -296,7 +279,7 @@ void indri::index::DocListMemoryBuilder::flush() {
   assert( _documentPointer == 0 );
   assert( _locationCountPointer == 0 );
 
-  for( int i=0; i<_lists.size(); i++ ) {
+  for( size_t i=0; i<_lists.size(); i++ ) {
     assert( _lists[i].base <= _lists[i].capacity );
     assert( _lists[i].base <= _lists[i].data );
     assert( _lists[i].data <= _lists[i].capacity );
