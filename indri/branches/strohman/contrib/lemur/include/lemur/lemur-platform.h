@@ -79,6 +79,8 @@
   #define LEMUR_POSTALIGN
 
   #define LEMUR_USING_FINDFIRST
+
+  typedef int socklen_t;
 #endif
 
 #define PTR_TO_SIZET(s)   ( (size_t) ( (void*) (s) ) )

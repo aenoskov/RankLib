@@ -96,7 +96,7 @@ public:
 
   std::string peer() {
     struct sockaddr_in sa;
-    int addrlen = sizeof sa;
+    socklen_t addrlen = sizeof sa;
     std::string result;
 
     int error = ::getpeername( _socket, (struct sockaddr*) &sa, &addrlen );
