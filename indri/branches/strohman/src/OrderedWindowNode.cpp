@@ -156,3 +156,7 @@ void OrderedWindowNode::annotate( Annotator& annotator, int documentID, int begi
     }
   }
 }
+
+void OrderedWindowNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}

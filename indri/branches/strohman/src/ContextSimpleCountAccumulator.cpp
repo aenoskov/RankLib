@@ -38,7 +38,14 @@ void ContextSimpleCountAccumulator::_computeCounts( indri::index::Index& index )
   }
 }
 
-ContextSimpleCountAccumulator::ContextSimpleCountAccumulator() :
+ContextSimpleCountAccumulator::ContextSimpleCountAccumulator( const std::string& nodeName,
+                                                              const std::vector<std::string>& terms,
+                                                              const std::string& field,
+                                                              const std::string& context ) :
+  _name(nodeName),
+  _terms(terms),
+  _field(field),
+  _context(context),
   _occurrences(0),
   _size(0)
 {

@@ -99,4 +99,7 @@ void FilterRejectNode::annotate( Annotator& annotator, int documentID, int begin
   }
 }
 
+void FilterRejectNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}
 

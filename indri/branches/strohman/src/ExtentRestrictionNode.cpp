@@ -140,3 +140,7 @@ const std::string& ExtentRestrictionNode::getName() const {
   return _name;
 }
 
+void ExtentRestrictionNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}
+

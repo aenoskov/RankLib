@@ -49,3 +49,7 @@ void BooleanAndNode::annotate( class Annotator& annotator, int documentID, int b
   annotator.addMatches( _extents, this, documentID, begin, end );
 }
 
+void BooleanAndNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}
+

@@ -278,7 +278,7 @@ void Repository::addDocument( ParsedDocument* document ) {
   }
 
   int documentID = _mutableIndex->addDocument( *document );
-// TODO: (add me back)  _collection->addDocument( documentID, document );
+  _collection->addDocument( documentID, document );
 }
 
 const std::vector<Repository::Field>& Repository::fields() const {
@@ -345,4 +345,6 @@ void Repository::close() {
   }
 }
 
-
+std::vector<indri::index::Index*> Repository::indexes() {
+  return _indexes;
+}

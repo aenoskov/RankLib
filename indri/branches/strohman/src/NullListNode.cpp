@@ -83,3 +83,7 @@ const greedy_vector<Extent>& NullListNode::extents() {
 void NullListNode::annotate( class Annotator& annotator, int documentID, int begin, int end ) {
   // do nothing
 }
+
+void NullListNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}

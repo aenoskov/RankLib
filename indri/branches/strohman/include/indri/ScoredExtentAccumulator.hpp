@@ -124,6 +124,10 @@ public:
 
     return _results;
   }
+
+  void indexChanged( indri::index::Index& index ) {
+    // do nothing
+  }
 };
 
 #endif // INDRI_SCOREDEXTENTACCUMULATOR_HPP

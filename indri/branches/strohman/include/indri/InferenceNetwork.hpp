@@ -73,6 +73,9 @@ public:
   //
 
 private:
+  std::vector<std::string> _termNames;
+  std::vector<std::string> _fieldNames;
+
   std::vector<class indri::index::DocExtentListIterator*> _fieldIterators;
   std::vector<class indri::index::DocListIterator*> _docIterators;
   std::vector<ListIteratorNode*> _listIteratorNodes;
@@ -84,6 +87,7 @@ private:
   MAllResults _results;
 
   void _indexChanged( indri::index::Index& index );
+  void _indexFinished( indri::index::Index& index );
 
   void _moveToDocument( int candidate );
   int _nextCandidateDocument();
@@ -96,8 +100,11 @@ public:
 
   const std::vector<EvaluatorNode*>& getEvaluators() const;
 
-  void addDocIterator( indri::index::DocListIterator* posInfoList );
-  void addFieldIterator( indri::index::DocExtentListIterator* fieldIterator );
+  indri::index::DocListIterator* getDocIterator( int index );
+  indri::index::DocExtentListIterator* getFieldIterator( int index );
+
+  int addDocIterator( const std::string& term );
+  int addFieldIterator( const std::string& field );
   void addListNode( ListIteratorNode* listNode );
   void addBeliefNode( BeliefNode* beliefNode );
   void addEvaluatorNode( EvaluatorNode* evaluatorNode );

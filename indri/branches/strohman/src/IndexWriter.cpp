@@ -88,7 +88,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
   const skipLength = 1<<12; // 4k
   int documentsWritten = 0;
 
-  const float topdocsFraction = 0.01;
+  const float topdocsFraction = 0.01f;
   bool hasSkips = termData->corpus.totalCount > 10000;
   bool hasTopdocs = termData->corpus.documentCount > 1000;
   int topdocsCount = hasTopdocs ? int(termData->corpus.totalCount * 0.01) : 0;

@@ -184,7 +184,7 @@ public:
       // terms
       std::vector<std::string> terms;
       for( int i=0; i<subtree.getTerms().size(); i++ ) {
-        terms.push_back( subtree.getTerms()[i] );
+        terms.push_back( subtree.getTerms()[i]->getText() );
       }
 
       std::string field;
@@ -196,7 +196,7 @@ public:
         field = subtree.getField()->getFieldName();
       }
 
-      result = new indri::lang::ContextSimpleContextNode( terms, field, context );
+      result = new indri::lang::ContextSimpleCounterNode( terms, field, context );
       delete newNode;
     }
 

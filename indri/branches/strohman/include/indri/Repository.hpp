@@ -73,6 +73,8 @@ public:
   };
 
 private:
+  std::vector<indri::index::Index*> _indexes;
+
   class indri::index::MemoryIndex* _mutableIndex;
   class CompressedCollection* _collection;
   Parameters _parameters;

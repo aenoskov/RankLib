@@ -101,6 +101,7 @@ public:
   void after( indri::lang::FilRejNode* uwNode );
   void after( indri::lang::FilReqNode* uwNode );
   void after( indri::lang::ContextCounterNode* contextCounterNode );
+  void after( indri::lang::ContextSimpleCounterNode* contextSimpleCounterNode );
   void after( indri::lang::ScoreAccumulatorNode* scoreAccumulatorNode );
   void after( indri::lang::AnnotatorNode* annotatorNode );
   void after( indri::lang::TermFrequencyScorerNode* termScorerNode );

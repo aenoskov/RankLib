@@ -59,6 +59,7 @@
 #include <iostream>
 #include "indri/Annotator.hpp"
 #include "indri/TermFrequencyBeliefNode.hpp"
+#include "indri/greedy_vector"
 
 double WeightedAndNode::_computeMaxScore( unsigned int start ) {
   // first, find the maximum score of the first few columns
@@ -117,24 +118,21 @@ struct double_greater {
 };
 
 void WeightedAndNode::doneAddingChildren() {
+  // should be removed
+}
+
+void WeightedAndNode::indexChanged( indri::index::Index& index ) {
   _candidates.clear();
   _candidatesIndex = 0;
 
-  greedy_vector< const TopdocsIndex::TopdocsList* > lists;
+  greedy_vector< const greedy_vector<indri::index::DocListIterator::TopDocument>* > lists;
 
   // get all the relevant topdocs lists
   for( unsigned int i=0; i<_children.size(); i++ ) {
     TermFrequencyBeliefNode* node = dynamic_cast<TermFrequencyBeliefNode*>(_children[i].node);
-    const TopdocsIndex::TopdocsList* topdocs = 0;
 
-    if( node ) {
-      topdocs = node->getTopdocsList();
-    }
-
-    if( topdocs ) {
-      assert( topdocs->entries.size() );
-      lists.push_back( topdocs );
-    }
+    if( node )
+      lists.push_back( &node->topdocs() );
   }
 
   // TODO: could compute an initial threshold here, but that may not be necessary
@@ -147,7 +145,7 @@ void WeightedAndNode::doneAddingChildren() {
 
     for( unsigned int i=0; i<lists.size(); i++ ) {
       if( indexes[i] > 0 )
-        smallestDocument = lemur_compat::min( smallestDocument, lists[i]->entries[indexes[i]].documentID );
+        smallestDocument = lemur_compat::min( smallestDocument, (*lists[i])[indexes[i]].document );
     }
 
     if( smallestDocument == MAX_INT32 )
@@ -157,10 +155,10 @@ void WeightedAndNode::doneAddingChildren() {
 
     // increment indexes
     for( unsigned int i=0; i<lists.size(); i++ ) {
-      if( lists[i]->entries[indexes[i]].documentID == smallestDocument ) {
+      if( (*lists[i])[indexes[i]].document == smallestDocument ) {
         indexes[i]++;
         
-        if( indexes[i] == lists[i]->entries.size() ) {
+        if( indexes[i] == lists[i]->size() ) {
           indexes[i] = -1;
         }
       }

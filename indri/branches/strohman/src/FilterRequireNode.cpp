@@ -95,3 +95,7 @@ void FilterRequireNode::annotate( Annotator& annotator, int documentID, int begi
     _filtered->annotate( annotator, documentID, begin, end );
   }
 }
+
+void FilterRequireNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}

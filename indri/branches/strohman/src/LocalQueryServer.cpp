@@ -150,6 +150,29 @@ LocalQueryServer::LocalQueryServer( Repository& repository ) :
 {
 }
 
+//
+// _indexWithDocument
+//
+
+indri::index::Index* LocalQueryServer::_indexWithDocument( int documentID ) {
+  std::vector<indri::index::Index*> indexes = _repository.indexes();
+
+  for( int i=0; i<indexes.size(); i++ ) {
+    int lowerBound = indexes[i]->documentBase();
+    int upperBound = indexes[i]->documentBase() + indexes[i]->documentCount();
+    
+    if( lowerBound <= documentID && upperBound > documentID ) {
+      return indexes[i];
+    }
+  }
+  
+  return 0;
+}
+
+//
+// document
+//
+
 ParsedDocument* LocalQueryServer::document( int documentID ) {
   CompressedCollection* collection = _repository.collection();
   ParsedDocument* document = collection->retrieve( documentID );
@@ -192,13 +215,14 @@ QueryServerDocumentsResponse* LocalQueryServer::documents( const std::vector<int
 }
 
 INT64 LocalQueryServer::termCount() {
-  IndriIndex* index = _repository.index();
-  return index->termCount();
-}
+  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  INT64 total = 0;
 
-INT64 LocalQueryServer::termCount( int term ) {
-  IndriIndex* index = _repository.index();
-  return index->termCount( term );
+  for( int i=0; i<indexes.size(); i++ ) {
+    total += indexes[i]->termCount();
+  }
+
+  return total;
 }
 
 INT64 LocalQueryServer::termCount( const std::string& term ) {
@@ -207,16 +231,14 @@ INT64 LocalQueryServer::termCount( const std::string& term ) {
 }
 
 INT64 LocalQueryServer::stemCount( const std::string& stem ) {
-  IndriIndex* index = _repository.index();
-  int termID = index->term( stem.c_str() );
-  return termCount(termID);
-}
+  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  INT64 total = 0;
 
-INT64 LocalQueryServer::termFieldCount( int term, const std::string& field ) {
-  IndriIndex* index = _repository.index();
-  int fieldid = index->field( field.c_str() );
+  for( int i=0; i<indexes.size(); i++ ) {
+    total += indexes[i]->termCount( stem );
+  }
 
-  return index->fieldTermCount( term, fieldid );
+  return total;
 }
 
 INT64 LocalQueryServer::termFieldCount( const std::string& term, const std::string& field ) {
@@ -225,25 +247,35 @@ INT64 LocalQueryServer::termFieldCount( const std::string& term, const std::stri
 }
 
 INT64 LocalQueryServer::stemFieldCount( const std::string& stem, const std::string& field ) {
-  IndriIndex* index = _repository.index();
-  int termid = index->term( stem.c_str() );
-  return termFieldCount( termid, field );
+  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  INT64 total = 0;
+
+  for( int i=0; i<indexes.size(); i++ ) {
+    total += indexes[i]->fieldTermCount( field, stem );
+  }
+
+  return total;
 }
 
 std::string LocalQueryServer::termName( int term ) {
-  IndriIndex* index = _repository.index();
+  indri::index::Index* index = _repository.indexes()[0];
   return index->term( term );
 }
 
 int LocalQueryServer::termID( const std::string& term ) {
-  IndriIndex* index = _repository.index();
+  indri::index::Index* index = _repository.indexes()[0];
   std::string processed = _repository.processTerm( term );
   return index->term( processed.c_str() );
 }
 
 std::vector<std::string> LocalQueryServer::fieldList() {
-  IndriIndex* index = _repository.index();
+  // TODO: fix this method
+  assert( 0 && "This method is currently not in service" );
+
   std::vector<std::string> results;
+  /*
+  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  IndriIndex* index = _repository.index();
 
   for( unsigned int i=1; ; i++ ) {
     const char* fieldName = index->field(i);
@@ -253,24 +285,40 @@ std::vector<std::string> LocalQueryServer::fieldList() {
 
     results.push_back( std::string(fieldName) );
   }
-
+*/
   return results;
 }
 
 int LocalQueryServer::documentLength( int documentID ) {
-  IndriIndex* index = _repository.index();
-  return index->docLength( documentID );
+  indri::index::Index* index = _indexWithDocument( documentID );
+
+  if( index ) {
+    return index->documentLength( documentID );
+  }
+
+  return 0;
 }
 
 INT64 LocalQueryServer::documentCount() {
-  IndriIndex* index = _repository.index();
-  return index->docCount();
+  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  INT64 total = 0;
+  
+  for( int i=0; i<indexes.size(); i++ ) {
+    total += indexes[i]->documentCount();
+  }
+  
+  return total;
 }
 
 INT64 LocalQueryServer::documentCount( const std::string& term ) {
-  IndriIndex* index = _repository.index();
-  int termid = this->termID( term );
-  return index->docCount( termid );
+  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  INT64 total = 0;
+  
+  for( int i=0; i<indexes.size(); i++ ) {
+    total += indexes[i]->documentCount( term );
+  }
+  
+  return total;
 }
 
 QueryServerResponse* LocalQueryServer::runQuery( std::vector<indri::lang::Node*>& roots, int resultsRequested, bool optimize ) {
@@ -279,7 +327,7 @@ QueryServerResponse* LocalQueryServer::runQuery( std::vector<indri::lang::Node*>
   ApplyCopiers<UnnecessaryNodeRemoverCopier> unnecessary( roots );
 
   // run the contextsimplecountcollectorcopier to gather easy stats
-  ApplyCopiers<ContextSimpleCountCollectorCopier> contexts( unnecessary.roots(), _repository, _cache );
+  ApplyCopiers<ContextSimpleCountCollectorCopier> contexts( unnecessary.roots() );
 
   // use frequency-only nodes where appropriate
   ApplyCopiers<FrequencyListCopier> frequency( contexts.roots(), _cache );
@@ -315,8 +363,9 @@ QueryServerVectorsResponse* LocalQueryServer::documentVectors( const std::vector
   std::map<int, std::string> termIDStringMap;
 
   for( size_t i=0; i<documentIDs.size(); i++ ) {
-    indri::index::TermListBuilder* termList = _repository.index()->termPositionList( documentIDs[i] );
-    DocumentVector* result = new DocumentVector( _repository.index(), termList, termIDStringMap );
+    indri::index::Index* index = _indexWithDocument( documentIDs[i] );
+    const indri::index::TermList* termList = index->termList( documentIDs[i] );
+    DocumentVector* result = new DocumentVector( index, termList, termIDStringMap );
     delete termList;
     response->addVector( result );
   }
