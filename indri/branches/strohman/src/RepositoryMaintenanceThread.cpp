@@ -8,8 +8,10 @@
 #include "indri/RepositoryMaintenanceThread.hpp"
 #include "indri/Repository.hpp"
 #include "indri/ScopedLock.hpp"
+#include <iostream>
 
 const UINT64 TIME_DELAY = 15*1000*1000;
+const UINT64 THRASHING_MERGE_DELAY = 60*1000*1000;
 
 //
 // maintenance_smoothed_load
@@ -27,17 +29,16 @@ static float maintenance_smoothed_load( Repository::Load& load ) {
 // maintenance_should_merge
 //
 
-static bool maintenance_should_merge( Repository::index_state& state, Repository::Load& documentLoad, Repository::Load& queryLoad ) {
+static bool maintenance_should_merge( Repository::index_state& state, Repository::Load& documentLoad, Repository::Load& queryLoad, UINT64 lastThrashing ) {
   float smoothedQueryLoad = maintenance_smoothed_load( queryLoad ) + 1;
   float smoothedDocumentLoad = maintenance_smoothed_load( documentLoad );
-
   float addRatio = smoothedDocumentLoad / (smoothedQueryLoad+1); 
 
+  bool hasntThrashedRecently = lastThrashing < THRASHING_MERGE_DELAY;
   bool couldUseMerge = state->size() >= 2;
   bool significantQueryLoad = smoothedQueryLoad > 2;
   bool insignificantDocumentLoad = smoothedDocumentLoad < 1;
   int indexesToMerge = state->size(); 
-  bool needsMerge = indexesToMerge > 50;
   
   // extremely heuristic choice for when indexes should be merged:
   //   when we have 50 indexes it makes sense to merge because we'll be out
@@ -46,7 +47,16 @@ static bool maintenance_should_merge( Repository::index_state& state, Repository
   //   is all weighted by the number of indexes we have to merge.
 
   return couldUseMerge &&
-         (needsMerge || ((addRatio/50) < indexesToMerge && (significantQueryLoad || insignificantDocumentLoad)));
+         hasntThrashedRecently &&
+         ((addRatio/50) < indexesToMerge && (significantQueryLoad || insignificantDocumentLoad));
+}
+
+//
+// maintenance_should_trim
+//
+
+static bool maintenance_should_trim( Repository::index_state& state, Repository::Load& documentLoad, Repository::Load& queryLoad, UINT64 lastThrashing ) {
+  return state->size() > 50;
 }
 
 //
@@ -104,9 +114,12 @@ UINT64 RepositoryMaintenanceThread::work() {
 
         Repository::Load documentLoad = _repository.documentLoad();
         Repository::Load queryLoad = _repository.queryLoad();
+        UINT64 lastThrashing = _repository._timeSinceThrashing();
 
-        if( maintenance_should_merge( state, documentLoad, queryLoad ) ) {
+        if( maintenance_should_merge( state, documentLoad, queryLoad, lastThrashing ) ) {
           _requests.push( MERGE );
+        } else if( maintenance_should_trim( state, documentLoad, queryLoad, lastThrashing ) ) {
+          _requests.push( TRIM );
         }
       }
     }

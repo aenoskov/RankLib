@@ -33,6 +33,7 @@
 #include "indri/ScopedLock.hpp"
 #include "indri/RepositoryLoadThread.hpp"
 #include "indri/RepositoryMaintenanceThread.hpp"
+#include "indri/IndriTimer.hpp"
 #include <string>
 #include <algorithm>
 
@@ -664,23 +665,33 @@ void Repository::_trim() {
   // grab a copy of the current state
   index_state state = indexes();
 
-  if( state->size() == 0 )
+  if( state->size() <= 3 )
     return;
 
-  int lastDocumentCount = state->back()->documentCount();
-  int position = state->size()-2;
+  int totalDocumentCount = 0;
+  int count = state->size();
+  int position;
+
+  // have to merge at least the last three indexes
+  totalDocumentCount =  (*state)[count-1]->documentCount();
+  totalDocumentCount += (*state)[count-2]->documentCount();
+  totalDocumentCount += (*state)[count-3]->documentCount();
 
   // move back until we find a really big index--don't merge with that one
-  for( ; position>=0; position-- ) {
+  for( position = count-4; position>=0; position-- ) {
     int documentCount = (*state)[position]->documentCount();
  
-    if( documentCount > lastDocumentCount*1.5 ) {
+    // break if we find a really big index
+    if( totalDocumentCount < documentCount ) {
       position++;
       break;
     }
 
-    lastDocumentCount = documentCount;
+    totalDocumentCount += (*state)[position]->documentCount();
   }
+
+  // make sure position is greater than or equal to 0
+  position = lemur_compat::max<int>( position, 0 );
 
   // make a new MemoryIndex, cutting off the old one from updates
   _addMemoryIndex();
@@ -1018,6 +1029,19 @@ void Repository::_stopThreads() {
 
 void Repository::_setThrashing( bool flag ) {
   _thrashing = flag;
+  
+  if( _thrashing ) {
+    _lastThrashTime = IndriTimer::currentTime();
+  }
 }
+
+//
+// _timeSinceThrashing
+//
+
+UINT64 Repository::_timeSinceThrashing() {
+  return IndriTimer::currentTime() - _lastThrashTime;
+}
+
 
 
