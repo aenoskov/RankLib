@@ -110,24 +110,17 @@ UINT64 RepositoryMaintenanceThread::work() {
       if( index ) {
         // if the index is too big, we'd better get to work
         if( _memory < index->memorySize() ) {
-          std::cout << "WRITING: " << index->memorySize() << std::endl;
           _requests.push( WRITE );
-        } else {
-          std::cout << "waiting: " << index->memorySize() << std::endl;
         }
 
         Repository::Load documentLoad = _repository.documentLoad();
         Repository::Load queryLoad = _repository.queryLoad();
         UINT64 lastThrashing = _repository._timeSinceThrashing();
 
-        std::cout << "timeSinceThrashing: " << lastThrashing << std::endl;
-
         if( maintenance_should_merge( state, documentLoad, queryLoad, lastThrashing ) ) {
           _requests.push( MERGE );
-          std::cout << "choosing to merge" << std::endl;
         } else if( maintenance_should_trim( state, documentLoad, queryLoad, lastThrashing ) ) {
           _requests.push( TRIM );
-          std::cout << "choosing to trim" << std::endl;
         }
       }
     }
