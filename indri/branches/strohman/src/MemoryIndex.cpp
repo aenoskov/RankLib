@@ -458,6 +458,7 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   greedy_vector<indri::index::FieldExtent> indexedTags;
   unsigned int indexedTerms = 0;
   greedy_vector<char*>& words = document.terms;
+  term_entry* entries = 0;
 
   // assign a document ID
   int documentID = _baseDocumentID + _corpusStatistics.totalDocuments;
@@ -487,12 +488,23 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     // store information about this term location
     indri::index::TermData* termData = entry->termData;
 
+    // store this term in the direct list
     _termList.addTerm( entry->termID );
-    entry->list.addLocation( documentID, position ); 
-    termData->corpus.addOccurrence( documentID );
 
-    termData->maxDocumentLength = lemur_compat::max( termData->maxDocumentLength, words.size() );
-    termData->minDocumentLength = lemur_compat::min( termData->minDocumentLength, words.size() );
+    // store this term in the inverted list
+    if( !entry->marked() )
+      entry->list.startDocument( documentID );
+    entry->list.addLocation( position ); 
+    termData->corpus.totalCount++;
+
+    // link this term_entry onto a list of ones we've seen
+    if( entries == 0 ) {
+      entry->mark();
+      entries = entry;
+    } else if( !entry->marked() ) {
+      entry->next = entries;
+      entries = entry;
+    }
 
     // update our open tag knowledge
     _addOpenTags( indexedTags, openTags, document.tags, extentIndex, position );
@@ -511,6 +523,23 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     indexedTerms++;
   }
 
+  // go through the list of terms we've seen and update doc length counts
+  term_entry* entry = entries;
+
+  while( entry ) {
+    indri::index::TermData* termData = entry->termData;
+    term_entry* old = entry;
+
+    termData->maxDocumentLength = lemur_compat::max( termData->maxDocumentLength, words.size() );
+    termData->minDocumentLength = lemur_compat::min( termData->minDocumentLength, words.size() );
+    termData->corpus.documentCount++;
+
+    entry->list.endDocument();
+    entry = entry->hasNext() ? entry->next : 0;
+    old->clearMark();
+  }
+
+  // write out any field data we've encountered
   _writeFieldExtents( documentID, indexedTags );
 
   UINT64 offset;
