@@ -581,9 +581,7 @@ void InferenceNetworkBuilder::after( indri::lang::ContextSimpleCounterNode* cont
     contextCount = new ContextSimpleCountAccumulator( contextSimpleCounterNode->nodeName(),
                                                       contextSimpleCounterNode->terms(),
                                                       contextSimpleCounterNode->field(),
-                                                      contextSimpleCounterNode->context(),
-													  contextSimpleCounterNode->getDocOccurrences(),
-													  contextSimpleCounterNode->getDocCount() );
+                                                      contextSimpleCounterNode->context() );
 
     _network->addEvaluatorNode( contextCount );
     _nodeMap[ contextSimpleCounterNode ] = contextCount;
