@@ -63,10 +63,12 @@
 #ifndef INDRI_SENTENCESEGMENTERTRANSFORMATION_HPP
 #define INDRI_SENTENCESEGMENTERTRANSFORMATION_HPP
 
+#include "indri/Buffer.hpp"
 #include "indri/Transformation.hpp"
 
 class SentenceSegmenterTransformation : public Transformation {
 private:
+  Buffer buffer;
   ObjectHandler<ParsedDocument>* _handler;
 
 public:

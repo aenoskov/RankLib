@@ -52,11 +52,12 @@
 // 12 October 2004 -- dam
 //
 
+#include "indri/Buffer.hpp"
 #include "indri/SentenceSegmenterTransformation.hpp"
 
 ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* document ) {
-
   int numSentences = 0;
+  buffer.clear();
 
   int numTerms = document->positions.size();
   size_t sentenceBegin = 0;
@@ -165,10 +166,15 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
 
   // add metadata about the number of
   // sentences in this document
+  char ns[1024];
+  sprintf( ns, "%d", numSentences );
+  char *numSentencesPoint = buffer.write( strlen(ns) + 1 );
+  strcpy( numSentencesPoint, ns );
+  
   MetadataPair pair;
   pair.key = "numsentences";
-  pair.value = &numSentences;
-  pair.valueLength = sizeof( int );
+  pair.value = numSentencesPoint;
+  pair.valueLength = strlen( ns ) + 1;
   document->metadata.push_back( pair );
 
   return document;
