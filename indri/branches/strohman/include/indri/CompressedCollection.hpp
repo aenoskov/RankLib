@@ -58,17 +58,18 @@
 #include "indri/Collection.hpp"
 #include "lemur/string-set.h"
 #include <string>
-#include "lemur/File.hpp"
+#include <vector>
 #include "lemur/Keyfile.hpp"
-#include "lemur/WriteBuffer.hpp"
 #include "indri/Buffer.hpp"
+#include "indri/SequentialWriteBuffer.hpp"
 #include "indri/HashTable.hpp"
+#include "indri/File.hpp"
 
 class CompressedCollection : public Collection {
 private:
   Keyfile _lookup;
   File _storage;
-  WriteBuffer* _output;
+  SequentialWriteBuffer* _output;
   Buffer _positionsBuffer;
   struct z_stream_s* _stream;
   HashTable<const char*, Keyfile*> _metalookups;
