@@ -23,12 +23,9 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
 
   int numTags = document->tags.size();
 
-  if( numTags )
-    sentenceBegin = document->tags[ numTags - 1 ].end;
-
   assert( document->positions.size() == document->terms.size() );
 
-  if( !numTerms || sentenceBegin >= numTerms )
+  if( !numTerms )
     return document;
   
   TermExtent pos0 = document->positions[ sentenceBegin ];
@@ -44,7 +41,7 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
       nextTerm = "";
     }
 
-    //std::cout << "curTerm = " << curTerm << std::endl;
+    //std::cout << "i: " << i << ", curTerm = " << curTerm << std::endl;
 
     int curTermLength = curTerm.length();
     char lastChar = '\0';
@@ -131,7 +128,6 @@ void SentenceSegmenterTransformation::addSentenceTag( ParsedDocument* document, 
     numSentences++;
   }
 }
-
 
 void SentenceSegmenterTransformation::setHandler( ObjectHandler<ParsedDocument>& handler ) {
   _handler = &handler;

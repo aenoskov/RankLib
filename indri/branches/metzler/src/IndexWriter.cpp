@@ -311,7 +311,7 @@ void IndexWriter::_writeFieldList( const std::string& fileName, int fieldIndex, 
   int lastDocument = 0;
 
   int documents = 0;
-  int terms = 0;
+  UINT64 terms = 0;
 
   for( int i=0; i<iterators.size(); i++ ) {
     DocExtentListIterator* iterator = iterators[i];
@@ -965,6 +965,14 @@ void IndexWriter::_writeDirectLists( std::vector<WriterIndexContext*>& contexts 
   SequentialWriteBuffer* outputBuffer = new SequentialWriteBuffer( _directFile, 1024*1024 );
   SequentialWriteBuffer* lengthsBuffer = new SequentialWriteBuffer( _documentLengths, 1024*1024 );
   SequentialWriteBuffer* dataBuffer = new SequentialWriteBuffer( _documentStatistics, 1024*1024 );
+
+  size_t total = 0;
+  for( iter = contexts.begin(); iter != contexts.end(); iter++ ) {
+    std::cout << "bitmap: " << (*iter)->bitmap->memorySize() << std::endl;
+    std::cout << "newly frequent: " << (*iter)->newlyFrequent->memorySize() << std::endl;
+    std::cout << "newly frequent: " << (*iter)->oldFrequent->memorySize() << std::endl;
+    std::cout << "old infrequent: " << (*iter)->oldInfrequent->size() << std::endl;
+  }
 
   for( iter = contexts.begin(); iter != contexts.end(); iter++ ) {
     _writeDirectLists( *iter, outputBuffer, lengthsBuffer, dataBuffer );
