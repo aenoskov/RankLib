@@ -4,6 +4,7 @@
  */
 package edu.umass.cs.recap;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -98,7 +99,8 @@ public class RetrievalEngine {
 		Vector viewableResults = new Vector();
 		for( int i = 0; i < results.length; i++ ) {
 			ScoredDocInfo info = new ScoredDocInfo( results[i].document, results[i].score, 
-					                                results[i].begin, results[i].end, new Vector() );
+					                                results[i].begin, results[i].end,
+													new Vector(), new Vector() );
 			viewableResults.add( info );
 		}
 		
@@ -108,12 +110,12 @@ public class RetrievalEngine {
 	}
 	
 	// runs a query with the given parameters
-	public Vector runQuery( String query, String queryOp, String queryExtent, int numResults ) {
+	public Vector runQuery( AnalyzeQuery query, String queryOp, String queryExtent, int numResults ) {
 		// make sure there's at least one server or index open
 		if( !isQueryable() )
 			return null;
 
-		Vector queries = null;
+		ArrayList queries = null;
 		Vector allScores = new Vector();
 		
 		if( queryExtent.equals( "document" ) ) { // no extent restriction
@@ -123,13 +125,13 @@ public class RetrievalEngine {
 			queryExtent = "[" + queryExtent + "]";
 		}
 		
-		queries = getQuerySentences( query );
+		queries = query.getQueries(); //getQuerySentences( query );
 		
 		//long startTime1 = System.currentTimeMillis();
 		String initialQuery = "";
 		for( int queryNum = 0; queryNum < queries.size(); queryNum++ )
-			initialQuery += (String)queries.elementAt( queryNum );
-		initialQuery = "#combine( " + initialQuery + " )";
+			initialQuery += (String)queries.get( queryNum );
+		initialQuery = "#combine( " + parse( initialQuery ) + " )";
 		
 		ScoredExtentResult [] score = indri.runQuery( initialQuery, 1000 );
 		int [] ids = new int[ score.length ];
@@ -138,10 +140,10 @@ public class RetrievalEngine {
 		
 		// run a query for each sentence
 		for( int queryNum = 0; queryNum < queries.size(); queryNum++ ) {
-			String q = (String)queries.elementAt( queryNum );
+			String q = parse( (String)queries.get( queryNum ) );
 			System.err.println( "[" + (queryNum+1) + "/" + queries.size() + "] Running query: " + queryOp + queryExtent + "(" + q + ")" );
 			//ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", 1000 );
-			ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", ids, 1000 );
+			ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", ids, 1000 );			
 			allScores.add( scores );
 		}
 		//long endTime1 = System.currentTimeMillis();
@@ -161,7 +163,7 @@ public class RetrievalEngine {
 		System.out.println("Method 2 time = " + ( endTime2 - startTime2 )/1000.0 + " seconds."); */
 		
 		System.err.println( "Combining scores...");
-		Vector results = scoreResults( allScores, queryExtent );
+		Vector results = scoreResults( allScores, queryExtent, query.getPositions() );
 		
 		Collections.sort( results );
 
@@ -179,7 +181,7 @@ public class RetrievalEngine {
 	}
 	
 	// tokenizes query string
-	private Vector getQuerySentences( String in ) {
+/*	private Vector getQuerySentences( String in ) {
 		Vector ret = new Vector();
 		SentenceTokenizer tok = new SentenceTokenizer( in );
 		
@@ -190,7 +192,7 @@ public class RetrievalEngine {
 		}
 		
 		return ret;
-	}
+	}*/
 	
 	private String parse( String in ) {
 		String ret = new String();
@@ -203,7 +205,7 @@ public class RetrievalEngine {
 	}
 
 	// returns a vector of ScoredDocInfo objects
-	private Vector scoreResults( Vector scores, String queryExtent ) {
+	private Vector scoreResults( Vector scores, String queryExtent, ArrayList positions ) {
 		Vector ret = new Vector();
 
 		HashMap candidateDocs = new HashMap();
@@ -214,7 +216,7 @@ public class RetrievalEngine {
 			for( int i = 0; i < queryScores.length; i++ ) {
 				ScoredExtentResult r = (ScoredExtentResult)queryScores[i];
 				Integer docNum = new Integer( r.document );
-				candidateDocs.put( docNum, new ScoredDocInfo( docNum.intValue(), 0.0, 0, 0, new Vector() ) );
+				candidateDocs.put( docNum, new ScoredDocInfo( docNum.intValue(), 0.0, 0, 0, new Vector(), new Vector() ) );
 			}			
 		}
 
@@ -274,10 +276,11 @@ public class RetrievalEngine {
 				ScoredDocInfo info = (ScoredDocInfo)candidateDocs.get( i );
 				Vector v = (Vector)results.get( i );
 				info.score += Math.log( score );
-				if( v != null && v.size() > 0 )
+				if( v != null && v.size() > 0 ) {
 					//info.extents.addAll( v ); // add all matches
 					info.extents.add( v.elementAt( 0 ) ); // only add the best match
-				
+					info.queryPositions.add( positions.get( queryNum ) );
+				}
 			}
 		}
 
@@ -461,11 +464,13 @@ public class RetrievalEngine {
 		RecapStyledDocument doc = new RecapStyledDocument( theDoc.text, defaultStyle );
 		
 		for( int i = 0; i < info.extents.size(); i++ ) {
-			ScoredExtentResult extent = (ScoredExtentResult)info.extents.elementAt( i );
+			ScoredExtentResult extent = (ScoredExtentResult)info.extents.elementAt( i );			
 			int extentBegin = theDoc.positions[extent.begin].begin;
 			int extentEnd = theDoc.positions[extent.end - 1].end;
+			
+			Match m = (Match)info.queryPositions.get( i );
 
-			doc.addSentenceMatch( extentBegin, extentEnd, extent.score );			
+			doc.addSentenceMatch( extentBegin, extentEnd, extent.score, m );			
 		}
 				
 		return doc;

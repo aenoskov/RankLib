@@ -24,18 +24,20 @@ public class ScoredDocInfo implements Comparable {
 	public int end;
 	public double score;
 	public Vector extents;
+	public Vector queryPositions;
 
 	// date information
 	public int date;
 	public int month;
 	public int year;
 	
-	public ScoredDocInfo( int docID, double score, int begin, int end, Vector extents ) {
+	public ScoredDocInfo( int docID, double score, int begin, int end, Vector extents, Vector queryPositions ) {
 		this.docID = docID;
 		this.score = score;
 		this.begin = begin;
 		this.end = end;
 		this.extents = extents;
+		this.queryPositions = queryPositions;
 		this.date = -1;
 		this.month = -1;
 		this.year = -1;

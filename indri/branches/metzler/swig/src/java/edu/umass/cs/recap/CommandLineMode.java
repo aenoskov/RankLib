@@ -59,7 +59,8 @@ public class CommandLineMode {
 	// performs the specified command line commands
 	// using the given retrieval engine
 	public void run( RetrievalEngine retEngine ) {
-		Vector results = retEngine.runQuery( query, queryOp, queryExtent, numResults );
+		AnalyzeQuery analyzeQuery = new AnalyzeQuery( query, 0, 0 );
+		Vector results = retEngine.runQuery( analyzeQuery, queryOp, queryExtent, numResults );
 		
 		// display the results
 		for( int i = 0; i < results.size(); i++ ) {

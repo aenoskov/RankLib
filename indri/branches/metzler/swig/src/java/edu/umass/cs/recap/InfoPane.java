@@ -22,7 +22,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
-import javax.swing.text.Style;
 
 import edu.umass.cs.indri.ParsedDocument;
 import edu.umass.cs.indri.QueryAnnotation;
@@ -135,7 +134,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	}	
 		
 	// runs an "analyze" query, scores documents, and updates appropriate on-screen info
-	private void runAnalyzeQuery( String query ) {
+//	private void runAnalyzeQuery( String query ) {
+	private void runAnalyzeQuery( AnalyzeQuery query ) {
 		// error checking
 		if( query == null || query.equals("") ) {
 			showErrorDialog( "Unable to evaluate empty or null query!");
@@ -234,8 +234,10 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				return;
 			RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();			
 			String queryText = pane.getSelectedText();
-			if( queryText != null && !queryText.trim().equals("") )
+			if( queryText != null && !queryText.trim().equals("") ) {
+				queryPanel.setAnalyzeQuery( new AnalyzeQuery( pane.getSelectedText(), pane.getSelectionStart(), pane.getSelectionEnd() ) );
 				queryPanel.setQueryText( removeTags( pane.getSelectedText() ) );
+			}
 			doc.setHighlight( pane.getSelectionStart(), pane.getSelectionEnd() );
 		}
 		else if( e.getButton() == MouseEvent.BUTTON1 && src == tlPanel ) {
@@ -297,7 +299,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				queryPanel.setSliderEnabled( false );
 			}
 			else if( mode.equals( "analyze" ) ) {
-				runAnalyzeQuery( queryPanel.getQueryText() );
+				//runAnalyzeQuery( queryPanel.getQueryText() );
+				runAnalyzeQuery( queryPanel.getAnalyzeQuery() );
 				queryPanel.setSliderEnabled( true );
 				double threshold = queryPanel.getThreshold();
 				thresholdUpdate( threshold );
@@ -482,6 +485,11 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
 		}
 
+	}
+	
+	// highlights the query sentence associated with sentence match m
+	public void setQueryHighlight( Match m ) {
+		
 	}
 	
 	// removes any tags from the string

@@ -90,7 +90,7 @@ public class DocViewPane extends JSplitPane {
 	private void addNewTab( ScoredDocInfo info ) {
 		RecapStyledDocument doc = retEngine.getMarkedDocument( info );		
 		curAnalyzeResults.add( doc );
-		JScrollPane scrollPane = new QuickFindScrollPane( doc.getViewableSentenceMatches(), doc.getLength() );
+		JScrollPane scrollPane = new QuickFindScrollPane( doc.getViewableSentenceMatches(), doc.getQueryPositions(), doc.getLength() );
 		JTextPane textPane = new JTextPane();
 		textPane.setDocument( doc );
 		textPane.setEditable( false );		

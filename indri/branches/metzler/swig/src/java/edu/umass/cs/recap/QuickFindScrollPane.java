@@ -3,6 +3,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Vector;
 
 import javax.swing.JScrollPane;
@@ -27,10 +28,13 @@ public class QuickFindScrollPane extends JScrollPane implements MouseListener {
 	private int byteLength = -1;
 	private Vector matches = null;
 	private Border border = null;
+
+	private ArrayList queryPositions = null;	
 	
-	public QuickFindScrollPane( Vector matches, int byteLength ) {
+	public QuickFindScrollPane( Vector matches, ArrayList queryPositions, int byteLength ) {
 		this.matches = matches;
 		this.byteLength = byteLength;
+		this.queryPositions = queryPositions;
 		
 		border = new QuickFindBorder( matches, byteLength );		
 		this.setBorder( border );
@@ -66,6 +70,9 @@ public class QuickFindScrollPane extends JScrollPane implements MouseListener {
 					textPane.setCaretPosition( m.end );
 				textPane.setCaretPosition( m.begin );
 				textPane.moveCaretPosition( m.end );
+				
+				Match queryPos = (Match)queryPositions.get( i );
+				System.out.println( "MATCH = " + queryPos );
 			}
 		}
 	}

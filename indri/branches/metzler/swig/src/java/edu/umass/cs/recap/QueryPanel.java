@@ -40,6 +40,8 @@ public class QueryPanel extends JPanel {
 
 	private JSlider slider = null;
 	
+	private AnalyzeQuery analyzeQuery = null;
+	
 	public QueryPanel() {
 		queryLabel = new JLabel( "Query:" );
 		queryScrollPane = new JScrollPane();
@@ -152,6 +154,14 @@ public class QueryPanel extends JPanel {
 		slider.addChangeListener( (ChangeListener)listener );
 	}
 
+	public void setAnalyzeQuery( AnalyzeQuery query ) {
+		analyzeQuery = query;
+	}
+
+	public AnalyzeQuery getAnalyzeQuery() {
+		return analyzeQuery;
+	}
+	
 	public void setSliderEnabled( boolean b ) {
 		slider.setEnabled( b );
 	}
