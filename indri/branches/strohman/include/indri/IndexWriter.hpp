@@ -113,6 +113,9 @@ namespace indri {
       keyfile_pair _frequentTerms;
       File _frequentTermsData;
 
+      BulkTreeReader _infrequentTermsReader;
+      BulkTreeReader _frequentTermsReader;
+
       File _documentStatistics;
       File _documentLengths;
 
@@ -150,7 +153,7 @@ namespace indri {
       void _addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& endOffset );
       void _storeMatchInformation( greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
 
-      int _lookupTermID( BulkTreeWriter& keyfile, const char* term );
+      int _lookupTermID( BulkTreeReader& keyfile, const char* term );
 
       void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes );
       
@@ -160,8 +163,8 @@ namespace indri {
                               SequentialWriteBuffer* lengthsOutput,
                               SequentialWriteBuffer* dataOutput );
 
-      indri::index::TermTranslator* _buildTermTranslator( BulkTreeWriter& newInfrequentTerms,
-                                                          BulkTreeWriter& newFrequentTerms,
+      indri::index::TermTranslator* _buildTermTranslator( BulkTreeReader& newInfrequentTerms,
+                                                          BulkTreeReader& newFrequentTerms,
                                                           indri::index::TermRecorder& oldFrequentTermsRecorder,
                                                           HashTable<int, int>* oldInfrequent,
                                                           indri::index::TermRecorder& newFrequentTermsRecorder,
