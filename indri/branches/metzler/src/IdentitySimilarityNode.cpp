@@ -182,8 +182,15 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
       cacheNode->advance();
   }
 
+  if( variation < 50 ) { // always return the log of "true" similarity value
+	  if( score == 0.0 )
+		  score = -100000.0; // TODO: change this to SMALL_SCORE
+	  else
+		  score = log( score );
+  }
+
   if( variation >= 50 && score == 0.0 )
-    score = -100000.0;
+	  score = -100000.0; // TODO: change this to SMALL_SCORE
 
   if( variation == 51 ) {
     //std::cout << "ORIGINAL SCORE = " << score << std::endl;
