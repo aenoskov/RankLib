@@ -886,7 +886,7 @@ void Repository::close() {
     std::string deletedPath = Path::combine( _path, "deleted" );
 
     if( !_readOnly ) {
-      merge();
+      write();
     }
 
     // have to stop threads after the write request,
