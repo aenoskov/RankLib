@@ -108,9 +108,14 @@ void log_message( const char* peer, const char* message ) {
 
   time( &utc );
   struct tm* now = localtime( &utc );
-  const char* currentTime = asctime(now);
+  std::string timestring = asctime(now);
+  
+  // trim ending if necessary
+  if( timestring[ timestring.size()-1 ] == '\n' ) {
+    timestring.resize( timestring.size()-1 );    
+  }
 
-  std::cout << peer << " [" << currentTime << "]: " << message << std::endl;
+  std::cout << peer << " [" << timestring << "]: " << message << std::endl;
 }
 
 //

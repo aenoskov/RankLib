@@ -197,11 +197,6 @@ void QueryEnvironment::_copyStatistics( std::vector<indri::lang::RawScorerNode*>
     std::vector<ScoredExtentResult>& occurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "occurrences" ];
     std::vector<ScoredExtentResult>& contextSizeList = statisticsResults[ scorerNodes[i]->nodeName() ][ "contextSize" ];
 
-    std::vector<ScoredExtentResult>& maxOccurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "maxOccurrences" ];
-    std::vector<ScoredExtentResult>& maxContextLengthList = statisticsResults[ scorerNodes[i]->nodeName() ][ "maxContextLength" ];
-    std::vector<ScoredExtentResult>& minContextLengthList = statisticsResults[ scorerNodes[i]->nodeName() ][ "minContextLength" ];
-    std::vector<ScoredExtentResult>& maxContextFractionList = statisticsResults[ scorerNodes[i]->nodeName() ][ "maxContextFraction" ];
-
     UINT64 occurrences = UINT64(occurrencesList[0].score);
     UINT64 contextSize = UINT64(contextSizeList[0].score);
 

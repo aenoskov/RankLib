@@ -53,19 +53,6 @@ public:
           size_t sendChunk = lemur_compat::min<size_t>( resultList.size() - resultsSent, (size_t) 100 );
 
           for( size_t i=0; i<sendChunk; i++ ) {
-<<<<<<< .working
-            ScoredExtentResult byteSwapped;
-            
-            byteSwapped.begin = htonl(resultList[i + resultsSent].begin);
-            byteSwapped.end = htonl(resultList[i + resultsSent].end);
-            byteSwapped.document = htonl( resultList[i + resultsSent].document );
-            byteSwapped.score = lemur_compat::htond( resultList[i + resultsSent].score );
-
-            memcpy( networkResults + i*resultSize, &byteSwapped.score, sizeof(double) );
-            memcpy( networkResults + i*resultSize + 8, &byteSwapped.document, sizeof(INT32) );
-            memcpy( networkResults + i*resultSize + 12, &byteSwapped.begin, sizeof(INT32) );
-            memcpy( networkResults + i*resultSize + 16, &byteSwapped.end, sizeof(INT32) );
-=======
             ScoredExtentResult byteSwapped;
             const ScoredExtentResult& unswapped = resultList[i + resultsSent];
 
@@ -78,14 +65,9 @@ public:
             memcpy( networkResults + i*resultSize + 8, &byteSwapped.document, sizeof(INT32) );
             memcpy( networkResults + i*resultSize + 12, &byteSwapped.begin, sizeof(INT32) );
             memcpy( networkResults + i*resultSize + 16, &byteSwapped.end, sizeof(INT32) );
->>>>>>> .merge-right.r283
           }
 
-<<<<<<< .working
-          stream->reply( resultName, &networkResults, int(sendChunk * resultSize) );
-=======
           stream->reply( resultName, networkResults, int(sendChunk * resultSize) );
->>>>>>> .merge-right.r283
           resultsSent += sendChunk;
         }
       }
