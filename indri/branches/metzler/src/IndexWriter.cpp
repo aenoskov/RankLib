@@ -87,7 +87,7 @@ void IndexWriter::_writeManifest( const std::string& path ) {
   corpus.set("total-terms", (UINT64) _corpus.totalTerms);
   corpus.set("unique-terms", _corpus.uniqueTerms);
   corpus.set("document-base", _documentBase);
-  corpus.set("frequent-terms", (int)_topTerms.size());
+  corpus.set("frequent-terms", _topTermsCount);
 
   manifest.set( "fields", "" );
   Parameters fields = manifest["fields"];
@@ -600,6 +600,7 @@ void IndexWriter::_storeFrequentTerms() {
   for( int i=0; i<_topTerms.size(); i++ ) {
     disktermdata_delete( _topTerms[i] );
   }
+  _topTermsCount = _topTerms.size();
   _topTerms.clear();
 
   writeBuffer.flush();
@@ -794,6 +795,7 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( BulkTreeReader&
       frequent->resize( oldFrequentTermID+1, -1 );
 
     int mapping = _lookupTermID( newFrequentTerms, oldFrequentTerm );
+    assert( mapping <= _isFrequentCount );
 
     if( mapping < 0 ) {
       mapping = _lookupTermID( newInfrequentTerms, oldFrequentTerm );
