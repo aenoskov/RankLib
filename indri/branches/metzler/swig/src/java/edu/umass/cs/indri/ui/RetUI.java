@@ -424,36 +424,23 @@ public class RetUI extends JPanel implements ActionListener {
 	docQueryTree.setModel(new DefaultTreeModel(new DefaultMutableTreeNode("Query")));
     }
     
-	
+
     /**
-     * Remove the selected index from the list. Close and
-     * reopen the query environment with any remaining indexes.
+     * Remove the selected index from the list.
      */
     public void removeIndex() {
 	// index is selected in the list.
 	int idx = indexes.getSelectedIndex();
 	if (idx == -1) // no selection, we're done
 	    return;
-	indexesModel.remove(idx);
-	// close the env, reopen with remaining indexes.
-	env.close();
-	envInit = false;
-	// iterate over elements. if a host, add a server, else an index.
-	Enumeration elts = indexesModel.elements();
-	while (elts.hasMoreElements()) {
-	    try {
-		String s = (String)elts.nextElement();
-		if (s.startsWith("Server: ")){
-		    s = s.substring(8);
-		    env.addServer(s);
-		} else {
-		    env.addIndex(s);
-		}
-		envInit = true;
-	    } catch (Exception e){
-		error(e.toString());
-	    }
+	String s = (String)indexesModel.get(idx);
+	if (s.startsWith("Server: ")) {
+	    s = s.substring(8);
+	    env.removeServer(s);
+	} else {
+	    env.removeIndex(s);
 	}
+	indexesModel.remove(idx);
     }
 	
     /**
@@ -530,10 +517,37 @@ public class RetUI extends JPanel implements ActionListener {
 		    }
 		    // results have extents and matches.
 		    try {
-			results = env.runAnnotatedQuery( question, maxDocs );
+			try {
+			    results = env.runAnnotatedQuery( question, maxDocs );
+			} catch (Exception exc2) {
+			    // no titles, something bad happened.
+			    //			    error(exc.toString());
+			    error("No results: " + exc2.toString());
+			    blinking = false;
+			    blink.interrupt();
+			    return;
+			}
+
 			scored = results.getResults();
-			names = env.documentMetadata( scored, "docno" );
-			titles = env.documentMetadata( scored, "title" );
+			try {
+			    names = env.documentMetadata( scored, "docno" );
+			} catch (Exception exc1) {
+			    // no titles, something bad happened.
+			    names = new String[scored.length];
+			    //			    error(exc.toString());
+			    error("No docs: " + exc1.toString());
+			}
+			try {
+			    titles = env.documentMetadata( scored, "title" );
+			} catch (Exception exc) {
+			    // no titles, something bad happened.
+			    titles = new String[scored.length];
+			    for (int i = 0; i < titles.length; i++)
+				titles[i] = "";
+			    //			    error(exc.toString());
+			    error("No titles: " + exc.toString());
+			}
+			
 			docids = new int[scored.length];
 			for (int j = 0; j < scored.length; j++)
 			    docids[j] = scored[j].document;
@@ -706,7 +720,7 @@ public class RetUI extends JPanel implements ActionListener {
      * Populate the document text frame with the selected document.
      * Highlight the document based on query matches.
      */
-    public void getDocText() {
+    public void altgetDocText() {
 
 	// get the selected index from the table.
 	final int row = answerAll.getSelectionModel().getMinSelectionIndex();
@@ -760,6 +774,115 @@ public class RetUI extends JPanel implements ActionListener {
 			// we have to account for the ^M characters, that get
 			// ignored by StyledDocument when inserting highlighting.
 			// Nasty hack.
+			// Try making the underlying string
+			// from a byte array instead.
+			// broken for some powerpoint docs?
+
+			//			myDocText.replace('\r', ' ');
+
+			// insert into doc text pane
+			docTextPane.setContentType("text/plain");
+			docTextPane.setText(myDocText);
+			// reset caret to start of doc text.
+			docTextPane.setCaretPosition(0);
+			// get it visible
+			if (! docTextFrame.isShowing()) {
+			    docTextFrame.setLocationRelativeTo(query);
+			    docTextFrame.setVisible(true);
+			}
+			// check for an interrupt
+			if (Thread.interrupted()) {
+			    throw new InterruptedException();
+			}
+
+			// insert the matches markup
+			DefaultTreeModel tree = (DefaultTreeModel) docQueryTree.getModel();
+			DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getRoot();
+			// this is painfully slow
+			highlight(root);
+			status.setText(" ");
+		    } catch (InterruptedException ex) {
+			// jump to exit
+			status.setText(" ");
+		    } catch (OutOfMemoryError er) {
+			status.setText("Out of Memory. Unable to open document");
+		    }
+
+		    setCursor(def);
+		    docTextFrame.setCursor(def);
+		    docTextPane.setCursor(def);
+		    getDocTextThread = null;
+		}
+	    };
+	getDocTextThread = new Thread(r);
+	getDocTextThread.start();
+    }    
+
+    public void getDocText() {
+	// clear any error bit.
+	error("                  ");
+	// get the selected index from the table.
+	final int row = answerAll.getSelectionModel().getMinSelectionIndex();
+	// no selection.
+	if (row == -1) return;
+	// this whole interrupt bit is hackish. Rethink.
+	while (getDocTextThread != null) {
+	    try {
+		// we're already highlighting a document, so interrupt.
+		getDocTextThread.interrupt();
+		Thread.sleep(200); // give it some time to end cleanly.
+	    } catch (InterruptedException ex) {
+		// jump to exit
+	    }
+	}
+	
+	Runnable r = new Runnable() {
+		public void run() {
+		    try {
+			setCursor(wait);
+			docTextFrame.setCursor(wait);
+			docTextPane.setCursor(wait);
+			// get the doc text
+			TableModel m = answerAll.getModel();
+			//    String name = (String) m.getValueAt(row, 0);
+			String name = names[row];
+			status.setText("Getting " + name);
+			String title = (String) m.getValueAt(row, 1);
+			if (title.equals(""))
+			    docTextFrame.setTitle(name);
+			else
+			    docTextFrame.setTitle(title);
+			currentDocId = docids[row]; // internal docid
+			// get the parsed document
+			int [] ids = new int[1];
+			ids[0] = currentDocId;
+			// check for an interrupt
+			if (Thread.interrupted()) {
+			    throw new InterruptedException();
+			}
+			ParsedDocument[] docs = null;
+			try {
+			    docs = env.documents(ids);
+			} catch (Exception exc1) {
+			    error(exc1.toString());
+			    status.setText(" ");
+			    setCursor(def);
+			    docTextFrame.setCursor(def);
+			    docTextPane.setCursor(def);
+			    getDocTextThread = null;
+			    return;
+			}
+			
+			// check for an interrupt
+			if (Thread.interrupted()) {
+			    throw new InterruptedException();
+			}
+			currentParsedDoc = docs[0];
+			String myDocText = currentParsedDoc.text;
+			// if it was a windows formatted file (^M^J for EOL),
+			// we have to account for the ^M characters, that get
+			// ignored by StyledDocument when inserting highlighting.
+			// Nasty hack.
 			// broken for some powerpoint docs?
 
 			StringBuffer buf = new StringBuffer();
@@ -792,9 +915,15 @@ public class RetUI extends JPanel implements ActionListener {
 				// need to find the individual characters
 				// that do require the filter.
 				// so far 204, 174 are good candidates.
+				// copyright is 169
+				/*
 			    } else if (c > 150 && c != 173 &&
 				       c != 177 && c != 181 && c != 183 &&
-				       c != 215 && c != 216) {
+				       c != 215 && c != 216 &&
+				       c != 169) {
+
+				 */
+			    } else if (c == 204 || c == 174) {
 				buf.append(" ");
 				buf.append(c);
 				//				System.out.println ("%%" + i +":" + c + ":" + (int)c);
@@ -874,7 +1003,16 @@ public class RetUI extends JPanel implements ActionListener {
 		    int [] ids = new int[1];
 		    ids[0] = currentDocId;
 		    
-		    ParsedDocument[] docs = env.documents(ids);
+		    ParsedDocument[] docs = null;
+		    try {
+			docs = env.documents(ids);
+		    } catch (Exception exc1) {
+			error(exc1.toString());
+			status.setText(" ");
+			setCursor(def);
+			return;
+		    }
+
 		    currentParsedDoc = docs[0];
 		    String myDocText = currentParsedDoc.text;
 		    // insert into doc text pane

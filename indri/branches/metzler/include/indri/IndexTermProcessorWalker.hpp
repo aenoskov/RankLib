@@ -81,9 +81,10 @@ public:
     }
     
     if( !stopword ) {
-      termID = _repository.index()->term( processedText.c_str() );
+      //termID = _repository.index()->term( processedText.c_str() );
+	  processedText = _repository.processTerm( processedText );
     
-      if( termID == 0)
+      if( processedText.length() == 0 )
         processedText = originalText;
       else
         termNode->setStemmed( true );

@@ -93,6 +93,8 @@ public:
   int nextCandidateDocument();
   const std::string& getName() const;
 
+  void indexChanged( indri::index::Index& index ) { /* do nothing for now -- fix this! */ }
+
   void setVariation( int variation ) { _variation = variation; }
   int getVariation() { return _variation; }
 };

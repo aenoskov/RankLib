@@ -11,7 +11,7 @@
 
 #line 13 "QueryParser.hpp"
 #include <antlr/config.hpp>
-/* $ANTLR 2.7.4: "indrilang.g" -> "QueryParser.hpp"$ */
+/* $ANTLR 2.7.5 (20050128): "indrilang.g" -> "QueryParser.hpp"$ */
 #include <antlr/TokenStream.hpp>
 #include <antlr/TokenBuffer.hpp>
 #include "QueryLexerTokenTypes.hpp"
@@ -21,7 +21,7 @@ ANTLR_BEGIN_NAMESPACE(indri)
 ANTLR_BEGIN_NAMESPACE(lang)
 class CUSTOM_API QueryParser : public ANTLR_USE_NAMESPACE(antlr)LLkParser, public QueryLexerTokenTypes
 {
-#line 148 "indrilang.g"
+#line 152 "indrilang.g"
 
 private:
   // storage for allocated nodes
@@ -81,7 +81,7 @@ public:
 	public:  indri::lang::ScoredExtentNode*  weightedList(
 		 indri::lang::WeightedCombinationNode* wn 
 	);
-	public:  indri::lang::ExtentRestriction*  extentRestriction(
+	public:  indri::lang::ScoredExtentNode*  extentRestriction(
 		 indri::lang::ScoredExtentNode* sn 
 	);
 	public:  double  floating();
@@ -126,10 +126,10 @@ protected:
 private:
 	static const char* tokenNames[];
 #ifndef NO_STATIC_CONSTS
-	static const int NUM_TOKENS = 63;
+	static const int NUM_TOKENS = 64;
 #else
 	enum {
-		NUM_TOKENS = 63
+		NUM_TOKENS = 64
 	};
 #endif
 	
@@ -137,22 +137,6 @@ private:
 	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_0;
 	static const unsigned long _tokenSet_1_data_[];
 	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_1;
-	static const unsigned long _tokenSet_2_data_[];
-	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_2;
-	static const unsigned long _tokenSet_3_data_[];
-	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_3;
-	static const unsigned long _tokenSet_4_data_[];
-	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_4;
-	static const unsigned long _tokenSet_5_data_[];
-	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_5;
-	static const unsigned long _tokenSet_6_data_[];
-	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_6;
-	static const unsigned long _tokenSet_7_data_[];
-	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_7;
-	static const unsigned long _tokenSet_8_data_[];
-	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_8;
-	static const unsigned long _tokenSet_9_data_[];
-	static const ANTLR_USE_NAMESPACE(antlr)BitSet _tokenSet_9;
 };
 
 ANTLR_END_NAMESPACE

@@ -34,6 +34,7 @@ options {
   k=2;
   charVocabulary = '\u0001'..'\u00ff'; // UTF-8 format
   testLiterals = false;
+  defaultErrorHandler = false;
 }
 
 tokens {
@@ -144,6 +145,9 @@ JUNK:      ( TAB | CR | LF | SPACE )
            { $setType(antlr::Token::SKIP); };
      
 class QueryParser extends Parser;
+options {
+  defaultErrorHandler = false;
+}
 
 {
 private:
@@ -496,11 +500,25 @@ unqualifiedTerm returns [ RawExtentNode* re ] :
   | ( EQUALS ) => re=equalsNode
   | re=rawText;
           
-extentRestriction [ indri::lang::ScoredExtentNode* sn ] returns [ indri::lang::ExtentRestriction* er ] {
+extentRestriction [ indri::lang::ScoredExtentNode* sn ] returns [ indri::lang::ScoredExtentNode* er ] {
     indri::lang::Field* f = 0;
     er = 0;
   } :
-  O_SQUARE field:TERM C_SQUARE
+  ( O_SQUARE TERM COLON ) => O_SQUARE passageWindowSize:TERM COLON inc:NUMBER C_SQUARE
+  {
+    int startWindow;
+
+    for( startWindow = 0; startWindow < passageWindowSize->getText().size(); startWindow++ ) {
+      if( isdigit( passageWindowSize->getText()[startWindow] ) )
+        break;
+    }
+  
+    int increment = atoi(inc->getText().c_str());
+    int windowSize = atoi(passageWindowSize->getText().c_str() + startWindow );
+    
+    er = new indri::lang::FixedPassage(sn, windowSize, increment);
+  } |
+  O_SQUARE "passage" field:TERM C_SQUARE
   {
     f = new indri::lang::Field(field->getText());
     _nodes.push_back(f);
