@@ -353,6 +353,9 @@
 				RelativePath=".\RMExpander.cpp">
 			</File>
 			<File
+				RelativePath=".\SentenceSegmenterTransformation.cpp">
+			</File>
+			<File
 				RelativePath=".\StemmerFactory.cpp">
 			</File>
 			<File
@@ -866,6 +869,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\ScoredExtentResult.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\SentenceSegmenterTransformation.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\SequentialReadBuffer.hpp">

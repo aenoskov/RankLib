@@ -109,6 +109,12 @@ void Repository::_buildChain( Parameters& parameters ) {
     }
   }
 
+  if( _parameters.exists("segmenter.name") ) {
+    std::string segmenterName = std::string( _parameters["segmenter.name"] );
+    if( segmenterName.length() > 0 )
+      _transformations.push_back( new SentenceSegmenterTransformation() );
+  }
+
   if( _parameters.exists("stopper.word") ) {
     Parameters stop = _parameters["stopper.word"];
     _transformations.push_back( new StopperTransformation( stop ) );
@@ -126,6 +132,11 @@ void Repository::_buildChain( Parameters& parameters ) {
 //
 
 void Repository::_copyParameters( Parameters& options ) {
+  if( options.exists("segmenter") ) {
+    _parameters.set( "segmenter", "" );
+    _parameters["segmenter"] = options["segmenter"];
+  }
+
   if( options.exists( "normalize" ) ) {
     _parameters.set( "normalize", (std::string) options["normalize"] );
   }
