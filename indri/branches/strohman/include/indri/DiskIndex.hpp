@@ -17,6 +17,7 @@
 #include "indri/DiskTermData.hpp"
 #include <vector>
 #include <string>
+#include "indri/BulkTree.hpp"
 
 namespace indri {
   namespace index {
@@ -26,11 +27,12 @@ namespace indri {
 
       std::string _path;
 
-      Keyfile _frequentStringToTerm;
-      Keyfile _infrequentStringToTerm;
+      BulkTreeReader _frequentStringToTerm;
+      BulkTreeReader  _infrequentStringToTerm;
 
-      Keyfile _frequentIdToTerm;
-      Keyfile _infrequentIdToTerm;
+      BulkTreeReader _frequentIdToTerm;
+      BulkTreeReader _infrequentIdToTerm;
+
       File _frequentTermsData;
 
       File _documentLengths;

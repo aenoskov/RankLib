@@ -27,6 +27,7 @@
 #include "indri/TermBitmap.hpp"
 #include "indri/TermRecorder.hpp"
 #include "indri/TermTranslator.hpp"
+#include "indri/BulkTree.hpp"
 
 struct WriterIndexContext {
   struct less {
@@ -91,15 +92,21 @@ namespace indri {
   namespace index {
     class IndexWriter {
     private:
-      struct disktermdata_greater {
+      struct disktermdata_count_greater {
         bool operator () ( const DiskTermData* one, const DiskTermData* two ) const {
           return one->termData->corpus.totalCount > two->termData->corpus.totalCount;
         }
       };
 
+      struct disktermdata_alpha_less {
+        bool operator () ( const DiskTermData* one, const DiskTermData* two ) const {
+          return strcmp( one->termData->term, two->termData->term ) < 0;
+        }
+      };
+
       struct keyfile_pair {
-        Keyfile* stringMap;
-        Keyfile* idMap;
+        BulkTreeWriter* stringMap;
+        BulkTreeWriter* idMap;
       };
 
       keyfile_pair _infrequentTerms;
@@ -134,12 +141,16 @@ namespace indri {
       void _fetchMatchingInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, UINT64& startOffset );
       void _writeInvertedLists( std::vector<WriterIndexContext*>& contexts );
+
+      void _storeIdEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
+      void _storeStringEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
+
       void _storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
       void _storeFrequentTerms();
       void _addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& endOffset );
       void _storeMatchInformation( greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
 
-      int _lookupTermID( Keyfile& keyfile, const char* term );
+      int _lookupTermID( BulkTreeWriter& keyfile, const char* term );
 
       void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes );
       
@@ -149,8 +160,8 @@ namespace indri {
                               SequentialWriteBuffer* lengthsOutput,
                               SequentialWriteBuffer* dataOutput );
 
-      indri::index::TermTranslator* _buildTermTranslator( Keyfile& newInfrequentTerms,
-                                                          Keyfile& newFrequentTerms,
+      indri::index::TermTranslator* _buildTermTranslator( BulkTreeWriter& newInfrequentTerms,
+                                                          BulkTreeWriter& newFrequentTerms,
                                                           indri::index::TermRecorder& oldFrequentTermsRecorder,
                                                           HashTable<int, int>* oldInfrequent,
                                                           indri::index::TermRecorder& newFrequentTermsRecorder,

@@ -42,10 +42,10 @@ namespace indri {
         _frequentMap(frequentMap),
         _wasInfrequentMap(wasInfrequentMap)
       {
-        assert( _currentFrequentCount >= 0 );
-        assert( _previousFrequentCount >= 0 );
-        assert( _previousTermCount >= 0 );
-        assert( _currentTermCount >= 0 );
+        assert( currentFrequentCount >= 0 );
+        assert( previousFrequentCount >= 0 );
+        assert( previousTermCount >= 0 );
+        assert( currentTermCount >= 0 );
 
         _previousFrequentCount = previousFrequentCount;
         _currentFrequentCount = currentFrequentCount;
