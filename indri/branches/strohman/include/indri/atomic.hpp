@@ -24,6 +24,16 @@ namespace indri {
     inline void decrement( value_type& variable ) {
       ::InterlockedDecrement( &variable );
     }
+  #elif defined(__APPLE__)
+    typedef _Atomic_word value_type;
+
+    inline void increment( value_type& variable ) {
+      __atomic_add( &variable, 1 );
+    }
+
+    inline void decrement( value_type& variable ) {
+      __atomic_add( &variable, -1 );
+    }
   #else
     typedef _Atomic_word value_type;
 
