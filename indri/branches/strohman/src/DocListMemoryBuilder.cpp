@@ -79,6 +79,16 @@ indri::index::DocListMemoryBuilder::DocListMemoryBuilder() :
 }
 
 //
+// DocListMemoryBuilder constructor
+//
+
+indri::index::DocListMemoryBuilder::~DocListMemoryBuilder() {
+  for( int i=0; i<_lists.size(); i++ ) {
+    delete[] _lists[i].base;
+  }
+}
+
+//
 // _grow
 // 
 
@@ -88,6 +98,17 @@ void indri::index::DocListMemoryBuilder::_grow() {
   char* lastListEnd = _listEnd;
   size_t documentCopyAmount = lastList - _documentPointer;
 
+  // fix data pointer of previous list
+  if( lastList != 0 ) {
+    if( _locationCountPointer ) {
+      _lists.back().data = _documentPointer;
+    } else {
+      _lists.back().data = lastList;
+    }
+
+    assert( _lists.back().data <= _lists.back().capacity );
+  }
+
   // actually add the new list
   unsigned int iterations = std::min<unsigned int>( GROW_TIMES, int(_lists.size()) );
   size_t newSize = (MIN_SIZE << iterations) - 8; // subtract 8 here to give the heap some room for accounting
@@ -96,11 +117,12 @@ void indri::index::DocListMemoryBuilder::_grow() {
   _listBegin = _list;
   _listEnd = _list + newSize;
 
-  _lists.push_back( std::make_pair( _listBegin, _listEnd ) );
+  _lists.push_back( DocListMemoryBuilderSegment( _listBegin, _listBegin, _listEnd ) );
 
   // if there's an unterminated document, we have to move it
   if( _locationCountPointer ) {
     memcpy( _list, _documentPointer, documentCopyAmount );
+    assert( memset( _documentPointer, 0xcd, lastListEnd - _documentPointer ) );
     // update the _locationCountPointer
     _locationCountPointer = _listBegin + (_locationCountPointer - _documentPointer);
     _list = _listBegin + documentCopyAmount;
@@ -113,6 +135,7 @@ void indri::index::DocListMemoryBuilder::_grow() {
   assert( !_locationCountPointer || _listEnd > _locationCountPointer );
   assert( !_locationCountPointer || _list > _locationCountPointer );
   assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
+  assert( _listEnd >= _list );
   assert( !_documentPointer || _listBegin <= _documentPointer );
   assert( !_documentPointer || _listEnd > _documentPointer );
 }
@@ -136,6 +159,9 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
     memmove( _locationCountPointer + locationsSize,
              _locationCountPointer + 1,
              _list - _locationCountPointer - 1 );
+
+    _list += locationsSize - 1;
+    assert( _list <= _listEnd );
   }
 
   // we left one byte around for the location count for the common case
@@ -144,6 +170,7 @@ void indri::index::DocListMemoryBuilder::_terminateDocument() {
   _lastTermFrequency = _termFrequency;
   _locationCountPointer = 0;
   _lastLocation = 0;
+  _documentPointer = 0;
 
   assert( !_locationCountPointer || _listBegin < _locationCountPointer );
   assert( !_locationCountPointer || _listEnd > _locationCountPointer );
@@ -181,6 +208,7 @@ void indri::index::DocListMemoryBuilder::_safeAddLocation( int documentID, int p
   assert( !_locationCountPointer || _listEnd > _locationCountPointer );
   assert( !_locationCountPointer || _list > _locationCountPointer );
   assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
+  assert( _listEnd >= _list );
 }
 
 //
@@ -192,7 +220,7 @@ inline size_t indri::index::DocListMemoryBuilder::_compressedSize( int documentI
 
   if( _lastDocument != documentID ) {
     size += RVLCompress::compressedSize( documentID - _lastDocument ) + 1;
-    size += RVLCompress::compressedSize( _lastTermFrequency - _termFrequency ) - 1;
+    size += RVLCompress::compressedSize( _termFrequency - _lastTermFrequency ) - 1;
     size += RVLCompress::compressedSize( position );
   } else {
     size += RVLCompress::compressedSize( position - _lastLocation );
@@ -227,6 +255,7 @@ void indri::index::DocListMemoryBuilder::_growAddLocation( int documentID, int p
 
 void indri::index::DocListMemoryBuilder::addLocation( int documentID, int position ) {
   size_t remaining = size_t(_listEnd - _list);
+  assert( _listEnd >= _list );
   assert( remaining < (MIN_SIZE<<(GROW_TIMES+1)) );
 
   if( remaining >= PLENTY_OF_SPACE ) {
@@ -243,13 +272,14 @@ void indri::index::DocListMemoryBuilder::addLocation( int documentID, int positi
   }
 
   assert( (_listEnd - _list) < (MIN_SIZE<<(GROW_TIMES+1)) );
+  assert( _listEnd >= _list );
 }
 
 //
-// close
+// flush
 //
 
-void indri::index::DocListMemoryBuilder::close() {
+void indri::index::DocListMemoryBuilder::flush() {
   if( _locationCountPointer ) {
     // need to terminate document
     bool terminateSpace = (RVLCompress::compressedSize( _termFrequency - _lastTermFrequency ) - 1) <= _listEnd - _list;
@@ -258,6 +288,20 @@ void indri::index::DocListMemoryBuilder::close() {
       _grow();
 
     _terminateDocument();
+  }
+
+  if( _lists.size() ) {
+    _lists.back().data = _list;
+    assert( _lists.back().data <= _lists.back().capacity );
+  }
+
+  assert( _documentPointer == 0 );
+  assert( _locationCountPointer == 0 );
+
+  for( int i=0; i<_lists.size(); i++ ) {
+    assert( _lists[i].base <= _lists[i].capacity );
+    assert( _lists[i].base <= _lists[i].data );
+    assert( _lists[i].data <= _lists[i].capacity );
   }
 }
 
@@ -303,3 +347,4 @@ int indri::index::DocListMemoryBuilder::termFrequency() const {
 indri::index::DocListMemoryBuilderIterator* indri::index::DocListMemoryBuilder::getIterator() {
   return new DocListMemoryBuilderIterator( *this );
 }
+

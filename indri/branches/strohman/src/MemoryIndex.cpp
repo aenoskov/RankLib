@@ -70,6 +70,14 @@ indri::index::MemoryIndex::~MemoryIndex() {
   _destroyTerms();
 }
 
+//
+// close
+//
+
+void indri::index::MemoryIndex::close() {
+  // does nothing
+}
+
 // ---------------------------
 // Corpus statistics accessors
 // ---------------------------

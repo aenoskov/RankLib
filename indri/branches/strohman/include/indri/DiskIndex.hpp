@@ -46,10 +46,14 @@ namespace indri {
       CorpusStatistics _corpusStatistics;
 
     public:
+      void open( const std::string& path );
+      void close();
+
       int documentBase();
 
       int field( const char* fieldName );
       int field( const std::string& fieldName );
+      std::string field( int fieldID );
 
       int term( const char* term );
       int term( const std::string& term );
@@ -57,6 +61,7 @@ namespace indri {
 
       int documentLength( int documentID );
       UINT64 documentCount();
+      UINT64 documentCount( const std::string& term );
       UINT64 uniqueTermCount();
 
       UINT64 termCount( const std::string& term );
@@ -72,14 +77,14 @@ namespace indri {
       // Lists
       //
       
-      virtual DocListIterator* docListIterator( int termID ) = 0;
-      virtual DocListIterator* docListIterator( const std::string& term ) = 0;
-      virtual DocListFileIterator* docListFileIterator() = 0;
-      virtual DocExtentListIterator* fieldListIterator( int fieldID ) = 0;
-      virtual DocExtentListIterator* fieldListIterator( const std::string& field ) = 0;
-      virtual const TermList* termList( int documentID ) = 0;
-      virtual TermListFileIterator* termListFileIterator() = 0;
-      virtual VocabularyIterator* vocabularyIterator() = 0;
+      virtual DocListIterator* docListIterator( int termID );
+      virtual DocListIterator* docListIterator( const std::string& term );
+      virtual DocListFileIterator* docListFileIterator();
+      virtual DocExtentListIterator* fieldListIterator( int fieldID );
+      virtual DocExtentListIterator* fieldListIterator( const std::string& field );
+      virtual const TermList* termList( int documentID );
+      virtual TermListFileIterator* termListFileIterator();
+      virtual VocabularyIterator* vocabularyIterator();
     };
   }
 }

@@ -10,6 +10,52 @@
 #include "indri/DiskDocListIterator.hpp"
 #include "indri/DiskDocExtentListIterator.hpp"
 #include "indri/DiskDocListFileIterator.hpp"
+#include "indri/Path.hpp"
+
+//
+// open
+//
+
+void indri::index::DiskIndex::open( const std::string& path ) {
+  std::string frequentStringPath = Path::combine( path, "frequentString" );
+  std::string infrequentStringPath = Path::combine( path, "infrequentString" );
+  std::string frequentIDPath = Path::combine( path, "frequentID" );
+  std::string infrequentIDPath = Path::combine( path, "infrequentID" );
+  std::string documentLengthsPath = Path::combine( path, "documentLengths" );
+  std::string documentStatisticsPath = Path::combine( path, "documentStatistics" );
+  std::string invertedFilePath = Path::combine( path, "invertedFile" );
+  std::string directFilePath = Path::combine( path, "directFile" );
+
+  _frequentStringToTerm.openRead( frequentStringPath );
+  _infrequentStringToTerm.openRead( infrequentStringPath );
+
+  _frequentIdToTerm.openRead( frequentIDPath );
+  _infrequentIdToTerm.openRead( infrequentIDPath );
+
+  _documentLengths.openRead( documentLengthsPath );
+  _documentStatistics.openRead( documentStatisticsPath );
+
+  _invertedFile.openRead( invertedFilePath );
+  _directFile.openRead( directFilePath );
+}
+
+//
+// close
+//
+
+void indri::index::DiskIndex::close() {
+  _frequentStringToTerm.close();
+  _infrequentStringToTerm.close();
+
+  _frequentIdToTerm.close();
+  _infrequentIdToTerm.close();
+
+  _documentLengths.close();
+  _documentStatistics.close();
+
+  _invertedFile.close();
+  _directFile.close();
+}
 
 //
 // _fetchTermData
@@ -121,6 +167,17 @@ UINT64 indri::index::DiskIndex::documentCount() {
 }
 
 //
+// documentCount
+//
+
+UINT64 indri::index::DiskIndex::documentCount( const std::string& term ) {
+  indri::index::DiskTermData* diskTermData = _fetchTermData( term.c_str() );
+  UINT64 count = diskTermData->termData->corpus.documentCount;
+  ::disktermdata_delete( diskTermData );
+  return count;
+}
+
+//
 // termCount
 //
 
@@ -134,6 +191,38 @@ UINT64 indri::index::DiskIndex::termCount() {
 
 UINT64 indri::index::DiskIndex::uniqueTermCount() {
   return _corpusStatistics.uniqueTerms;
+}
+
+//
+// field
+//
+
+std::string indri::index::DiskIndex::field( int fieldID ) {
+  if( fieldID == 0 || fieldID > _fieldData.size() )
+    return "";
+
+  return _fieldData[fieldID-1].name;
+}
+
+//
+// field
+//
+
+int indri::index::DiskIndex::field( const char* name ) {
+  for( int i=0; i<_fieldData.size(); i++ ) {
+    if( _fieldData[i].name == name )
+      return i+1;
+  }
+
+  return 0;
+}
+
+//
+// field
+//
+
+int indri::index::DiskIndex::field( const std::string& fieldName ) {
+  return field( fieldName.c_str() );
 }
 
 //

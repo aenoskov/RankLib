@@ -154,15 +154,13 @@ LocalQueryServer::LocalQueryServer( Repository& repository ) :
 // _indexWithDocument
 //
 
-indri::index::Index* LocalQueryServer::_indexWithDocument( int documentID ) {
-  std::vector<indri::index::Index*> indexes = _repository.indexes();
-
-  for( int i=0; i<indexes.size(); i++ ) {
-    int lowerBound = indexes[i]->documentBase();
-    int upperBound = indexes[i]->documentBase() + indexes[i]->documentCount();
+indri::index::Index* LocalQueryServer::_indexWithDocument( Repository::index_state& indexes, int documentID ) {
+  for( int i=0; i<indexes->size(); i++ ) {
+    int lowerBound = (*indexes)[i]->documentBase();
+    int upperBound = (*indexes)[i]->documentBase() + (*indexes)[i]->documentCount();
     
     if( lowerBound <= documentID && upperBound > documentID ) {
-      return indexes[i];
+      return (*indexes)[i];
     }
   }
   
@@ -215,11 +213,11 @@ QueryServerDocumentsResponse* LocalQueryServer::documents( const std::vector<int
 }
 
 INT64 LocalQueryServer::termCount() {
-  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  Repository::index_state indexes = _repository.indexes();
   INT64 total = 0;
 
-  for( int i=0; i<indexes.size(); i++ ) {
-    total += indexes[i]->termCount();
+  for( int i=0; i<indexes->size(); i++ ) {
+    total += (*indexes)[i]->termCount();
   }
 
   return total;
@@ -231,11 +229,11 @@ INT64 LocalQueryServer::termCount( const std::string& term ) {
 }
 
 INT64 LocalQueryServer::stemCount( const std::string& stem ) {
-  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  Repository::index_state indexes = _repository.indexes();
   INT64 total = 0;
 
-  for( int i=0; i<indexes.size(); i++ ) {
-    total += indexes[i]->termCount( stem );
+  for( int i=0; i<indexes->size(); i++ ) {
+    total += (*indexes)[i]->termCount( stem );
   }
 
   return total;
@@ -247,50 +245,43 @@ INT64 LocalQueryServer::termFieldCount( const std::string& term, const std::stri
 }
 
 INT64 LocalQueryServer::stemFieldCount( const std::string& stem, const std::string& field ) {
-  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  Repository::index_state indexes = _repository.indexes();
   INT64 total = 0;
 
-  for( int i=0; i<indexes.size(); i++ ) {
-    total += indexes[i]->fieldTermCount( field, stem );
+  for( int i=0; i<indexes->size(); i++ ) {
+    total += (*indexes)[i]->fieldTermCount( field, stem );
   }
 
   return total;
 }
 
 std::string LocalQueryServer::termName( int term ) {
-  indri::index::Index* index = _repository.indexes()[0];
+  Repository::index_state indexes = _repository.indexes();
+  indri::index::Index* index = (*indexes)[0];
   return index->term( term );
 }
 
 int LocalQueryServer::termID( const std::string& term ) {
-  indri::index::Index* index = _repository.indexes()[0];
+  Repository::index_state indexes = _repository.indexes();
+  indri::index::Index* index = (*indexes)[0];
   std::string processed = _repository.processTerm( term );
   return index->term( processed.c_str() );
 }
 
 std::vector<std::string> LocalQueryServer::fieldList() {
-  // TODO: fix this method
-  assert( 0 && "This method is currently not in service" );
+  std::vector<std::string> result;
+  const std::vector<Repository::Field>& fields = _repository.fields();
 
-  std::vector<std::string> results;
-  /*
-  std::vector<indri::index::Index*> indexes = _repository.indexes();
-  IndriIndex* index = _repository.index();
-
-  for( unsigned int i=1; ; i++ ) {
-    const char* fieldName = index->field(i);
-    
-    if( !strcmp( fieldName, "[OOV]" ) )
-      break;
-
-    results.push_back( std::string(fieldName) );
+  for( int i=0; i<fields.size(); i++ ) {
+    result.push_back( fields[i].name );
   }
-*/
-  return results;
+
+  return result;
 }
 
 int LocalQueryServer::documentLength( int documentID ) {
-  indri::index::Index* index = _indexWithDocument( documentID );
+  Repository::index_state indexes = _repository.indexes();
+  indri::index::Index* index = _indexWithDocument( indexes, documentID );
 
   if( index ) {
     return index->documentLength( documentID );
@@ -300,22 +291,22 @@ int LocalQueryServer::documentLength( int documentID ) {
 }
 
 INT64 LocalQueryServer::documentCount() {
-  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  Repository::index_state indexes = _repository.indexes();
   INT64 total = 0;
   
-  for( int i=0; i<indexes.size(); i++ ) {
-    total += indexes[i]->documentCount();
+  for( int i=0; i<indexes->size(); i++ ) {
+    total += (*indexes)[i]->documentCount();
   }
   
   return total;
 }
 
 INT64 LocalQueryServer::documentCount( const std::string& term ) {
-  std::vector<indri::index::Index*> indexes = _repository.indexes();
+  Repository::index_state indexes = _repository.indexes();
   INT64 total = 0;
   
-  for( int i=0; i<indexes.size(); i++ ) {
-    total += indexes[i]->documentCount( term );
+  for( int i=0; i<indexes->size(); i++ ) {
+    total += (*indexes)[i]->documentCount( term );
   }
   
   return total;
@@ -360,10 +351,11 @@ QueryServerResponse* LocalQueryServer::runQuery( std::vector<indri::lang::Node*>
 
 QueryServerVectorsResponse* LocalQueryServer::documentVectors( const std::vector<int>& documentIDs ) {
   LocalQueryServerVectorsResponse* response = new LocalQueryServerVectorsResponse( documentIDs.size() );
+  Repository::index_state indexes = _repository.indexes();
   std::map<int, std::string> termIDStringMap;
 
   for( size_t i=0; i<documentIDs.size(); i++ ) {
-    indri::index::Index* index = _indexWithDocument( documentIDs[i] );
+    indri::index::Index* index = _indexWithDocument( indexes, documentIDs[i] );
     const indri::index::TermList* termList = index->termList( documentIDs[i] );
     DocumentVector* result = new DocumentVector( index, termList, termIDStringMap );
     delete termList;

@@ -14,20 +14,92 @@
 #include <queue>
 #include "indri/greedy_vector"
 #include "indri/VocabularyMap.hpp"
+#include "indri/Path.hpp"
 
 using namespace indri::index;
+
+//
+// IndexWriter constructor
+//
+
+IndexWriter::IndexWriter( int fields ) :
+  _fieldCount(fields)
+{
+}
+
+//
+// write
+//
+
+void IndexWriter::write( indri::index::Index& index, const std::string& path ) {
+  Path::create( path );
+
+  std::string frequentStringPath = Path::combine( path, "frequentString" );
+  std::string infrequentStringPath = Path::combine( path, "infrequentString" );
+  std::string frequentIDPath = Path::combine( path, "frequentID" );
+  std::string infrequentIDPath = Path::combine( path, "infrequentID" );
+  std::string documentLengthsPath = Path::combine( path, "documentLengths" );
+  std::string documentStatisticsPath = Path::combine( path, "documentStatistics" );
+  std::string invertedFilePath = Path::combine( path, "invertedFile" );
+  std::string directFilePath = Path::combine( path, "directFile" );
+
+  // infrequent stuff
+  _infrequentTerms.idMap = new Keyfile();
+  _infrequentTerms.idMap->create( infrequentIDPath );
+  _infrequentTerms.stringMap = new Keyfile();
+  _infrequentTerms.stringMap->create( infrequentStringPath );
+
+  // frequent stuff
+  _frequentTerms.idMap = new Keyfile();
+  _frequentTerms.idMap->create( frequentIDPath );
+  _frequentTerms.stringMap = new Keyfile();
+  _frequentTerms.stringMap->create( frequentStringPath );
+
+  // stats, inverted file, direct file
+  _documentStatistics.create( documentStatisticsPath );
+  _documentLengths.create( documentLengthsPath );
+  _invertedFile.create( invertedFilePath );
+  _directFile.create( directFilePath );
+
+  _invertedOutput = new SequentialWriteBuffer( _invertedFile, 1024*1024 );
+
+  std::vector<indri::index::Index*> indexes;
+  indexes.push_back( &index );
+  
+  _writeInvertedLists( indexes );
+
+  // close infrequent
+  _infrequentTerms.idMap->close();
+  delete _infrequentTerms.idMap;
+  _infrequentTerms.stringMap->close();
+  delete _infrequentTerms.stringMap;
+
+  // close frequent
+  _frequentTerms.idMap->close();
+  delete _frequentTerms.idMap;
+  _frequentTerms.stringMap->close();
+  delete _frequentTerms.stringMap;
+
+  // close stats
+  _documentStatistics.close();
+  _documentLengths.close();
+  _invertedFile.close();
+  _directFile.close();
+}
 
 //
 // _fetchMatchingInvertedLists
 //
 
 void IndexWriter::_fetchMatchingInvertedLists( greedy_vector<WriterInvertedList*>& lists, invertedlist_pqueue& queue ) {
+  lists.clear();
+
   WriterInvertedList* first = queue.top();
   lists.push_back( first );
   const char* firstTerm = first->iterator->currentEntry()->termData->term;
   queue.pop();
 
-  while( !strcmp( firstTerm, queue.top()->iterator->currentEntry()->termData->term ) ) {
+  while( queue.size() && !strcmp( firstTerm, queue.top()->iterator->currentEntry()->termData->term ) ) {
     lists.push_back( queue.top() );
     queue.pop();
   }
@@ -39,6 +111,8 @@ void IndexWriter::_fetchMatchingInvertedLists( greedy_vector<WriterInvertedList*
 
 void IndexWriter::_pushInvertedLists( greedy_vector<WriterInvertedList*>& lists, invertedlist_pqueue& queue ) {
   for( int i=0; i<lists.size(); i++ ) {
+    lists[i]->iterator->nextEntry();
+
     if( lists[i]->iterator->finished() ) {
       delete lists[i];
     } else {
@@ -55,6 +129,9 @@ void IndexWriter::_writeStatistics( greedy_vector<WriterInvertedList*>& lists, i
   greedy_vector<WriterInvertedList*>::iterator iter;
   ::termdata_clear( termData, _fieldCount );
 
+  // find out what term we're writing
+  strcpy( const_cast<char*>(termData->term), lists[0]->iterator->currentEntry()->termData->term );
+
   for( iter = lists.begin(); iter != lists.end(); ++iter ) {
     indri::index::DocListFileIterator::DocListData* listData = (*iter)->iterator->currentEntry();
     ::termdata_merge( termData, listData->termData, _fieldCount );
@@ -67,8 +144,8 @@ void IndexWriter::_writeStatistics( greedy_vector<WriterInvertedList*>& lists, i
   ::termdata_compress( stream, termData, _fieldCount );
 
   int dataSize = stream.dataSize();
-  _output.write( &dataSize, sizeof(int) );
-  _output.write( stream.data(), stream.dataSize() );
+  _invertedOutput->write( &dataSize, sizeof(int) );
+  _invertedOutput->write( stream.data(), stream.dataSize() );
 }
 
 //
@@ -85,25 +162,24 @@ void IndexWriter::_writeStatistics( greedy_vector<WriterInvertedList*>& lists, i
 
 void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset ) {
   greedy_vector<WriterInvertedList*>::iterator iter;
-  const skipLength = 1<<12; // 4k
+  const minimumSkip = 1<<12; // 4k
   int documentsWritten = 0;
 
   const float topdocsFraction = 0.01f;
-  bool hasSkips = termData->corpus.totalCount > 10000;
   bool hasTopdocs = termData->corpus.documentCount > 1000;
   int topdocsCount = hasTopdocs ? int(termData->corpus.totalCount * 0.01) : 0;
   int topdocsSpace = hasTopdocs ? topdocsCount*3*sizeof(DocListIterator::TopDocument) + sizeof(int) : 0;
 
   // write a control byte
-  char control = (hasSkips ? 1 : 0) | (hasTopdocs ? 2 : 0);
-  _output.write( &control, 1 );
+  char control = (hasTopdocs ? 0x01 : 0);
+  _invertedOutput->write( &control, 1 );
 
-  UINT64 initialPosition = _output.tell();
+  UINT64 initialPosition = _invertedOutput->tell();
 
   // leave some room for the topdocs list
   if( hasTopdocs ) {
-    _output.write( &topdocsCount, sizeof(int) );
-    _output.seek( topdocsSpace + _output.tell() );
+    _invertedOutput->write( &topdocsCount, sizeof(int) );
+    _invertedOutput->seek( topdocsSpace + _invertedOutput->tell() );
   }
 
   // maintain a list of top documents
@@ -123,7 +199,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
     while( !iterator->finished() ) {
       // get the latest entry from the list
       DocListIterator::DocumentData* documentData = iterator->currentEntry();
-      
+
       // form a topdocs entry for this document
       DocListIterator::TopDocument topDocument( documentData->document,
                                                 documentData->positions.size(),
@@ -135,14 +211,14 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
       while( topdocs.size() > topdocsCount )
         topdocs.pop();
 
-      if( listBuffer.position() > skipLength && hasSkips ) {
+      if( listBuffer.position() > minimumSkip ) {
         // time to write in a skip
         int skipLength = listBuffer.position();
         int skipDocument = documentData->document;
 
-        _output.write( &skipDocument, sizeof(int) );
-        _output.write( &skipLength, sizeof(int) );
-        _output.write( listBuffer.front(), listBuffer.position() );
+        _invertedOutput->write( &skipDocument, sizeof(int) );
+        _invertedOutput->write( &skipLength, sizeof(int) );
+        _invertedOutput->write( listBuffer.front(), listBuffer.position() );
         listBuffer.clear();
 
         // delta encode documents by batch
@@ -159,37 +235,37 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterInvertedList*>& list
       for( int i=0; i<documentData->positions.size(); i++ ) {
         stream << (documentData->positions[i] - lastPosition);
       }
+
+      iterator->nextEntry();
     }
   }
 
   // write in the final skip info
-  if( hasSkips ) {
-    int skipDocument = MAX_INT32;
-    int skipLength = listBuffer.position();
-    _output.write( &skipDocument, sizeof(int) );
-    _output.write( &skipLength, sizeof(int) );
-  }
+  int skipDocument = MAX_INT32;
+  int skipLength = listBuffer.position();
+  _invertedOutput->write( &skipDocument, sizeof(int) );
+  _invertedOutput->write( &skipLength, sizeof(int) );
 
-  _output.write( listBuffer.front(), listBuffer.position() );
+  _invertedOutput->write( listBuffer.front(), listBuffer.position() );
   listBuffer.clear();
-  UINT64 finalPosition = _output.tell();
+  UINT64 finalPosition = _invertedOutput->tell();
 
   if( hasTopdocs ) {
-    _output.seek( initialPosition );
-    _output.write( &topdocsCount, sizeof(int) );
+    _invertedOutput->seek( initialPosition );
+    _invertedOutput->write( &topdocsCount, sizeof(int) );
 
     // write these into the topdocs list in order from smallest fraction to largest fraction,
     // where fraction = c(w;D)/|D|
     while( topdocs.size() ) {
       DocListIterator::TopDocument& topDocument = topdocs.top();
       
-      _output.write( &topDocument.document, sizeof(int) );
-      _output.write( &topDocument.count, sizeof(int) );
-      _output.write( &topDocument.length, sizeof(int) );
+      _invertedOutput->write( &topDocument.document, sizeof(int) );
+      _invertedOutput->write( &topDocument.count, sizeof(int) );
+      _invertedOutput->write( &topDocument.length, sizeof(int) );
       topdocs.pop();
     }
 
-    _output.seek( finalPosition );
+    _invertedOutput->seek( finalPosition );
   }
 }
 
@@ -267,11 +343,14 @@ void IndexWriter::_writeInvertedLists( std::vector<indri::index::Index*>& indexe
   term[0] = 0;
   int sequence = 1;
 
-  for( int i=0; i<indexes.size(); i++ )
-    invertedLists.push( new WriterInvertedList( indexes[i]->docListFileIterator() ) );
+  for( int i=0; i<indexes.size(); i++ ) {
+    invertedLists.push( new WriterInvertedList( indexes[i]->docListFileIterator(), indexes[i] ) );
+  }
 
   greedy_vector<WriterInvertedList*> current;
   indri::index::TermData* termData = ::termdata_create( _fieldCount );
+  char termBuffer[Keyfile::MAX_KEY_LENGTH+1] = {0};
+  termData->term = termBuffer;
 
   for( int sequence = 1; invertedLists.size(); sequence++ ) {
     // fetch useful doc lists
@@ -294,7 +373,8 @@ void IndexWriter::_writeInvertedLists( std::vector<indri::index::Index*>& indexe
   // into the keyfile
 
   ::termdata_delete( termData, _fieldCount );
-  _output.flush();
-  _outfile.close();
+  _invertedOutput->flush();
+  delete _invertedOutput;
+  _invertedFile.close();
 }
 

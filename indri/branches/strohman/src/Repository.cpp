@@ -63,7 +63,37 @@
 #include "indri/StemmerFactory.hpp"
 #include "indri/NormalizationTransformation.hpp"
 #include "lemur/Exception.hpp"
+#include "indri/Thread.hpp"
+#include "indri/IndexWriter.hpp"
+#include "indri/DiskIndex.hpp"
+#include "indri/ScopedLock.hpp"
 #include <string>
+#include <algorithm>
+
+const static int defaultMemory = 100*1024*1024;
+
+//
+// _fieldsForIndex
+//
+
+std::vector<indri::index::Index::FieldDescription> Repository::_fieldsForIndex( std::vector<Repository::Field>& _fields ) {
+  std::vector<indri::index::Index::FieldDescription> result;
+
+  for( size_t i=0; i<_fields.size(); i++ ) {
+    indri::index::Index::FieldDescription fdesc;
+    
+    fdesc.name = _fields[i].name;
+    fdesc.numeric = _fields[i].numeric;
+
+    result.push_back(fdesc);
+  }
+
+  return result;
+}
+
+//
+// _buildFields
+//
 
 void Repository::_buildFields() {
   if( _parameters.exists("field") ) {
@@ -79,7 +109,13 @@ void Repository::_buildFields() {
       _fields.push_back(field);
     }
   }
+
+  _indexFields = _fieldsForIndex( _fields );
 }
+
+//
+// _buildTransientChain
+//
 
 void Repository::_buildTransientChain( Parameters& parameters ) {
   if( parameters.exists("stopper.word") ) {
@@ -87,6 +123,10 @@ void Repository::_buildTransientChain( Parameters& parameters ) {
     _transformations.push_back( new StopperTransformation( stop ) );
   }
 }
+
+//
+// _buildChain
+//
 
 void Repository::_buildChain() {
   // TODO: for now, we'll normalize everything, although this should be a parameter
@@ -110,20 +150,9 @@ void Repository::_buildChain() {
   }
 }
 
-std::vector<indri::index::Index::FieldDescription> repository_fieldsForIndex( std::vector<Repository::Field>& _fields ) {
-  std::vector<indri::index::Index::FieldDescription> result;
-
-  for( size_t i=0; i<_fields.size(); i++ ) {
-    indri::index::Index::FieldDescription fdesc;
-    
-    fdesc.name = _fields[i].name;
-    fdesc.numeric = _fields[i].numeric;
-
-    result.push_back(fdesc);
-  }
-
-  return result;
-}
+//
+// _copyParameters
+//
 
 void Repository::_copyParameters( Parameters& options ) {
   if( options.exists("field") ) {
@@ -142,6 +171,53 @@ void Repository::_copyParameters( Parameters& options ) {
   }
 }
 
+//
+// _remove
+//
+// In the future, this will remove a directory asynchronously,
+// and will be cancellable.
+//
+
+void Repository::_remove( const std::string& indexPath ) {
+  Path::remove( indexPath );
+}
+
+//
+// _openIndexes
+//
+
+void Repository::_openIndexes( Parameters& params, const std::string& parentPath ) {
+  Parameters indexes = params["indexes"];
+
+  //
+  // <!ELEMENT name (#PCDATA)> -- name of index
+  // <!ELEMENT prune (#PCDATA)> -- this index is junk and should be pruned
+  // <!ELEMENT index (name,deleteable)>
+  //
+
+  _active = new index_vector;
+  _states.push_back( _active );
+
+  for( int i=0; i<indexes.size(); i++ ) {
+    Parameters indexSpec = indexes[i];
+    indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
+    std::string indexName = (std::string) indexSpec;
+
+    if( indexSpec.get("prune", 0) ) {
+      _remove( indexName );
+    } else {
+      std::string path = Path::combine( parentPath, indexName );
+      diskIndex->open( path );
+
+      _active->push_back( diskIndex );
+    }
+  }
+}
+
+//
+// create
+//
+
 void Repository::create( const std::string& path, Parameters* options ) {
   _path = path;
   _readOnly = false;
@@ -155,16 +231,19 @@ void Repository::create( const std::string& path, Parameters* options ) {
       Path::create( path );
     }
     
-    _memory = 100*1000*1000;
+    _memory = defaultMemory;
     if( options )
       _memory = options->get( "memory", _memory );
 
     float queryProportion = 0.15f;
     if( options )
       queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
-    
-    _mutableIndex = new indri::index::MemoryIndex();
-    _collection = new CompressedCollection();
+
+    if( options )
+      _copyParameters( *options );
+
+    _buildFields();
+    _buildChain();
 
     std::string indexPath = Path::combine( path, "index" );
     std::string collectionPath = Path::combine( path, "collection" );
@@ -174,14 +253,12 @@ void Repository::create( const std::string& path, Parameters* options ) {
 
     std::string indexName = Path::combine( indexPath, "index" );
 
-    if( options )
-      _copyParameters( *options );
+    _active = new index_vector;
+    _states.push_back( _active );
+    _active->push_back( new indri::index::MemoryIndex( 1, _indexFields ) );
+    _indexCount = 0;
 
-    _buildFields();
-    _buildChain();
-    std::vector<indri::index::Index::FieldDescription> indexFieldDesc = repository_fieldsForIndex( _fields );
-
-    //_mutableIndex->create( indexName, indexFieldDesc );
+    _collection = new CompressedCollection();
 
     if( !Path::exists( collectionPath ) )
       Path::create( collectionPath );
@@ -204,11 +281,15 @@ void Repository::create( const std::string& path, Parameters* options ) {
   }
 }
 
+//
+// openRead
+//
+
 void Repository::openRead( const std::string& path, Parameters* options ) {
   _path = path;
   _readOnly = true;
 
-  _memory = 100*1000*1000;
+  _memory = defaultMemory;
   if( options )
     _memory = options->get( "memory", _memory );
 
@@ -216,31 +297,33 @@ void Repository::openRead( const std::string& path, Parameters* options ) {
   if( options )
     queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
-  _mutableIndex = new indri::index::MemoryIndex();
-  _collection = new CompressedCollection();
-
-  std::string indexPath = Path::combine( path, "index" );
-  std::string collectionPath = Path::combine( path, "collection" );
-
-  std::string indexName = Path::combine( indexPath, "index" );
-
-  // TODO: _mutableIndex->openRead( indexName.c_str() );
-  _collection->openRead( collectionPath );
-
-  _parameters.loadFile( Path::combine( path, "manifest" ) );
-
   _buildFields();
   _buildChain();
 
   if( options )
     _buildTransientChain( *options );
+
+  _parameters.loadFile( Path::combine( path, "manifest" ) );
+
+  std::string indexPath = Path::combine( path, "index" );
+  std::string collectionPath = Path::combine( path, "collection" );
+  std::string indexName = Path::combine( indexPath, "index" );
+
+  _openIndexes( _parameters, indexPath );
+
+  _collection = new CompressedCollection();
+  _collection->openRead( collectionPath );
 }
+
+//
+// open
+//
 
 void Repository::open( const std::string& path, Parameters* options ) {
   _path = path;
   _readOnly = false;
 
-  _memory = 100*1000*1000;
+  _memory = defaultMemory;
   if( options )
     _memory = options->get( "memory", _memory );
 
@@ -248,15 +331,9 @@ void Repository::open( const std::string& path, Parameters* options ) {
   if( options )
     queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
-  _mutableIndex = new indri::index::MemoryIndex();
-  _collection = new CompressedCollection();
-
   std::string indexPath = Path::combine( path, "index" );
   std::string collectionPath = Path::combine( path, "collection" );
   std::string indexName = Path::combine( indexPath, "index" );
-
-  // TODO: _mutableIndex->open( indexName );
-  _collection->open( collectionPath );
 
   _parameters.loadFile( Path::combine( path, "manifest" ) );
 
@@ -265,25 +342,257 @@ void Repository::open( const std::string& path, Parameters* options ) {
 
   if( options )
     _buildTransientChain( *options );
+
+  // open all indexes, add a memory index
+  _openIndexes( _parameters, indexPath );
+  addMemoryIndex();
+
+  // remove that initial state (only disk indexes)
+  _states.erase( _states.begin() );
+
+  // open compressed collection
+  _collection = new CompressedCollection();
+  _collection->open( collectionPath );
 }
+
+//
+// exists
+//
 
 bool Repository::exists( const std::string& path ) {
   std::string manifestPath = Path::combine( path, "manifest" );
   return Path::exists( manifestPath );
 }
 
+//
+// addDocument
+//
+
 void Repository::addDocument( ParsedDocument* document ) {
+  if( _readOnly )
+    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "addDocument: Cannot add documents to a repository that is opened for read-only access." ); 
+
+  ScopedLock lock( _addLock );
+
   for( size_t i=0; i<_transformations.size(); i++ ) {
     document = _transformations[i]->transform( document );
   }
 
-  int documentID = _mutableIndex->addDocument( *document );
+  index_state state;
+
+  { 
+    // get a copy of current index state
+    ScopedLock lock( _stateLock );
+    state = _active;
+  }
+
+  int documentID = dynamic_cast<indri::index::MemoryIndex*>(state->back())->addDocument( *document );
   _collection->addDocument( documentID, document );
+
+  // TODO: make this better
+  if( state->back()->documentCount() >= 500 ) {
+    // drop our reference to the current state
+    state = 0;
+    write();
+  }
 }
+
+//
+// addMemoryIndex
+//
+// Add a new MemoryIndex to accept all new updates.  This allows
+// the current MemoryIndex to be written to disk.
+//
+
+void Repository::addMemoryIndex() {
+  ScopedLock alock( _addLock );
+  ScopedLock slock( _stateLock );
+
+  // build a new memory index
+  indri::index::Index* activeIndex = _active->back();
+  int documentBase = activeIndex->documentBase() + activeIndex->documentCount();
+  indri::index::MemoryIndex* newMemoryIndex = new indri::index::MemoryIndex( documentBase, _indexFields );
+
+  // build a new state vector
+  index_state newState = new index_vector;
+  newState->assign( _active->begin(), _active->end() );
+  newState->push_back( newMemoryIndex );
+
+  // add the new state vector to the active states
+  _states.push_back( newState );
+  _active = newState;
+}
+
+//
+// _swapState
+//
+// Make a new state object, swap in the new index for the old one
+//
+
+void Repository::_swapState( indri::index::Index* oldIndex, indri::index::Index* newIndex ) {
+  ScopedLock lock( _stateLock );
+
+  index_state oldState = _active;
+  _active = new index_vector;
+
+  for( int i=0; i<oldState->size(); i++ ) {
+    if( (*oldState)[i] == oldIndex ) {
+      _active->push_back( newIndex );
+    } else {
+      _active->push_back( (*oldState)[i] );
+    }
+  }
+
+  _states.push_back( _active );
+}
+
+//
+// _removeStates
+//
+// Remove a certain number of states from the _states vector
+//
+
+void Repository::_removeStates( std::vector<index_state>& toRemove ) {
+  for( int i=0; i<toRemove.size(); i++ ) {
+    std::vector<index_state>::iterator iter;
+
+    for( iter = _states.begin(); iter != _states.end(); iter++ ) {
+      if( (*iter) == toRemove[i] ) {
+        _states.erase( iter );
+        break;
+      }
+    }
+  }
+}
+
+//
+// _statesContaining
+//
+// Find all states that contain this particular index
+//
+
+std::vector<Repository::index_state> Repository::_statesContaining( indri::index::Index* index ) {
+  ScopedLock lock( _stateLock );
+  std::vector<index_state> result;
+
+  for( int i=0; i<_states.size(); i++ ) {
+    index_state& state = _states[i];
+
+    for( int j=0; j<state->size(); j++ ) {
+      if( (*state)[j] == index ) {
+        result.push_back( state );
+        break;
+      }
+    }
+  }
+  
+  return result;
+}
+
+//
+// _closeIndexes
+//
+
+void Repository::_closeIndexes() {
+  // we assume we don't need locks, because the one running
+  // the repository has stopped all queries and document adds, etc.
+
+  // drops all states except active to reference count 0, so they get deleted
+  _states.clear();
+
+  for( int i=0; i<_active->size(); i++ ) {
+    (*_active)[i]->close();
+    (*_active)[i] = 0; // deletes the index
+  }
+
+  // deletes the active state
+  _active = 0;
+}
+
+void print_index_state( std::vector<Repository::index_state>& states ) {
+  for( int i=0; i<states.size(); i++ ) {
+    for( int j=0; j<states[i]->size(); j++ ) {
+      std::cout << i << " " << (*states[i])[j] << std::endl;
+    }
+  }
+}
+
+//
+// write
+//
+// Write the most recent memory index to disk, then swap that
+// index back in as a disk index
+//
+
+void Repository::write() {
+  // grab a copy of the current state
+  index_state state = indexes();
+
+  // make a new MemoryIndex, cutting off the old one from updates
+  addMemoryIndex();
+
+  // if we just added the first, no need to write the "old" one
+  if( state->size() == 0 )
+    return;
+
+  // use our copy of the old state to find the index we need to write to disk
+  indri::index::Index* index = state->back();
+
+  // write the index out to disk
+  std::stringstream indexNumber;
+  indexNumber << _indexCount;
+  _indexCount++;
+
+  std::string indexPath = Path::combine( _path, "index" );
+  std::string newIndexPath = Path::combine( indexPath, indexNumber.str() );
+  indri::index::IndexWriter writer( _fields.size() );
+  writer.write( *index, newIndexPath );
+
+  // open the index we just wrote
+  indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
+  diskIndex->open( newIndexPath );
+
+  // make a new state, replacing the old index for the new one
+  _swapState( index, diskIndex );
+
+  // drop our reference to the old state
+  state = 0;
+
+  // need a list of all states that contain the memoryIndex we just wrote
+  // we want to wait here until the refcounts all drop to 1
+  std::vector<index_state> containing = _statesContaining( index );
+
+  while( 1 ) {
+    bool referencesExist = false;
+    for( int i=0; i<containing.size(); i++ ) {
+      // we allow one reference in the _states vector, and one in the containing vector
+      referencesExist = referencesExist || containing[i].references() > 2;
+    }
+
+    if( !referencesExist )
+      break;
+
+    // wait a little bit
+    Thread::sleep( 100 );
+  }
+
+  // okay, now nobody is using the state, so we can get rid of those states
+  // and the index we wrote
+  delete index;
+  _removeStates( containing );
+}
+
+//
+// fields
+//
 
 const std::vector<Repository::Field>& Repository::fields() const {
   return _fields;
 }
+
+//
+// tags
+//
 
 std::vector<std::string> Repository::tags() const {
   std::vector<std::string> t;
@@ -294,6 +603,10 @@ std::vector<std::string> Repository::tags() const {
 
   return t;
 }
+
+//
+// processTerm
+//
 
 std::string Repository::processTerm( const std::string& term ) {
   ParsedDocument original;
@@ -319,24 +632,31 @@ std::string Repository::processTerm( const std::string& term ) {
   return result;
 }
 
+//
+// collection
+//
+
 CompressedCollection* Repository::collection() {
   return _collection;
 }
 
+//
+// close
+//
+
 void Repository::close() {
-  if( _mutableIndex && _collection ) {
+  if( _collection ) {
     std::string manifest = "manifest";
     std::string paramPath = Path::combine( _path, manifest );
+
+    // TODO: need to write() here
 
     if( !_readOnly )
       _parameters.writeFile( paramPath );
 
-    // TODO: _mutableIndex->close();
-    _collection->close();
+    _closeIndexes();
 
-    delete _mutableIndex;
-    _mutableIndex = 0;
-    
+    _collection->close();
     delete _collection;
     _collection = 0;
 
@@ -345,6 +665,10 @@ void Repository::close() {
   }
 }
 
-std::vector<indri::index::Index*> Repository::indexes() {
-  return _indexes;
+//
+// indexes
+//
+
+Repository::index_state Repository::indexes() {
+  return _active;
 }

@@ -47,7 +47,7 @@ bool File::open( const std::string& filename ) {
                           GENERIC_READ | GENERIC_WRITE,
                           0,
                           NULL,
-                          CREATE_ALWAYS,
+                          OPEN_EXISTING,
                           FILE_ATTRIBUTE_NORMAL,
                           NULL );
   
@@ -75,7 +75,7 @@ bool File::openRead( const std::string& filename ) {
                           GENERIC_READ,
                           0,
                           NULL,
-                          CREATE_ALWAYS,
+                          OPEN_EXISTING,
                           FILE_ATTRIBUTE_NORMAL,
                           NULL );
   

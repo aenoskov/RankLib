@@ -344,6 +344,9 @@
 				RelativePath=".\TFIDFTermScoreFunction.cpp">
 			</File>
 			<File
+				RelativePath=".\Thread.cpp">
+			</File>
+			<File
 				RelativePath=".\UnorderedWindowNode.cpp">
 			</File>
 			<File
@@ -386,6 +389,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\Appliers.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\atomic.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\BeliefNode.hpp">
@@ -727,6 +733,9 @@
 				RelativePath="..\include\indri\RawTextParser.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\ReadersWritersLock.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\Repository.hpp">
 			</File>
 			<File
@@ -809,6 +818,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\TFIDFTermScoreFunction.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\Thread.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\TopdocsIndex.hpp">

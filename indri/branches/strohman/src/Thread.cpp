@@ -5,7 +5,26 @@
 // 15 November 2004 -- tds
 //
 
-#include "Thread.hpp"
+#include "indri/Thread.hpp"
+
+#ifdef WIN32
+#include <process.h>
+#endif
+
+void* pthread_start( void* parameter ) {
+  Thread* t = (Thread*) parameter;
+  t->execute();
+  return 0;
+}
+
+#ifdef WIN32
+unsigned int __stdcall win32_start( void* parameter ) {
+  Thread* t = (Thread*) parameter;
+  t->execute();
+  _endthreadex(0);
+  return 0;
+}
+#endif
 
 Thread::Thread( void (*function)(void*), void* data ) {
   _function = function;
@@ -24,21 +43,18 @@ void Thread::execute() {
 
 void Thread::join() {
   #ifdef WIN32
-    WaitForSingleObject( _thread, INFINITE );
-    CloseHandle( _thread );
+    WaitForSingleObject( (HANDLE) _thread, INFINITE );
+    CloseHandle( (HANDLE) _thread );
   #else
     pthread_join( _thread, 0 );
   #endif
 }
 
-void* pthread_start( void* parameter ) {
-  Thread* t = (Thread*) parameter;
-  t->execute();
-  return 0;
-}
-
-void win32_start( void* parameter ) {
-  Thread* t = (Thread*) parameter;
-  t->execute();
+void Thread::sleep( int milliseconds ) {
+#ifdef WIN32
+  ::Sleep( milliseconds );
+#else
+  ::usleep( 1000 * milliseconds );
+#endif
 }
 

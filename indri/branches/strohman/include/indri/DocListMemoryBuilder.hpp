@@ -63,9 +63,21 @@
 
 namespace indri {
   namespace index {
+    struct DocListMemoryBuilderSegment {
+      DocListMemoryBuilderSegment( char* b, char* d, char* c ) {
+        base = b;
+        data = d;
+        capacity = c;
+      }
+
+      char* base;
+      char* data;
+      char* capacity;
+    };
+
     class DocListMemoryBuilderIterator : public DocListIterator {
-      const greedy_vector< std::pair<char*, char*>, 4 >* _lists;
-      greedy_vector< std::pair<char*, char*>, 4 >::const_iterator _current;
+      const greedy_vector< DocListMemoryBuilderSegment, 4 >* _lists;
+      greedy_vector< DocListMemoryBuilderSegment, 4 >::const_iterator _current;
       indri::index::DocListIterator::DocumentData _data;
       greedy_vector<DocListIterator::TopDocument> _emptyTopDocuments;
       
@@ -74,10 +86,10 @@ namespace indri {
 
     public:
       DocListMemoryBuilderIterator();
-      DocListMemoryBuilderIterator( const class DocListMemoryBuilder& builder );
+      DocListMemoryBuilderIterator( class DocListMemoryBuilder& builder );
 
-      void reset( const class DocListMemoryBuilder& builder );
-      void reset( const greedy_vector< std::pair<char*, char*>, 4 >& lists );
+      void reset( class DocListMemoryBuilder& builder );
+      void reset( const greedy_vector< DocListMemoryBuilderSegment, 4 >& lists );
 
       void startIteration();
       bool finished();
@@ -96,7 +108,7 @@ namespace indri {
       int _documentFrequency;
       int _termFrequency;
 
-      greedy_vector< std::pair<char*,char*>, 4 > _lists;
+      greedy_vector< DocListMemoryBuilderSegment, 4 > _lists;
 
       char* _list;
       char* _listBegin;
@@ -117,11 +129,12 @@ namespace indri {
 
     public:
       DocListMemoryBuilder();
+      ~DocListMemoryBuilder();
       const DocListMemoryBuilder& operator=( DocListMemoryBuilder& other );
       
       void addLocation( int docID, int location );
       void clear();
-      void close();
+      void flush();
       iterator* getIterator();
       bool empty();
 

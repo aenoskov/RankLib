@@ -8,18 +8,17 @@
 #ifndef INDRI_THREAD_HPP
 #define INDRI_THREAD_HPP
 
+#include "indri/indri-platform.h"
+
 #ifndef WIN32
 #include <pthread.h>
 #endif
 
-void* pthread_start( void* parameter );
-void win32_start( void* parameter );
-
 class Thread {
 private:
 #ifdef WIN32
-  DWORD _id;
-  HANDLE _thread;
+  unsigned int _id;
+  uintptr_t _thread;
 #else
   pthread_t _thread;
 #endif
@@ -30,6 +29,7 @@ public:
   Thread( void (*function)(void*), void* data );
   void execute();
   void join();
+  static void sleep( int milliseconds );
 };
 
 #endif // INDRI_THREAD_HPP

@@ -90,6 +90,9 @@ namespace indri {
       MemoryIndex();
       MemoryIndex( int docBase );
       MemoryIndex( int docBase, const std::vector<Index::FieldDescription>& fields );
+      ~MemoryIndex();
+
+      void close();
 
       int documentBase();
       
