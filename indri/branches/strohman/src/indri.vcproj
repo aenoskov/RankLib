@@ -850,6 +850,12 @@
 				RelativePath="..\include\indri\ScoredExtentResult.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\SequentialReadBuffer.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\SequentialWriteBuffer.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\SimpleCopier.hpp">
 			</File>
 			<File

@@ -104,8 +104,11 @@ int indri::index::MemoryIndex::documentBase() {
 //
 
 int indri::index::MemoryIndex::documentLength( int documentID ) {
-  if( _baseDocumentID < documentID || (documentID - _baseDocumentID) > _documentData.size() )
+  if( _baseDocumentID > documentID || (documentID - _baseDocumentID) > _documentData.size() )
     return 0;
+
+  assert( documentID - _baseDocumentID >= 0 );
+  assert( (documentID - _baseDocumentID) < _documentData.size() );
 
   return _documentData[ documentID - _baseDocumentID ].indexedLength;
 }

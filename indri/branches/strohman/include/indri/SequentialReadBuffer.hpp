@@ -41,19 +41,21 @@ public:
   const void* peek( size_t length ) {
     const void* result = 0;
       
-    if( _position >= _current.filePosition && (_position + length) <= _current.filePosition + _current.buffer.position() ) {
-      result = _current.buffer.front() + ( _position - _current.filePosition );
-    } else {
+    if( _position < _current.filePosition || (_position + length) > _current.filePosition + _current.buffer.position() ) {
+      // data isn't in the current buffer
       // this isn't necessarily the most efficient way to do this, but it should work
       _current.buffer.clear();
       _current.filePosition = _position;
       _current.buffer.grow( length );
 
-      int length = _file.read( _current.buffer.write( _current.buffer.size() ), _position, _current.buffer.size() );
-      _current.buffer.unwrite( _current.buffer.size() - length );
-      result = _current.buffer.front();
+      size_t actual = _file.read( _current.buffer.write( _current.buffer.size() ), _position, _current.buffer.size() );
+      _current.buffer.unwrite( _current.buffer.size() - actual );
+      assert( actual >= length );
     }
 
+    result = _current.buffer.front() + ( _position - _current.filePosition );
+    assert( _current.filePosition <= _position );
+    assert( _current.buffer.position() + _current.filePosition >= _position + length );
     return result;
   }
 
