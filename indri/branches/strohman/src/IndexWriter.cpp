@@ -406,7 +406,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
 
       // update the topdocs list
       if( hasTopdocs ) {
-        if( docLess( topDocument, topdocs.top()) ) {
+        if( topdocs.size() < topdocsCount || docLess(topDocument, topdocs.top()) ) {
           topdocs.push( topDocument );
           while( topdocs.size() > topdocsCount )
             topdocs.pop();

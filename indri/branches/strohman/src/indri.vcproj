@@ -688,6 +688,9 @@
 				RelativePath="..\include\indri\JelinekMercerTermScoreFunction.hpp">
 			</File>
 			<File
+				RelativePath="..\contrib\lemur\include\lemur\Keyfile.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\KeyfileWordMap.hpp">
 			</File>
 			<File
