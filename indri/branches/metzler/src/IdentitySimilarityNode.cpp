@@ -80,7 +80,9 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
   int queryLen = _children[0]->getQueryLength();
   int extentLen = end - begin;
   INT64 contextLen = _children[0]->getContextSize();
-  
+
+  double uniqueQueryTerms = 0.0;
+
   /*std::cout << "documentID = " << documentID << std::endl;
   std::cout << "start = " << begin << std::endl;
   std::cout << "end = " << end << std::endl;
@@ -105,6 +107,10 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
     int tf = child->hasMatch( documentID ) ? child->matches( begin, end ) : 0;
     int qf = child->getQF();
     INT64 cf = child->getOccurrences();
+
+	// number of unique terms that appear in the query
+	if( qf > 0 )
+		uniqueQueryTerms += 1.0 / ( 1.0 * qf );
 
     if( ( tf == 0 && variation < 50 ) || qf == 0 )
       continue;
@@ -181,6 +187,10 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
     if( cacheNode )
       cacheNode->advance();
   }
+
+  // normalize the overlap measure by the number of unique query terms
+  if( variation == 0 && uniqueQueryTerms != 0.0 )
+	  score *= 1.0 / uniqueQueryTerms;
 
   if( variation < 50 ) { // always return the log of "true" similarity value
 	  if( score == 0.0 )
