@@ -17,9 +17,9 @@ const UINT64 ACTIVE_DELAY = 1*1000*1000;
 //
 
 static float maintenance_smoothed_load( Repository::Load& load ) {
-  const float fifteenWeight = 0.2;
-  const float fiveWeight = 0.2;
-  const float oneWeight = 0.6;
+  const float fifteenWeight = 0.2f;
+  const float fiveWeight = 0.2f;
+  const float oneWeight = 0.6f;
 
   return load.fifteen * fifteenWeight + load.five * fiveWeight + load.one * oneWeight;
 }

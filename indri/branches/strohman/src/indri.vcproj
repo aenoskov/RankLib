@@ -110,6 +110,9 @@
 				RelativePath=".\BooleanAndNode.cpp">
 			</File>
 			<File
+				RelativePath=".\BulkTree.cpp">
+			</File>
+			<File
 				RelativePath=".\CachedFrequencyBeliefNode.cpp">
 			</File>
 			<File
@@ -434,6 +437,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\Buffer.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\BulkTree.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\CachedFrequencyBeliefNode.hpp">

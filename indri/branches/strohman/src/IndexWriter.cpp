@@ -22,6 +22,7 @@
 #include "indri/DiskIndex.hpp"
 #include "indri/DocumentDataIterator.hpp"
 #include "indri/MemoryIndex.hpp"
+#include "indri/BulkTree.hpp"
 
 #include "indri/IndriTimer.hpp"
 const int KEYFILE_MEMORY_SIZE = 128*1024;
@@ -134,16 +135,16 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
   std::string manifestPath = Path::combine( path, "manifest" );
 
   // infrequent stuff
-  _infrequentTerms.idMap = new Keyfile();
-  _infrequentTerms.idMap->create( infrequentIDPath, KEYFILE_MEMORY_SIZE );
-  _infrequentTerms.stringMap = new Keyfile();
-  _infrequentTerms.stringMap->create( infrequentStringPath, KEYFILE_MEMORY_SIZE );
+  _infrequentTerms.idMap = new BulkTreeWriter();
+  _infrequentTerms.idMap->create( infrequentIDPath );
+  _infrequentTerms.stringMap = new BulkTreeWriter();
+  _infrequentTerms.stringMap->create( infrequentStringPath );
 
   // frequent stuff
-  _frequentTerms.idMap = new Keyfile();
-  _frequentTerms.idMap->create( frequentIDPath, KEYFILE_MEMORY_SIZE );
-  _frequentTerms.stringMap = new Keyfile();
-  _frequentTerms.stringMap->create( frequentStringPath, KEYFILE_MEMORY_SIZE );
+  _frequentTerms.idMap = new BulkTreeWriter();
+  _frequentTerms.idMap->create( frequentIDPath );
+  _frequentTerms.stringMap = new BulkTreeWriter();
+  _frequentTerms.stringMap->create( frequentStringPath );
   _frequentTermsData.create( frequentTermsDataPath );
 
   // stats, inverted file, direct file
@@ -489,19 +490,10 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
 }
 
 //
-// _storeTermEntry
+// _storeStringEntry
 //
 
-void IndexWriter::_storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData ) {
-  // add term data to id map (storing term string)
-  _termDataBuffer.clear();
-  RVLCompressStream idStream( _termDataBuffer );
-
-  disktermdata_compress( idStream, diskTermData, _fields.size(), indri::index::DiskTermData::WithString |
-                                                                    indri::index::DiskTermData::WithOffsets );
-
-  pair.idMap->put( diskTermData->termID, idStream.data(), idStream.dataSize() );
-
+void IndexWriter::_storeStringEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData ) {
   // add term data to string map (storing termID)
   _termDataBuffer.clear();
   RVLCompressStream stringStream( _termDataBuffer );
@@ -513,26 +505,47 @@ void IndexWriter::_storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index
 }
 
 //
+// _storeIdEntry
+//
+
+void IndexWriter::_storeIdEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData ) {
+  // add term data to id map (storing term string)
+  _termDataBuffer.clear();
+  RVLCompressStream idStream( _termDataBuffer );
+
+  disktermdata_compress( idStream, diskTermData, _fields.size(), indri::index::DiskTermData::WithString |
+                                                                    indri::index::DiskTermData::WithOffsets );
+
+  pair.idMap->put( diskTermData->termID, idStream.data(), idStream.dataSize() );
+}
+
+//
+// _storeTermEntry
+//
+
+void IndexWriter::_storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData ) {
+  _storeIdEntry( pair, diskTermData );
+  _storeStringEntry( pair, diskTermData );
+}
+
+//
 // _storeFrequentTerms
 //
 
 void IndexWriter::_storeFrequentTerms() {
-  // sort the _topTerms vector by term count
-  std::sort( _topTerms.begin(), _topTerms.end(), disktermdata_greater() );
-
-  for( int i=0; i<_topTerms.size(); i++ ) {
-    int termID = i+1;
-    _topTerms[i]->termID = termID;
-    _storeTermEntry( _frequentTerms, _topTerms[i] );
-  }
-
-  // store data in a file, too
+  // (frequent terms file structures)
   SequentialWriteBuffer writeBuffer( _frequentTermsData, 1024*1024 );
   Buffer intermediateBuffer( 128*1024 );
   RVLCompressStream stream( intermediateBuffer );
 
-  for( int i=0; i<_topTerms.size(); i++ ) { 
-    _topTerms[i]->termID = i+1;
+  // sort the _topTerms vector by term count
+  std::sort( _topTerms.begin(), _topTerms.end(), disktermdata_count_greater() );
+
+  // store in the tree and in a flat file
+  for( int i=0; i<_topTerms.size(); i++ ) {
+    int termID = i+1;
+    _topTerms[i]->termID = termID;
+    _storeIdEntry( _frequentTerms, _topTerms[i] );
 
     ::disktermdata_compress( stream,
                              _topTerms[i],
@@ -543,6 +556,14 @@ void IndexWriter::_storeFrequentTerms() {
 
     writeBuffer.write( intermediateBuffer.front(), intermediateBuffer.position() );
     intermediateBuffer.clear();
+  }
+
+  // now, sort in alpha order
+  std::sort( _topTerms.begin(), _topTerms.end(), disktermdata_alpha_less() );
+
+  // store in a string tree
+  for( int i=0; i<_topTerms.size(); i++ ) {
+    _storeStringEntry( _frequentTerms, _topTerms[i] );
   }
 
   writeBuffer.flush();
@@ -664,6 +685,11 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
   // at this point, we need to fill in all the "top" vocabulary data into the keyfile
   _storeFrequentTerms();
 
+  _frequentTerms.idMap->flush();
+  _frequentTerms.stringMap->flush();
+  _infrequentTerms.idMap->flush();
+  _infrequentTerms.stringMap->flush();
+
   ::termdata_delete( termData, _fields.size() );
   _invertedOutput->flush();
   delete _invertedOutput;
@@ -674,7 +700,7 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
 // _lookupTermID
 //
 
-int IndexWriter::_lookupTermID( Keyfile& keyfile, const char* term ) {
+int IndexWriter::_lookupTermID( BulkTreeWriter& keyfile, const char* term ) {
   char compressedData[16*1024];
   char uncompressedData[16*1024];
   int actual;
@@ -697,8 +723,8 @@ int IndexWriter::_lookupTermID( Keyfile& keyfile, const char* term ) {
 // _buildTermTranslator
 //
 
-indri::index::TermTranslator* IndexWriter::_buildTermTranslator( Keyfile& newInfrequentTerms,
-                                            Keyfile& newFrequentTerms,
+indri::index::TermTranslator* IndexWriter::_buildTermTranslator( BulkTreeWriter& newInfrequentTerms,
+                                            BulkTreeWriter& newFrequentTerms,
                                             TermRecorder& oldFrequentTermsRecorder,
                                             HashTable<int, int>* oldInfrequentHashTable,
                                             TermRecorder& newFrequentTermsRecorder,
@@ -812,6 +838,8 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
   iterator->startIteration();
   TermList writeList;
   Buffer outputBuffer( 256*1024 );
+
+  std::cout << "DONE MAKING TERM TRANSLATOR" << std::endl;
 
   indri::index::DocumentDataIterator* dataIterator = context->index->documentDataIterator();
   dataIterator->startIteration();

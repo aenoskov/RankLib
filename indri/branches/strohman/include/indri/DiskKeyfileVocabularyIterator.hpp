@@ -12,6 +12,7 @@
 #include "lemur/Keyfile.hpp"
 #include "indri/VocabularyIterator.hpp"
 #include "indri/Mutex.hpp"
+#include "indri/BulkTree.hpp"
 
 namespace indri {
   namespace index {
@@ -19,7 +20,7 @@ namespace indri {
     private:
       DiskTermData* _diskTermData;
       int _baseID;
-      Keyfile& _keyfile;
+      BulkTreeReader& _keyfile;
       char _data[16*1024];
       int _fieldCount;
 
@@ -34,7 +35,7 @@ namespace indri {
       void _release();
 
     public:
-      DiskKeyfileVocabularyIterator( int baseID, Keyfile& keyfile, Mutex& mutex, int fieldCount );
+      DiskKeyfileVocabularyIterator( int baseID, BulkTreeReader& keyfile, Mutex& mutex, int fieldCount );
       
       void startIteration();
       bool nextEntry();

@@ -165,8 +165,8 @@ public:
     _collection = 0;
     _readOnly = false;
     _thrashing = false;
-    memset( _documentLoad, 0, sizeof(indri::atomic::value_type)*LOAD_MINUTES*LOAD_MINUTE_FRACTION );
-    memset( _queryLoad, 0, sizeof(indri::atomic::value_type)*LOAD_MINUTES*LOAD_MINUTE_FRACTION );
+    memset( (void*) _documentLoad, 0, sizeof(indri::atomic::value_type)*LOAD_MINUTES*LOAD_MINUTE_FRACTION );
+    memset( (void*) _queryLoad, 0, sizeof(indri::atomic::value_type)*LOAD_MINUTES*LOAD_MINUTE_FRACTION );
   }
 
   ~Repository() {
