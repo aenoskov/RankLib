@@ -55,7 +55,8 @@ public class RetrievalEngine {
 	public Pair runQuery( String query, int numResults ) {
 		Vector allScores = new Vector();		
 					
-		System.err.println( "Running query: " + query );		
+		System.err.println( "Running query: " + query );
+		
 		QueryAnnotation annotation = indri.runAnnotatedQuery( query, numResults );
 		ScoredExtentResult [] results = annotation.getResults();
 		
@@ -85,6 +86,29 @@ public class RetrievalEngine {
 		
 		queries = getQuerySentences( query );
 		
+		//long startTime1 = System.currentTimeMillis();
+		String initialQuery = "";
+		for( int queryNum = 0; queryNum < queries.size(); queryNum++ )
+			initialQuery += (String)queries.elementAt( queryNum );
+		initialQuery = "#combine( " + initialQuery + " )";
+		
+		ScoredExtentResult [] score = indri.runQuery( initialQuery, 1000 );
+		int [] ids = new int[ score.length ];
+		for( int i = 0; i < score.length; i++ )
+			ids[ i ] = score[i].document;
+		
+		// run a query for each sentence
+		for( int queryNum = 0; queryNum < queries.size(); queryNum++ ) {
+			String q = (String)queries.elementAt( queryNum );
+			System.err.println( "[" + (queryNum+1) + "/" + queries.size() + "] Running query: " + queryOp + queryExtent + "(" + q + ")" );
+			//ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", 1000 );
+			ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", ids, 1000 );
+			allScores.add( scores );
+		}
+		//long endTime1 = System.currentTimeMillis();
+
+		/*allScores.clear();
+		long startTime2 = System.currentTimeMillis();
 		// run a query for each sentence
 		for( int queryNum = 0; queryNum < queries.size(); queryNum++ ) {
 			String q = (String)queries.elementAt( queryNum );
@@ -92,7 +116,11 @@ public class RetrievalEngine {
 			ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", 1000 );
 			allScores.add( scores );
 		}
-
+		long endTime2 = System.currentTimeMillis();
+		
+		System.out.println("Method 1 time = " + ( endTime1 - startTime1 )/1000.0 + " seconds.");
+		System.out.println("Method 2 time = " + ( endTime2 - startTime2 )/1000.0 + " seconds."); */
+		
 		System.err.println( "Combining scores...");
 		Vector results = scoreResults( allScores, queryExtent );
 		
