@@ -15,6 +15,7 @@
 #include "indri/ScopedLock.hpp"
 
 #include "lemur/Keyfile.hpp"
+#include "indri/greedy_vector"
 
 const int ONE_MEGABYTE = 1024*1024;
 
@@ -37,6 +38,19 @@ int indri::index::MemoryIndex::_fieldID( const char* fieldName ) {
 
 int indri::index::MemoryIndex::_fieldID( const std::string& fieldName ) {
   return _fieldID( fieldName.c_str() );
+}
+
+//
+// _writeFieldExtents
+//
+
+void indri::index::MemoryIndex::_writeFieldExtents( int documentID, greedy_vector<indri::index::FieldExtent>& indexedTags ) {
+  // write field data out
+  for( unsigned int i=0; i<indexedTags.size(); i++ ) {
+    indri::index::FieldExtent& extent = indexedTags[i];
+    _termList.addField( extent );
+    _fieldLists[extent.id-1]->addLocation( documentID, extent.begin, extent.end, extent.number );
+  }
 }
 
 //
@@ -221,7 +235,7 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
       indri::index::TermFieldStatistics* termField = &entry->termData->fields[tag->id-1];
       termField->addOccurrence( documentID );
 
-      indri::index::FieldStatistics* field = &_fieldData[tag->id-1]->statistics;
+      indri::index::FieldStatistics* field = &_fieldData[tag->id-1];
       field->addOccurrence( documentID );
     }
 
@@ -230,12 +244,7 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     indexedTerms++;
   }
 
-  // write field data out
-  for( unsigned int i=0; i<indexedTags.size(); i++ ) {
-    indri::index::FieldExtent& extent = indexedTags[i];
-    _termList.addField( extent );
-    _fieldData[extent.id-1]->list->addExtent( documentID, extent.begin, extent.end, extent.number );
-  }
+  _writeFieldExtents( documentID, indexedTags );
 
   UINT64 offset;
   int byteLength;

@@ -65,6 +65,8 @@ namespace indri {
         int document;
         greedy_vector<int> positions;
       };
+      
+      virtual ~DocListIterator() {};
 
       // get the iterator ready to return data; call this before calling currentEntry or nextEntry
       virtual void startIteration();

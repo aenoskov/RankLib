@@ -11,19 +11,20 @@
 #include "indri/Mutex.hpp"
 #include "indri/TermData.hpp"
 #include "indri/DocListFileIterator.hpp"
+#include "indri/DocListMemoryBuilder.hpp"
 #include <algorithm>
 
 namespace indri {
   namespace index {
     class MemoryIndexDocListFileIterator : public DocListFileIterator {
     private:
-      std::vector<indri::index::TermData*>& _termData;
-      std::vector<indri::index::TermData*>  _alphabetical;
-      std::vector<indri::index::TermData*>::iterator _currentTerm;
+      const std::vector<MemoryIndex::term_entry*>& _termData;
+      std::vector<MemoryIndex::term_entry*> _alphabetical;
+      std::vector<MemoryIndex::term_entry*>::iterator _currentTerm;
       indri::index::DocListMemoryBuilderIterator _iterator;
       
     public:
-      MemoryIndexDocListFileIterator( std::vector<indri::index::TermData*>& termData ) :
+      MemoryIndexDocListFileIterator( const std::vector<MemoryIndex::term_entry*>& termData ) :
         _termData(termData)
       {
       }
@@ -33,16 +34,16 @@ namespace indri {
         std::copy( _termData.begin(), _termData.end(), std::back_inserter( _alphabetical ) );
         assert( _alphabetical.size() );
         
-        std::sort( _alphabetical.begin(), _alphabetical.end(), TermData::term_less() );
+        std::sort( _alphabetical.begin(), _alphabetical.end(), MemoryIndex::term_entry::term_less() );
         _currentTerm = _alphabetical.begin();
-        _iterator.reset( _currentTerm );
+        _iterator.reset( (*_currentTerm)->list );
       }
       
-      const DocListIterator* current() { 
+      DocListIterator* currentEntry() { 
         return &_iterator;
       }
       
-      bool next() {
+      bool nextEntry() {
         if( _currentTerm == _alphabetical.end() )
           return false;
         _currentTerm++;
@@ -50,7 +51,7 @@ namespace indri {
         if( _currentTerm == _alphabetical.end() )
           return false;
         
-        _iterator.reset( _currentTerm );
+        _iterator.reset( (*_currentTerm)->list );
       }
     };
   }

@@ -87,7 +87,7 @@ namespace indri {
       
       struct term_less {
       public:
-        bool operator () ( const TermData*& one, const TermData*& two ) const {
+        bool operator () ( const TermData* one, const TermData* two ) const {
           return strcmp( one->term, two->term ) < 0;
         }
       };

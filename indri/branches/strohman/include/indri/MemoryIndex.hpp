@@ -25,25 +25,32 @@
 #include "indri/DocListMemoryBuilder.hpp"
 #include "indri/FieldStatistics.hpp"
 #include "indri/CorpusStatistics.hpp"
+#include "indri/DocExtentListMemoryBuilder.hpp"
 
 namespace indri {
   namespace index {
     class MemoryIndex : public Index {
+    public:
+      // vocabulary structure
+      struct term_entry {
+        struct term_less {
+          bool operator() ( const term_entry* one, const term_entry* two ) const {
+            return strcmp( one->term, two->term ) < 0;
+          }
+        };
+    
+        char* term;
+        int termID;
+        indri::index::DocListMemoryBuilder list;
+        TermData* termData;
+      };
+      
     private:
       Mutex _lock;
 
       CorpusStatistics _corpusStatistics;
       UINT64 _baseDocumentID;
       
-
-      // vocabulary structure
-      struct term_entry {
-        char* term;
-        int termID;
-        indri::index::DocListMemoryBuilder list;
-        TermData* termData;
-      };
-
       // document buffers
       indri::index::TermList _termList;
       greedy_vector<term_entry*> _seenTerms;
@@ -55,6 +62,7 @@ namespace indri {
       // field statistics
       HashTable<const char*, int> _fieldLookup;
       std::vector<FieldStatistics> _fieldData;
+      std::vector<indri::index::DocExtentListMemoryBuilder*> _fieldLists;
       
       // document statistics
       std::vector<indri::index::DocumentData> _documentData;
@@ -69,6 +77,7 @@ namespace indri {
                          unsigned int& extentIndex, 
                          unsigned int position );
       void _removeClosedTags( greedy_vector<indri::index::FieldExtent>& tags, unsigned int position );
+      void _writeFieldExtents( int documentID, greedy_vector<indri::index::FieldExtent>& indexedTags );
       void _writeDocumentTermList( UINT64& offset, int& byteLength, int documentID, int documentLength, indri::index::TermList& locatedTerms );
       void _writeDocumentStatistics( UINT64 offset, int byteLength, int indexedLength, int totalLength, int uniqueTerms );
       term_entry* _lookupTerm( const char* term );
