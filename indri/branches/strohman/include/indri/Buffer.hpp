@@ -65,6 +65,13 @@ private:
   size_t _position;
 
 public:
+  Buffer( size_t length ) :
+    _buffer( (char*) malloc( length ) ),
+    _size( length ),
+    _position(0)
+  {
+  }
+
   Buffer() :
     _buffer(0),
     _size(0),

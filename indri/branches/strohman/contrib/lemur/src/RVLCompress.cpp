@@ -113,7 +113,7 @@ int RVLCompress::compress_ints (int *data_ptr,
 
 }
 
-int RVLCompress::compressedSize( int data ) {
+int RVLCompress::compressedSize( INT64 data ) {
   if( data < pow2_7 ) {
     return 1;
   } else if ( data < pow2_14 ) {
@@ -122,8 +122,18 @@ int RVLCompress::compressedSize( int data ) {
     return 3;
   } else if ( data < pow2_28 ) {
     return 4;
-  } else {
+  } else if ( data < UINT64(1)<<35 ) {
     return 5;
+  } else if ( data < UINT64(1)<<42 ) {
+    return 6;
+  } else if ( data < UINT64(1)<<49 ) {
+    return 7;
+  } else if ( data < UINT64(1)<<56 ) {
+    return 8;
+  } else if ( data < UINT64(1)<<63 ) {
+    return 9;
+  } else {
+    return 10;
   }
 }
 

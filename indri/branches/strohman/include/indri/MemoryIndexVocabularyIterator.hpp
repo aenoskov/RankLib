@@ -1,5 +1,4 @@
 
-
 //
 // MemoryIndexVocabularyIterator
 //
@@ -16,12 +15,12 @@ namespace indri {
   namespace index {
     class MemoryIndexVocabularyIterator {
     private:
-      std::vector<indri::index::TermData*>& _termData;
-      std::vector<indri::index::TermData*>& _alphabetical;
+      const std::vector<indri::index::TermData*>& _termData;
+      std::vector<indri::index::TermData*> _alphabetical;
       std::vector<indri::index::TermData*>::iterator _iterator;
       
     public:
-      MemoryIndexVocabularyIterator( std::vector<indri::index::TermData*>& termData ) :
+      MemoryIndexVocabularyIterator( const std::vector<indri::index::TermData*>& termData ) :
         _termData(termData)
       {
       }

@@ -55,6 +55,8 @@
 #ifndef INDRI_DOCLISTITERATOR_HPP
 #define INDRI_DOCLISTITERATOR_HPP
 
+#include "greedy_vector"
+
 namespace indri {
   namespace index {
     class DocListIterator {
