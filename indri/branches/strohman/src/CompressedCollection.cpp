@@ -598,7 +598,7 @@ void CompressedCollection::addDocument( int documentID, ParsedDocument* document
   zlib_deflate_finish( *_stream, _output );
 
   // store this data under the document ID
-  //_lookup.put( documentID, &offset, sizeof offset );
+  _lookup.put( documentID, &offset, sizeof offset );
 }
 
 
