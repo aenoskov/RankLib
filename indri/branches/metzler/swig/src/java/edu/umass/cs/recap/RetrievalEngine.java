@@ -198,7 +198,7 @@ public class RetrievalEngine {
 	// scores a single document by probabilistically combining
 	// scores
 	private double getDocScoreProb( Integer i, HashMap results, String metadata ) {
-		double score = 0.0;
+		double score = EPSILON;
 		
 		int numExtents = 1;
 		if( metadata != null && !metadata.equals("") )
@@ -210,7 +210,10 @@ public class RetrievalEngine {
 		else {
 			for( int j = 0; j < v.size(); j++ ) {
 				ScoredExtentResult s = (ScoredExtentResult)v.elementAt( j );
-				score += Math.exp( 1.0*s.score ) / ( 1.0 * numExtents );
+				double tmpScore = Math.exp( 1.0*s.score ); // / ( 1.0 * numExtents );
+				if( tmpScore > score )
+					score = tmpScore;
+				//score += Math.exp( 1.0*s.score ) / ( 1.0 * numExtents );
 			}
 		}
 		
@@ -244,6 +247,7 @@ public class RetrievalEngine {
 		}
 		
 		String [] docNames = indri.documentMetadata( ids, "docno" );
+		String [] docDates = indri.documentMetadata( ids, "date" );
 		
 		for( int i = 0; i < docs.size(); i++ ) {
 			ScoredDocInfo info = (ScoredDocInfo)docs.elementAt( i );
@@ -255,8 +259,8 @@ public class RetrievalEngine {
 				info.year = 1900 + Integer.parseInt(docNames[i].substring(3,5));
 			}
 			else if( docNames[i].startsWith("LA") ) {
-				info.date = Integer.parseInt(docNames[i].substring(2,4));
-				info.month = Integer.parseInt(docNames[i].substring(4,6));
+				info.date = Integer.parseInt(docNames[i].substring(4,6));
+				info.month = Integer.parseInt(docNames[i].substring(2,4));
 				info.year = 1900 + Integer.parseInt(docNames[i].substring(6,8));				
 			}
 			else if( docNames[i].startsWith("AP") ) {
@@ -264,7 +268,17 @@ public class RetrievalEngine {
 				info.month = Integer.parseInt(docNames[i].substring(4,6));
 				info.year = 1900 + Integer.parseInt(docNames[i].substring(2,4));
 			}
-			// TODO: fix this to handle FBIS, FT, and SJMN
+			else if( docNames[i].startsWith("FT") ) {
+				info.date = Integer.parseInt(docDates[i].trim().substring(4,6));
+				info.month = Integer.parseInt(docDates[i].trim().substring(2,4));
+				info.year = 1900 + Integer.parseInt(docDates[i].trim().substring(0,2));				
+			}
+			else if( docNames[i].startsWith("SJMN") ) {				
+				info.date = Integer.parseInt(docDates[i].trim().substring(4,6));
+				info.month = Integer.parseInt(docDates[i].trim().substring(2,4));
+				info.year = 1900 + Integer.parseInt(docDates[i].trim().substring(0,2));				
+			}
+			// For all other sources the default date is set to January 1st, 1989.
 			else {
 				info.date = 1;
 				info.month = 1;

@@ -119,31 +119,33 @@ public class TimelinePanel extends JPanel {
 		int width = getWidth();
 		int height = getHeight();
 		int midY = (int)(1.0*height/2.0);
-		
+	
 		// draw main horizontal axis
 		g.drawLine( HORIZONTAL_INSET, midY,
 				    width-HORIZONTAL_INSET, midY);
 		
 		// width that each type of segment takes up
-		int yearWidth = (int)( ( width - 2.0*HORIZONTAL_INSET ) / ( maxYear - minYear + 1.0 ) );
-		//int monthWidth = (int)Math.ceil( yearWidth / 12.0 );
-		//int dayWidth = (int)Math.ceil( monthWidth / 31.0 );
+		int numMonths = 12 * ( maxYear - minYear ) - minMonth + maxMonth + 1;
+		int monthWidth = (int)( ( width - 2.0*HORIZONTAL_INSET ) / ( 1.0*numMonths ) );
+		int dayWidth = (int)Math.ceil( monthWidth / 31.0 );
 		
 		// draw documents on axis
 		for( int i = 0; i < results.size(); i++ ) {
-			int xPos = HORIZONTAL_INSET;
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
 			
 			// find where we should put this document
-			xPos += (info.year - minYear)*yearWidth;
-			xPos += (int)(info.month-1)*( yearWidth / 12.0 );
-			xPos += (int)(info.date-1)*( yearWidth / (12.0 * 31.0 ) );
-			
+			int monthOffset = 12 * ( info.year - minYear ) - minMonth + info.month;
+			int xPos = HORIZONTAL_INSET + monthOffset*monthWidth + (info.date - 1)*dayWidth;
+		
 			int size = MIN_SIZE + (int)(( MAX_SIZE - MIN_SIZE )* ( Math.exp( info.score ) / Math.exp( maxScore ) ) );
 
 			// add oval for this document
 			ovals.add( new Ellipse2D.Double( xPos-size, midY-size, 2*size, 2*size ) );
-			
+
+			// make sure we're actually on the screen
+			if( xPos-size < HORIZONTAL_INSET || xPos+size > width - HORIZONTAL_INSET )
+				continue;
+
 			if( info == currentInfo ) {
 				// TODO: make this into a "drawDoc" function
 				g.setColor( new Color( 0.0f, 1.0f, 0.0f, 1.0f ) );
@@ -160,18 +162,21 @@ public class TimelinePanel extends JPanel {
 		}
 		
 		// draw tickmarks for every year / month
-		for( int i = minYear; i <= maxYear+1; i++ ) {
-			int xPos = HORIZONTAL_INSET;
-			int yearPos = xPos + (i - minYear)*yearWidth;
+		int curYear = minYear + 1;
+		if( minMonth == 1 ) // the first tick we draw will be a year tick
+			curYear = minYear;
+		int xPos = HORIZONTAL_INSET;
+		for( int curMonth = 0; curMonth <= numMonths; curMonth++ ) {
 			g.setColor( Color.black );
-			g.drawLine( yearPos, midY-YEAR_TICK_SIZE, yearPos, midY+YEAR_TICK_SIZE );
-			g.setColor( Color.blue );
-			g.drawString(""+i, yearPos-5, midY-YEAR_TICK_SIZE);
-			for( int j = 0; j < 12; j++ ) {
-				int monthPos = (int)( yearPos + j*( yearWidth / 12.0 ) );
-				g.setColor( Color.black );
-				g.drawLine( monthPos, midY-MONTH_TICK_SIZE, monthPos, midY+MONTH_TICK_SIZE );
+			if( ( minMonth + curMonth - 1 ) % 12 == 0 ) {
+				g.drawLine( xPos, midY-YEAR_TICK_SIZE, xPos, midY+YEAR_TICK_SIZE );
+				g.setColor( Color.blue );
+				g.drawString(""+curYear, xPos-15, midY-YEAR_TICK_SIZE);
+				curYear++;
 			}
+			else
+				g.drawLine( xPos, midY-MONTH_TICK_SIZE, xPos, midY+MONTH_TICK_SIZE );
+			xPos += monthWidth;
 		}
  	}
 	
@@ -189,15 +194,17 @@ public class TimelinePanel extends JPanel {
 		return minMonth + "/" + minDate + "/" + minYear;  
 	}
 	
-	public void setStartDate( String start ) {
-		
+	public void setStartDate( int month, int year ) {
+		minMonth = month;		
+		minYear = year;
 	}
 	
 	public String getEndDate() {
 		return maxMonth + "/" + maxDate + "/" + maxYear;  
 	}
 	
-	public void setEndDate( String end ) {
-		
+	public void setEndDate( int month, int year ) {
+		maxMonth = month;
+		maxYear = year;
 	}
 }
