@@ -633,7 +633,7 @@ void Repository::_closeIndexes() {
 
   for( int i=0; i<_active->size(); i++ ) {
     (*_active)[i]->close();
-    (*_active)[i] = 0; // deletes the index
+    delete (*_active)[i];
   }
 
   // deletes the active state
@@ -990,3 +990,5 @@ void Repository::_stopThreads() {
     _maintenanceThread = 0;
   }
 }
+
+
