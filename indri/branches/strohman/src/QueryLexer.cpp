@@ -1,5 +1,5 @@
 /* $ANTLR 2.7.4: "indrilang.g" -> "QueryLexer.cpp"$ */
-#include "QueryLexer.hpp"
+#include "indri/QueryLexer.hpp"
 #include <antlr/CharBuffer.hpp>
 #include <antlr/TokenStreamException.hpp>
 #include <antlr/TokenStreamIOException.hpp>
