@@ -338,7 +338,7 @@ void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byt
 // _writeDocumentStatistics
 //
 
-void indri::index::MemoryIndex::_writeDocumentStatistics( UINT64 offset, int byteLength, int indexedLength, int totalLength, int uniqueTerms ) {
+void indri::index::MemoryIndex::_writeDocumentStatistics( UINT64 offset, int byteLength, int indexedLength, int uniqueTerms ) {
   indri::index::DocumentData data;
   
   data.offset = offset;
@@ -456,7 +456,6 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   unsigned int extentIndex = 0;
   greedy_vector<indri::index::FieldExtent> openTags;
   greedy_vector<indri::index::FieldExtent> indexedTags;
-  unsigned int indexedTerms = 0;
   greedy_vector<char*>& words = document.terms;
   term_entry* entries = 0;
 
@@ -525,11 +524,11 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     }
 
     _removeClosedTags( openTags, position );
-    indexedTerms++;
   }
 
   // go through the list of terms we've seen and update doc length counts
   term_entry* entry = entries;
+  int uniqueTerms = 0;
 
   while( entry ) {
     indri::index::TermData* termData = entry->termData;
@@ -542,6 +541,7 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     entry->list.endDocument();
     entry = entry->hasNext() ? entry->next : 0;
     old->clearMark();
+    uniqueTerms++;
   }
 
   // write out any field data we've encountered
@@ -551,7 +551,7 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   int byteLength;
 
   _writeDocumentTermList( offset, byteLength, documentID, int(words.size()), _termList );
-  _writeDocumentStatistics( offset, byteLength, indexedTerms, int(words.size()), indexedTerms );
+  _writeDocumentStatistics( offset, byteLength, int(words.size()), uniqueTerms );
 
   return documentID;
 }
