@@ -98,7 +98,7 @@ jobject documentvector_copy( JNIEnv* jenv, DocumentVector* vec ) {
 }
 
 %typemap(java,out) std::vector<DocumentVector*> {
-  jclass docVecClazz = jenv->FindClass( "Ledu/umass/cs/indri/DocumentVector" );
+  jclass docVecClazz = jenv->FindClass( "edu/umass/cs/indri/DocumentVector" );
   $result = jenv->NewObjectArray($1.size(), docVecClazz, NULL);
 
   for( unsigned int i=0; i<$1.size(); i++ ) {
