@@ -101,6 +101,14 @@ bool indri::index::DiskDocExtentListIterator::nextEntry( int documentID ) {
     _readEntry();
   }
 
+  // it's possible that documentID < _skipDocument,
+  // but we've run to the end of all the documents in this
+  // skip section.  In this case, skip forward.
+  if( _list == _listEnd && _data.document < documentID && _skipDocument > documentID ) {
+    _readSkip();
+    _readEntry();
+  }
+
   if( _data.document >= documentID ) {
     return true;
   } else {
