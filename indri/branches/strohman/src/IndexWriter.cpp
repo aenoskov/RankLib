@@ -383,6 +383,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
   std::priority_queue<DocListIterator::TopDocument,
                       std::vector<DocListIterator::TopDocument>,
                       DocListIterator::TopDocument::less> topdocs;
+  DocListIterator::TopDocument::less docLess;
 
   int lastDocument = 0;
 
@@ -405,9 +406,11 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
 
       // update the topdocs list
       if( hasTopdocs ) {
-        topdocs.push( topDocument );
-        while( topdocs.size() > topdocsCount )
-          topdocs.pop();
+        if( docLess( topDocument, topdocs.top()) ) {
+          topdocs.push( topDocument );
+          while( topdocs.size() > topdocsCount )
+            topdocs.pop();
+        }
       }
 
       if( listBuffer.position() > minimumSkip ) {
