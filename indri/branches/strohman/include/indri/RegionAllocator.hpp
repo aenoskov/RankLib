@@ -16,8 +16,14 @@ class RegionAllocator {
 private:
   std::vector<Buffer*> _buffers;
   std::vector<void*> _malloced;
+  size_t _mallocBytes;
 
 public:
+  RegionAllocator() :
+    _mallocBytes(0)
+  {
+  }
+
   ~RegionAllocator() {
     delete_vector_contents( _buffers );
 
@@ -30,6 +36,7 @@ public:
     assert( bytes <= 1024*1024 );
     
     if( bytes > 1024*32 ) {
+      _mallocBytes += bytes;
       _malloced.push_back( malloc( bytes ) );
       return _malloced.back();
     }
@@ -43,58 +50,10 @@ public:
     _buffers.push_back( new Buffer( 1024*1024 ) );
     return allocate( bytes );
   }
-};
 
-template<class T>
-class StandardRegionAllocator {
-private:
-  RegionAllocator& _alloc;
-
-public:
-  typedef T* pointer;
-  typedef const T* const_pointer;
-  typedef T& reference;
-  typedef const T& const_reference;
-  typedef size_t size_type;
-
-  StandardRegionAllocator( RegionAllocator alloc ) :
-    _alloc( alloc )
-  {
+  size_t allocatedBytes() {
+    return _buffers.size() * 1024*1024 + _mallocBytes;
   }
-
-  pointer address( reference val ) {
-    return &val;
-  }
-
-  const_pointer address( const_reference val ) {
-    return &val;
-  }
-
-  template<class Other>
-  pointer allocate( size_type count, const Other* hint ) {
-    return _alloc.allocate( count * sizeof(T) );
-  }
-
-  void destroy( pointer p ) {
-    // does nothing
-  }
-
-  void deallocate( pointer p, size_type count ) {
-    // does nothing
-  }
-
-  size_type max_size() {
-    return ~( (size_type) 0 );
-  }
-
-  void construct( pointer p, reference val ) {
-    new(p) T(val);
-  }
-
-  template<class _Other>
-  struct rebind {
-    typedef std::allocator<_Other> other;
-  };
 };
 
 #endif // INDRI_REGIONALLOCATOR_HPP
