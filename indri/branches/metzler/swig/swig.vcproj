@@ -19,11 +19,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\j2sdk1.4.2_04\include\win32;C:\j2sdk1.4.2_04\include;..\contrib\lemur\include;..\include"
+				AdditionalIncludeDirectories="C:\j2sdk1.4.2_02\include\win32;C:\j2sdk1.4.2_02\include;..\contrib\lemur\include;..\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;SWIG_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="2"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="TRUE"

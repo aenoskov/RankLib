@@ -2557,7 +2557,10 @@ namespace indri {
 
         _hasCounts = unpacker.getBoolean( "hasCounts" );
         _hasContextSize = unpacker.getBoolean( "hasContextSize" );
-      }
+
+		_docOccurrences = unpacker.getInteger( "docOccurrences" );
+        _docCount = unpacker.getInteger( "docCount" );
+	  }
 
       std::string typeName() const {
         return "ContextSimpleCounterNode";
@@ -2579,6 +2582,9 @@ namespace indri {
 
         packer.put( "hasCounts", _hasCounts );
         packer.put( "hasContextSize", _hasContextSize );
+
+		packer.put( "docOccurrences", _docOccurrences );
+		packer.put( "docCount", _docCount );
         packer.after(this);
       }
 

@@ -41,13 +41,17 @@ void ContextSimpleCountAccumulator::_computeCounts( indri::index::Index& index )
 ContextSimpleCountAccumulator::ContextSimpleCountAccumulator( const std::string& nodeName,
                                                               const std::vector<std::string>& terms,
                                                               const std::string& field,
-                                                              const std::string& context ) :
+                                                              const std::string& context,
+															  UINT64 docOccurrences,
+															  int docCount ) :
   _name(nodeName),
   _terms(terms),
   _field(field),
   _context(context),
   _occurrences(0),
-  _size(0)
+  _size(0),
+  _docOccurrences(docOccurrences),
+  _docCount(docCount)
 {
 }
 
@@ -60,6 +64,9 @@ const EvaluatorNode::MResults& ContextSimpleCountAccumulator::getResults() {
 
   _results[ "occurrences" ].push_back( ScoredExtentResult( _occurrences, 0 ) );
   _results[ "contextSize" ].push_back( ScoredExtentResult( _size, 0 ) );
+
+  _results[ "docOccurrences" ].push_back( ScoredExtentResult( _docOccurrences, 0 ) );
+  _results[ "docCount" ].push_back( ScoredExtentResult( _docCount, 0 ) );
 
   return _results;
 }

@@ -210,11 +210,12 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 						dvPane.displayHighlightedDoc( info.docID );
 					repaint();
 				}
-				else { // 2+ clicks => analyze document
+				else { // 2+ clicks => analyze document					
 					//updater.setSelectedDoc( doc );					
-					dvPane.setSelectedDoc( info );
+					//dvPane.setSelectedDoc( info );
 					if( getMode().equals( "analyze" ) )
-						dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
+						dvPane.displayDoc( ((RecapStyledDocument)dvPane.getResultPane().getDocument()).unformattedClone() );
+						//dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
 				}
 			}
 		}
