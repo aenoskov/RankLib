@@ -72,6 +72,10 @@ public:
     return _belief->hasMatch( documentID );
   }
 
+  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+    return _belief->hasMatch( documentID, extents );
+  }
+
   void indexChanged( indri::index::Index& index ) {
     // do nothing
   }

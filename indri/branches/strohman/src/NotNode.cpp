@@ -59,6 +59,20 @@ bool NotNode::hasMatch( int documentID ) {
   return !_child->hasMatch( documentID );
 }
 
+const greedy_vector<bool>& NotNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  // flip the return vector
+  _matches.resize( extents.size(), false );
+  const greedy_vector<bool>& childMatches = _child->hasMatch( documentID, extents );
+
+  for( size_t i=0; i<childMatches.size(); i++ ) {
+    if( childMatches[i] == false ) {
+      _matches[i] = true;
+    }
+  }
+
+  return _matches;
+}
+
 void NotNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   annotator.add( this, documentID, begin, end );
   _child->annotate( annotator, documentID, begin, end );

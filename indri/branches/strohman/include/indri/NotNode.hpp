@@ -26,6 +26,7 @@ class NotNode : public BeliefNode {
 private:
   BeliefNode* _child;
   greedy_vector<ScoredExtentResult> _extents;
+  greedy_vector<bool> _matches;
   std::string _name;
 
 public:
@@ -35,6 +36,8 @@ public:
   double maximumScore();
   const greedy_vector<ScoredExtentResult>& score( int documentID, int start, int end, int documentLength );
   bool hasMatch( int documentID );
+  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& matchExtents );
+
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   
   int nextCandidateDocument();

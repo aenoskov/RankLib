@@ -27,6 +27,7 @@ class PriorNode : public BeliefNode {
 private:
   FieldIteratorNode* _field;
   std::map<int, indri::lang::PriorNode::tuple_type> _table;
+  greedy_vector<bool> _matches;
   greedy_vector<ScoredExtentResult> _scores;
   std::string _name;
 
@@ -38,6 +39,8 @@ public:
   void indexChanged( indri::index::Index& index );
 
   bool hasMatch( int documentID );
+  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents );
+
   const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   double maximumScore();

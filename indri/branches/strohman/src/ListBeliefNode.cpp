@@ -148,6 +148,36 @@ bool ListBeliefNode::hasMatch( int documentID ) {
   return _list.extents().size() > 0;
 }
 
+const greedy_vector<bool>& ListBeliefNode::hasMatch( int documentID, const greedy_vector<Extent>& matchExtents ) {
+  const greedy_vector<Extent>& extents = _list.extents();
+  _matches.clear();
+  _matches.resize( matchExtents.size(), false );
+
+  size_t i=0;
+  size_t j=0; 
+
+  while( i < extents.size() && j < matchExtents.size() ) {
+    if( matchExtents[j].begin > extents[i].begin ) {
+      i++;
+      continue;
+    }
+
+    if( matchExtents[j].end < extents[i].end ) {
+      j++;    
+      continue;
+    }
+
+    assert( matchExtents[j].begin <= extents[i].begin );
+    assert( matchExtents[j].end >= extents[i].end );
+
+    _matches[j] = true;
+    i++;
+    j++;
+  }
+
+  return _matches;
+}
+
 const std::string& ListBeliefNode::getName() const {
   return _name;
 }
