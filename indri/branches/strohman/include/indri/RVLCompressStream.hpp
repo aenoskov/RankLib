@@ -87,7 +87,7 @@ public:
   RVLCompressStream& operator<< ( int value ) {
     char* writePosition = _buffer.write(5);
     char* endPosition = RVLCompress::compress_int( writePosition, value );
-    _buffer.unwrite( endPosition - writePosition );
+    _buffer.unwrite( 5 - (endPosition - writePosition) );
     return *this;
   }
 
@@ -96,7 +96,7 @@ public:
   RVLCompressStream& operator<< ( unsigned int value ) {
     char* writePosition = _buffer.write(5);
     char* endPosition = RVLCompress::compress_int( writePosition, value );
-    _buffer.unwrite( endPosition - writePosition );
+    _buffer.unwrite( 5 - (endPosition - writePosition) );
     return *this;
   }
 
@@ -105,7 +105,7 @@ public:
   RVLCompressStream& operator<< ( INT64 value ) {
     char* writePosition = _buffer.write(10);
     char* endPosition = RVLCompress::compress_longlong( writePosition, value );
-    _buffer.unwrite( endPosition - writePosition );
+    _buffer.unwrite( 10 - (endPosition - writePosition) );
     return *this;
   }
 

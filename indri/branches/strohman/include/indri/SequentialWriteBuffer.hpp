@@ -50,6 +50,7 @@ public:
   void unwrite( size_t length ) {
     assert( length <= _current.buffer.position() );
     _current.buffer.unwrite( length );
+    _position -= length;
   }
   
   UINT64 tell() const {

@@ -9,6 +9,7 @@
 #define INDRI_INDEXWRITER_HPP
 
 #include <vector>
+#include <utility>
 #include <queue>
 
 #include "lemur/lemur-compat.hpp"
@@ -21,34 +22,50 @@
 #include "indri/DocListFileIterator.hpp"
 #include "indri/File.hpp"
 #include "indri/SequentialWriteBuffer.hpp"
+#include "indri/CorpusStatistics.hpp"
+#include "indri/FieldStatistics.hpp"
+#include "indri/TermBitmap.hpp"
+#include "indri/TermRecorder.hpp"
+#include "indri/TermTranslator.hpp"
 
-struct WriterInvertedList {
+struct WriterIndexContext {
   struct less {
   private:
     indri::index::DocListFileIterator::iterator_less _iterator_less;
   
   public:
-    bool operator () ( const WriterInvertedList*& one, const WriterInvertedList*& two ) const {
+    bool operator () ( const WriterIndexContext*& one, const WriterIndexContext*& two ) const {
       return _iterator_less( one->iterator, two->iterator );
     }
   };
 
-  WriterInvertedList( indri::index::DocListFileIterator* iter, indri::index::Index* _index ) {
+  WriterIndexContext( indri::index::DocListFileIterator* iter, indri::index::Index* _index ) {
     iterator = iter;
-    matches = 0;
+    bitmap = new indri::index::TermBitmap;
     index = _index;
+    infrequentIndex = 1;
 
     iterator->startIteration();
   }
 
+  ~WriterIndexContext() {
+    delete newlyFrequent;
+    delete newlyInfrequent;
+    delete bitmap;
+  }
+
   indri::index::DocListFileIterator* iterator;
-  indri::index::VocabularyMap* matches;
+  indri::index::TermBitmap* bitmap;
   indri::index::Index* index;
+
+  int infrequentIndex;
+  indri::index::TermRecorder* newlyFrequent;
+  indri::index::TermRecorder* newlyInfrequent;
 };
 
-typedef std::priority_queue<WriterInvertedList*,
-                            std::vector<WriterInvertedList*>,
-                            WriterInvertedList::less> invertedlist_pqueue;
+typedef std::priority_queue<WriterIndexContext*,
+                            std::vector<WriterIndexContext*>,
+                            WriterIndexContext::less> invertedlist_pqueue;
 
 namespace indri {
   namespace index {
@@ -85,19 +102,46 @@ namespace indri {
       greedy_vector<top_term_entry> _topTerms;
       Buffer _termDataBuffer;
 
-      int _fieldCount;
+      int _documentBase;
+      indri::index::CorpusStatistics _corpus;
+      std::vector<indri::index::Index::FieldDescription> _fields;
+      std::vector<indri::index::FieldStatistics> _fieldData;
 
-      void _pushInvertedLists( greedy_vector<WriterInvertedList*>& lists, invertedlist_pqueue& queue );
-      void _fetchMatchingInvertedLists( greedy_vector<WriterInvertedList*>& lists, invertedlist_pqueue& queue );
-      void _writeStatistics( greedy_vector<WriterInvertedList*>& lists, indri::index::TermData* termData );
+      void _writeManifest( const std::string& path );
+      void _writeSkip( SequentialWriteBuffer* buffer, int document, int length );
+      void _writeBatch( SequentialWriteBuffer* buffer, int document, int length, Buffer& data );
+
+      void _writeFieldLists( std::vector<indri::index::Index*>& indexes, const std::string& path );
+      void _writeFieldList( const std::string& fileName, std::vector<indri::index::DocExtentListIterator*> iterators );
+
+      void _pushInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
+      void _fetchMatchingInvertedLists( greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
+      void _writeStatistics( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData );
       void _writeInvertedLists( std::vector<indri::index::Index*>& indexes );
       void _storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::TermData* termData, INT64 startOffset, INT64 endOffset, int termID );
       void _storeFrequentTerms();
-      void _addInvertedListData( greedy_vector<WriterInvertedList*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset );
-      void _storeMatchInformation( int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
+      void _addInvertedListData( greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, Buffer& listBuffer, UINT64& startOffset, UINT64& endOffset );
+      void _storeMatchInformation( greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
+
+      int _lookupTermID( Keyfile& keyfile, const char* term );
+      void _writeDirectLists( std::vector<indri::index::Index*>& indexes, File& output );
+      void _writeDirectLists( indri::index::Index* index, WriterIndexContext* context, SequentialWriteBuffer* output );
+
+
+      indri::index::TermTranslator* _buildTermTranslator( Keyfile& newInfrequentTerms,
+                                                          Keyfile& newFrequentTerms,
+                                                          indri::index::TermRecorder& oldFrequentTermsRecorder,
+                                                          indri::index::TermRecorder& newFrequentTermsRecorder,
+                                                          indri::index::TermRecorder& newlyInfrequentTermsRecorder,
+                                                          indri::index::TermBitmap* bitmap );
+
+      enum {
+        TOPDOCS_DOCUMENT_COUNT = 1000,
+        FREQUENT_TERM_COUNT = 10000
+      };
 
     public:
-      IndexWriter( int fields );
+      IndexWriter();
       void write( indri::index::Index& index, const std::string& fileName );
     };
   }

@@ -98,15 +98,23 @@ public:
     }
     /// clean up
     ~parameter_value() {
+      clear();
+    }
+
+    /// remove any current value, and any subvalues of this parameter
+    void clear() {
       for( std::map<std::string, parameter_value*>::iterator iter = table.begin();
            iter != table.end();
            iter++ )
       {
         delete iter->second;
       }
+      table.clear();
 
       delete_vector_contents<parameter_value*>(array);
+      value = "";
     }
+
     /// convert single value to an entry in the vector array.
     void convertToArray() {
       if( !array.size() && ( table.size() || value.size() ) ) {
@@ -390,6 +398,9 @@ public:
   /// Set the value of the Parameters object
   /// @param value the value
   void set( const std::string& value );
+
+  /// Clear the parameter tree
+  void clear();
 
   /// @return the size of the object.
   size_t size();

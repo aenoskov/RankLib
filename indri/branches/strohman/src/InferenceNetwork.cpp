@@ -97,12 +97,20 @@ void InferenceNetwork::_indexFinished( indri::index::Index& index ) {
 void InferenceNetwork::_indexChanged( indri::index::Index& index ) {
   // doc iterators
   for( int i=0; i<_termNames.size(); i++ ) {
-    _docIterators.push_back( index.docListIterator( _termNames[i] ) );
+    indri::index::DocListIterator* iterator = index.docListIterator( _termNames[i] );
+    if( iterator )
+      iterator->startIteration();
+
+    _docIterators.push_back( iterator );
   }
 
   // field iterators
   for( int i=0; i<_fieldNames.size(); i++ ) {
-    _fieldIterators.push_back( index.fieldListIterator( _fieldNames[i] ) );
+    indri::index::DocExtentListIterator* iterator = index.fieldListIterator( _fieldNames[i] );
+    if( iterator )
+      iterator->startIteration();
+
+    _fieldIterators.push_back( iterator );
   }
 
   // extent iterator nodes

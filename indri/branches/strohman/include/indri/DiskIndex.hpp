@@ -24,6 +24,8 @@ namespace indri {
     private:
       Mutex _lock;
 
+      std::string _path;
+
       Keyfile _frequentStringToTerm;
       Keyfile _infrequentStringToTerm;
 
@@ -44,11 +46,13 @@ namespace indri {
       indri::index::DiskTermData* _fetchTermData( const char* termString );
 
       CorpusStatistics _corpusStatistics;
+      void _readManifest( const std::string& manifestPath );
 
     public:
-      void open( const std::string& path );
+      void open( const std::string& base, const std::string& relative );
       void close();
 
+      const std::string& path();
       int documentBase();
 
       int field( const char* fieldName );

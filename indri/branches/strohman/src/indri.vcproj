@@ -727,6 +727,9 @@
 				RelativePath="..\include\indri\PowerPointDocumentExtractor.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\QueryEnvironment.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\RawScorerNodeExtractor.hpp">
 			</File>
 			<File
@@ -790,6 +793,9 @@
 				RelativePath="..\include\indri\TagList.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\TermBitmap.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\TermData.hpp">
 			</File>
 			<File
@@ -805,10 +811,16 @@
 				RelativePath="..\include\indri\TermListBuilder.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\TermRecorder.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\TermScoreFunction.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\TermScoreFunctionFactory.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\TermTranslator.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\TextDocumentExtractor.hpp">

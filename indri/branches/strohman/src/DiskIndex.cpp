@@ -11,12 +11,42 @@
 #include "indri/DiskDocExtentListIterator.hpp"
 #include "indri/DiskDocListFileIterator.hpp"
 #include "indri/Path.hpp"
+#include "indri/Parameters.hpp"
+
+void indri::index::DiskIndex::_readManifest( const std::string& path ) {
+  Parameters manifest;
+  manifest.loadFile( path );
+
+  Parameters corpus = manifest["corpus"];
+
+  _corpusStatistics.totalDocuments = (int) corpus["total-documents"];
+  _corpusStatistics.totalTerms = (INT64) corpus["total-terms"];
+  _corpusStatistics.uniqueTerms = (int) corpus["unique-terms"];
+  _documentBase = (int) corpus["document-base"];
+
+  if( manifest.exists("fields") ) {
+    Parameters fields = manifest["fields"];
+
+    for( int i=0; i<fields.size(); i++ ) {
+      bool numeric = fields[i].get( "isNumeric", false );
+      int documentCount = fields[i].get("total-documents", 0 );
+      INT64 totalCount = fields[i].get("total-terms", INT64(0) );
+      std::string name = fields[i].get( "name", "" );
+
+      _fieldData.push_back( FieldStatistics( name, numeric, totalCount, documentCount ) );
+    }
+  }
+}
 
 //
 // open
 //
 
-void indri::index::DiskIndex::open( const std::string& path ) {
+void indri::index::DiskIndex::open( const std::string& base, const std::string& relative ) {
+  _path = relative;
+
+  std::string path = Path::combine( base, relative );
+
   std::string frequentStringPath = Path::combine( path, "frequentString" );
   std::string infrequentStringPath = Path::combine( path, "infrequentString" );
   std::string frequentIDPath = Path::combine( path, "frequentID" );
@@ -25,6 +55,9 @@ void indri::index::DiskIndex::open( const std::string& path ) {
   std::string documentStatisticsPath = Path::combine( path, "documentStatistics" );
   std::string invertedFilePath = Path::combine( path, "invertedFile" );
   std::string directFilePath = Path::combine( path, "directFile" );
+  std::string manifestPath = Path::combine( path, "manifest" );
+
+  _readManifest( manifestPath );
 
   _frequentStringToTerm.openRead( frequentStringPath );
   _infrequentStringToTerm.openRead( infrequentStringPath );
@@ -98,7 +131,15 @@ indri::index::DiskTermData* indri::index::DiskIndex::_fetchTermData( const char*
   assert( result );
   RVLDecompressStream stream( buffer, actual );
 
-  return disktermdata_decompress( stream, _fieldData.size(), DiskTermData::WithString | DiskTermData::WithOffsets );
+  return disktermdata_decompress( stream, _fieldData.size(), DiskTermData::WithTermID | DiskTermData::WithOffsets );
+}
+
+//
+// path
+//
+
+const std::string& indri::index::DiskIndex::path() {
+  return _path;
 }
 
 //
