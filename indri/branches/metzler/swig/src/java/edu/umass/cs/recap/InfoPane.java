@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 import javax.swing.JPanel;
@@ -139,7 +140,22 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			queryPanel.setQueryText("");
 		}
 		else if( src == queryPanel.getUpdateTimelineButton() ) {
-			//tlPanel.
+			String startDate = queryPanel.getTimelineStartDate();
+			String endDate = queryPanel.getTimelineEndDate();
+			
+			StringTokenizer tok = new StringTokenizer( startDate, "/" );
+			int minMonth = Integer.parseInt( tok.nextToken() );
+			tok.nextToken();
+			int minYear = Integer.parseInt( tok.nextToken() );
+			tlPanel.setStartDate( minMonth, minYear );
+
+			tok = new StringTokenizer( endDate, "/" );
+			int maxMonth = Integer.parseInt( tok.nextToken() );
+			tok.nextToken();
+			int maxYear = Integer.parseInt( tok.nextToken() );
+			tlPanel.setEndDate( maxMonth, maxYear );
+			
+			repaint();
 		}
 	}
 }

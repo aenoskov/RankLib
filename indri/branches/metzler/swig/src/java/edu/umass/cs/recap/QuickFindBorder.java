@@ -2,6 +2,7 @@ package edu.umass.cs.recap;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
+import java.util.Collections;
 import java.util.Vector;
 
 import javax.swing.border.EmptyBorder;
@@ -26,6 +27,8 @@ public class QuickFindBorder extends EmptyBorder {
 		// add space onto the right only
 		super( 0, 0, 0, 20 );
 		
+		Collections.sort( matches );
+		
 		this.matches = matches;
 		this.byteLength = byteLength;
 	}
@@ -35,8 +38,12 @@ public class QuickFindBorder extends EmptyBorder {
 	}
 	
 	public void paintBorder(Component c, Graphics g, int x, int y, int width, int height ) {
+		Match lastMatch = null;
 		for( int i = 0; i < matches.size(); i++ ) {
 			Match m = (Match)matches.elementAt(i);
+			// this ensures we don't mark the same match twice
+			if( lastMatch != null && m.compareTo( lastMatch ) == 0 )
+				continue;
 			int top = (int)(height*m.begin/(byteLength*1.0));
 			int bottom = (int)(height*m.end/(byteLength*1.0));
 	
@@ -45,6 +52,7 @@ public class QuickFindBorder extends EmptyBorder {
 			g.setColor( new Color(1.0f, 0.0f, 0.0f, 1.0f) );
 			g.drawRect( width - right, top, width, bottom-top );
 			//g.fillRect( 0, top, width, bottom-top );
+			lastMatch = m;
 		}
 	}
 }

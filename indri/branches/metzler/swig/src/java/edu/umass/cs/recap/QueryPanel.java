@@ -126,7 +126,7 @@ public class QueryPanel extends JPanel {
 		if( choice.equals( "overlap" ) )
 			return "#identsim0";
 		else if( choice.equals( "identsim" ) )
-			return "#identsim8";
+			return "#identsim1";
 		else if( choice.equals( "tf.idf") )
 			return "#identsim10";
 		else if( choice.equals( "mt0" ) )
@@ -144,6 +144,14 @@ public class QueryPanel extends JPanel {
 	
 	public int getNumResults() {
 		return Integer.parseInt( numResultsChoice.getSelectedItem() );
+	}
+
+	public String getTimelineStartDate() {
+		return startDate.getText();
+	}
+	
+	public String getTimelineEndDate() {
+		return endDate.getText();
 	}
 	
 	public void setTimelineStartDate( String start ) {
