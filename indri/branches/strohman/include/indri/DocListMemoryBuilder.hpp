@@ -86,17 +86,20 @@ namespace indri {
       const char* _listEnd;
       bool _finished;
 
+      TermData* _termData;
+
     public:
       DocListMemoryBuilderIterator();
-      DocListMemoryBuilderIterator( class DocListMemoryBuilder& builder );
+      DocListMemoryBuilderIterator( class DocListMemoryBuilder& builder, TermData* termData );
 
-      void reset( class DocListMemoryBuilder& builder );
-      void reset( const greedy_vector< DocListMemoryBuilderSegment, 4 >& lists );
+      void reset( class DocListMemoryBuilder& builder, TermData* termData );
+      void reset( const greedy_vector< DocListMemoryBuilderSegment, 4 >& lists, TermData* termData );
 
       void startIteration();
       bool finished();
       bool nextEntry( int documentID );
       bool nextEntry();
+      TermData* termData();
       DocListIterator::DocumentData* currentEntry();
       greedy_vector<DocListIterator::TopDocument>& topDocuments();
     };
@@ -139,7 +142,6 @@ namespace indri {
       void addLocation( int docID, int location );
       void clear();
       void flush();
-      iterator* getIterator();
       bool empty();
 
       int documentFrequency() const;

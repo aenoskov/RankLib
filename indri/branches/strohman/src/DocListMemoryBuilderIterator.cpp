@@ -32,16 +32,16 @@ void indri::index::DocListMemoryBuilderIterator::startIteration() {
 // reset
 //
 
-void indri::index::DocListMemoryBuilderIterator::reset( DocListMemoryBuilder& builder ) {
+void indri::index::DocListMemoryBuilderIterator::reset( DocListMemoryBuilder& builder, TermData* termData ) {
   builder.flush();
-  reset( builder._lists );
+  reset( builder._lists, termData );
 }
 
 //
 // reset
 //
 
-void indri::index::DocListMemoryBuilderIterator::reset( const greedy_vector< DocListMemoryBuilderSegment, 4 >& lists ) {
+void indri::index::DocListMemoryBuilderIterator::reset( const greedy_vector< DocListMemoryBuilderSegment, 4 >& lists, TermData* termData ) {
   _lists = &lists;
   _current = _lists->begin();
   
@@ -56,6 +56,7 @@ void indri::index::DocListMemoryBuilderIterator::reset( const greedy_vector< Doc
   _data.document = 0;
   _data.positions.clear();
   _finished = false;
+  _termData = termData;
 
   nextEntry();
 }
@@ -71,9 +72,9 @@ indri::index::DocListMemoryBuilderIterator::DocListMemoryBuilderIterator() {
 // DocListMemoryBuilderIterator constructor
 //
 
-indri::index::DocListMemoryBuilderIterator::DocListMemoryBuilderIterator( class DocListMemoryBuilder& builder )
+indri::index::DocListMemoryBuilderIterator::DocListMemoryBuilderIterator( class DocListMemoryBuilder& builder, TermData* termData )
 {
-  reset( builder );
+  reset( builder, _termData );
 }
 
 //
@@ -161,4 +162,10 @@ greedy_vector<indri::index::DocListIterator::TopDocument>& indri::index::DocList
   return _emptyTopDocuments;
 }
 
+//
+// termData
+//
 
+indri::index::TermData* indri::index::DocListMemoryBuilderIterator::termData() {
+  return _termData;
+}

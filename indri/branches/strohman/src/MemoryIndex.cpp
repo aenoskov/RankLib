@@ -485,10 +485,14 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
     term_entry* entry = _lookupTerm( word );
 
     // store information about this term location
+    indri::index::TermData* termData = entry->termData;
+
     _termList.addTerm( entry->termID );
     entry->list.addLocation( documentID, position ); 
-    entry->termData->corpus.addOccurrence( documentID );
-    _seenTerms.push_back( entry );
+    termData->corpus.addOccurrence( documentID );
+
+    termData->maxDocumentLength = lemur_compat::max( termData->maxDocumentLength, words.size() );
+    termData->minDocumentLength = lemur_compat::min( termData->minDocumentLength, words.size() );
 
     // update our open tag knowledge
     _addOpenTags( indexedTags, openTags, document.tags, extentIndex, position );
@@ -513,9 +517,8 @@ int indri::index::MemoryIndex::addDocument( ParsedDocument& document ) {
   int byteLength;
 
   _writeDocumentTermList( offset, byteLength, documentID, int(words.size()), _termList );
-  _writeDocumentStatistics( offset, byteLength, indexedTerms, int(words.size()), int(_seenTerms.size()) );
+  _writeDocumentStatistics( offset, byteLength, indexedTerms, int(words.size()), indexedTerms );
 
-  _seenTerms.clear();
   return documentID;
 }
 
@@ -531,7 +534,7 @@ indri::index::DocListIterator* indri::index::MemoryIndex::docListIterator( int t
     return 0;
   
   term_entry* entry = _idToTerm[termID];
-  return entry->list.getIterator();
+  return new DocListMemoryBuilderIterator( entry->list, entry->termData );
 }
 
 //
@@ -544,7 +547,7 @@ indri::index::DocListIterator* indri::index::MemoryIndex::docListIterator( const
   if( !entry )
     return 0;
   
-  return (*entry)->list.getIterator();
+  return new DocListMemoryBuilderIterator( (*entry)->list, (*entry)->termData );
 }  
 
 //

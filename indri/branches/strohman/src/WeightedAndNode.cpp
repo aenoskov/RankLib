@@ -136,8 +136,13 @@ void WeightedAndNode::indexChanged( indri::index::Index& index ) {
       greedy_vector<indri::index::DocListIterator::TopDocument>* copy = new greedy_vector<indri::index::DocListIterator::TopDocument>( node->topdocs() );
       lists.push_back( copy );
       std::sort( copy->begin(), copy->end(), indri::index::DocListIterator::TopDocument::docid_less() );
+
+      _children[i].maximumWeightedScore = node->maximumScore() * _children[i].weight;
+      _children[i].backgroundWeightedScore = node->maximumBackgroundScore() * _children[i].weight;
     }
   }
+
+  std::sort( _children.begin(), _children.end(), child_type::maxscore_less() );
 
   // TODO: could compute an initial threshold here, but that may not be necessary
   greedy_vector<int> indexes;

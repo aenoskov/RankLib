@@ -78,8 +78,7 @@ namespace indri {
 
     public:
       TermData() :
-          maxDocumentFrequency(0),
-          maxDocumentFraction(0),
+          maxDocumentLength(0),
           minDocumentLength(MAX_INT32)
       {
         term = 0;
@@ -94,9 +93,8 @@ namespace indri {
 
       TermFieldStatistics corpus;
 
-      float maxDocumentFraction;         // argmax_documents of (termCount/docLength)
-      unsigned int maxDocumentFrequency; // maximum number of times this term appears in any given document
-      unsigned int minDocumentLength;    // minimum length of any document that contains this term
+      unsigned int maxDocumentLength;    // maximum length of any document containing this term
+      unsigned int minDocumentLength;    // minimum length of any document containing this term
 
       const char* term;                  // name of this term
 
@@ -157,9 +155,8 @@ inline void termdata_clear( indri::index::TermData* termData, int fieldCount ) {
     field.lastDocument = 0;
   }
 
-  termData->maxDocumentFraction = 0;
-  termData->maxDocumentFrequency = 0;
   termData->minDocumentLength = MAX_INT32;
+  termData->maxDocumentLength = 0;
 }
 
 inline void termdata_merge( indri::index::TermData* termData, indri::index::TermData* merger, int fieldCount ) {
@@ -174,8 +171,7 @@ inline void termdata_merge( indri::index::TermData* termData, indri::index::Term
     field.totalCount += mergeField.totalCount;
   }
 
-  termData->maxDocumentFraction = lemur_compat::max( termData->maxDocumentFraction, merger->maxDocumentFraction );
-  termData->maxDocumentFrequency = lemur_compat::max( termData->maxDocumentFrequency, merger->maxDocumentFrequency );
+  termData->maxDocumentLength = lemur_compat::max( termData->maxDocumentLength, merger->maxDocumentLength );
   termData->minDocumentLength = lemur_compat::min( termData->minDocumentLength, termData->minDocumentLength );
 }
 
@@ -189,10 +185,8 @@ inline void termdata_compress( RVLCompressStream& stream, indri::index::TermData
          << termData->corpus.documentCount;
 
   // max-score statistics
-  stream << termData->maxDocumentFrequency
-         << termData->minDocumentLength
-         << termData->maxDocumentFraction;
-
+  stream << termData->maxDocumentLength
+         << termData->minDocumentLength;
   // field statistics
   for( int i=0; i<fieldCount; i++ ) {
     stream << termData->fields[i].totalCount
@@ -206,9 +200,8 @@ inline void termdata_decompress( RVLDecompressStream& stream, indri::index::Term
          >> termData->corpus.documentCount;
 
   // max-score statistics
-  stream >> termData->maxDocumentFrequency
-         >> termData->minDocumentLength
-         >> termData->maxDocumentFraction;
+  stream >> termData->maxDocumentLength
+         >> termData->minDocumentLength;
 
   // field statistics
   for( int i=0; i<fieldCount; i++ ) {

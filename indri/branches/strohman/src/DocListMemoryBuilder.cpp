@@ -337,12 +337,3 @@ int indri::index::DocListMemoryBuilder::documentFrequency() const {
 int indri::index::DocListMemoryBuilder::termFrequency() const {
   return _termFrequency;
 }
-
-//
-// getIterator
-//
-
-indri::index::DocListMemoryBuilderIterator* indri::index::DocListMemoryBuilder::getIterator() {
-  return new DocListMemoryBuilderIterator( *this );
-}
-

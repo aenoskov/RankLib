@@ -47,11 +47,12 @@
 
 #include "indri/TermFrequencyBeliefNode.hpp"
 #include "indri/InferenceNetwork.hpp"
+#include <math.h>
 
 TermFrequencyBeliefNode::TermFrequencyBeliefNode( const std::string& name,
-                                                 class InferenceNetwork& network,
-                                                 int listID,
-                                                 TermScoreFunction& scoreFunction )
+                                                  class InferenceNetwork& network,
+                                                  int listID,
+                                                  TermScoreFunction& scoreFunction )
   :
   _name(name),
   _network(network),
@@ -83,13 +84,11 @@ int TermFrequencyBeliefNode::nextCandidateDocument() {
 }
 
 double TermFrequencyBeliefNode::maximumBackgroundScore() {
-  // TODO: fix me
-  return INDRI_HUGE_SCORE;
+  return _maximumBackgroundScore;
 }
 
 double TermFrequencyBeliefNode::maximumScore() {
-  // TODO: fix me
-  return INDRI_HUGE_SCORE;
+  return _maximumScore;
 }
 
 const greedy_vector<ScoredExtentResult>& TermFrequencyBeliefNode::score( int documentID, int begin, int end, int documentLength ) {
@@ -123,6 +122,26 @@ const std::string& TermFrequencyBeliefNode::getName() const {
 void TermFrequencyBeliefNode::indexChanged( indri::index::Index& index ) {
   // fetch the next inverted list
   _list = _network.getDocIterator( _listID );
+
+  if( !_list ) {
+    _maximumBackgroundScore = INDRI_HUGE_SCORE;
+    _maximumScore = INDRI_HUGE_SCORE;
+  } else {
+    // maximum fraction
+    double maximumFraction = 1;
+    
+    if( _list->topDocuments().size() ) {
+      const indri::index::DocListIterator::TopDocument& document = _list->topDocuments().back();
+      maximumFraction = double(document.count) / double(document.length);
+    }
+
+    indri::index::TermData* termData = _list->termData();
+
+    UINT64 maxOccurrences = UINT64( ceil( double(termData->maxDocumentLength) * maximumFraction ) );
+
+    _maximumScore = _function.scoreOccurrence( maxOccurrences, termData->maxDocumentLength );
+    _maximumBackgroundScore = _function.scoreOccurrence( 0, termData->minDocumentLength );
+  }
 }
 
 void TermFrequencyBeliefNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {

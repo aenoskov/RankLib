@@ -409,7 +409,7 @@ indri::index::DocListIterator* indri::index::DiskIndex::docListIterator( int ter
   // truncate the length argument at 1MB, use it to pick a size for the readbuffer
   length = lemur_compat::min<INT64>( length, 1024*1024 );
 
-  return new DiskDocListIterator( new SequentialReadBuffer( _invertedFile, length ), startOffset );
+  return new DiskDocListIterator( new SequentialReadBuffer( _invertedFile, length ), startOffset, 0 );
 }
 
 //
@@ -431,7 +431,7 @@ indri::index::DocListIterator* indri::index::DiskIndex::docListIterator( const s
   // truncate the length argument at 1MB, use it to pick a size for the readbuffer
   length = lemur_compat::min<INT64>( length, 1024*1024 );
 
-  return new DiskDocListIterator( new SequentialReadBuffer( _invertedFile, length ), startOffset );
+  return new DiskDocListIterator( new SequentialReadBuffer( _invertedFile, length ), startOffset, _fieldData.size() );
 }
 
 //

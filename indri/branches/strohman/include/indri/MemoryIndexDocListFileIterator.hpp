@@ -46,9 +46,9 @@ namespace indri {
         _data.iterator = 0;
 
         if( _currentTerm != _alphabetical.end() ) {
-          _iterator.reset( (*_currentTerm)->list );
           _data.termData = (*_currentTerm)->termData;
           _data.iterator = &_iterator;
+          _iterator.reset( (*_currentTerm)->list, _data.termData );
         } else {
           _finished = true;
         }
@@ -82,7 +82,7 @@ namespace indri {
           return false;
         }
         
-        _iterator.reset( (*_currentTerm)->list );
+        _iterator.reset( (*_currentTerm)->list, _data.termData );
         _data.termData = (*_currentTerm)->termData;
         return true;
       }
