@@ -51,7 +51,7 @@ java/indri_javawrap.cpp: $(INTERFACES)
 	$(SWIG) -c++ -java -package edu.umass.cs.indri -o java/indri_javawrap.cpp -outdir $(JSRC) $(INCLUDES) $(SRC) 
 
 php/indri_phpwrap.cpp: $(INTERFACES)
-	$(SWIG) -c++ -php -o php/indri_phpwrap.cpp -outdir php $(INCLUDES) $(SRC) 
+	$(SWIG) -php4 -c++ -o php/indri_phpwrap.cpp -outdir php $(INCLUDES) $(SRC) 
 
 $(OUTDIRPROP) $(OUTDIRUI) $(OUTDIR) $(OBJ)/java/docs:
 	$(INSTALL_DIR) $@
