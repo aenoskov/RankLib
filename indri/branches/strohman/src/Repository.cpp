@@ -879,6 +879,9 @@ void Repository::_merge( index_state& state ) {
     first->assign( state->begin(), state->begin() + state->size() / 2 );
     second->assign( state->begin() + state->size() / 2, state->end() );
 
+    // release the previous state object
+    state = 0;
+
     _merge( first );
     _merge( second );
 
