@@ -28,7 +28,7 @@ public class RetUI extends JPanel implements ActionListener {
     /** Help file for the application */
     private final static String helpFile = "properties/IndriRetrieval.html";
 	/** Little lemur icon */
-	private final static String iconFile = "properties/lemur_icon.gif";
+	private final static String iconFile = "properties/lemur_icon.GIF";
     /** Frame for help window */
     private JFrame helpFrame;
 	
