@@ -18,6 +18,7 @@
 #include <vector>
 #include <string>
 #include "indri/BulkTree.hpp"
+#include "indri/SequentialReadBuffer.hpp"
 
 namespace indri {
   namespace index {
@@ -41,6 +42,8 @@ namespace indri {
       File _invertedFile;
       File _directFile;
 
+      SequentialReadBuffer _lengthsBuffer;
+
       std::vector<FieldStatistics> _fieldData;
       std::vector<File*> _fieldFiles;
       int _documentBase;
@@ -53,6 +56,8 @@ namespace indri {
       void _readManifest( const std::string& manifestPath );
 
     public:
+      DiskIndex() : _lengthsBuffer(_documentLengths) {}
+
       void open( const std::string& base, const std::string& relative );
       void close();
 

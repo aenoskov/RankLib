@@ -33,6 +33,24 @@ public:
   {
   }
 
+  void cache( UINT64 position, size_t length ) {
+    _current.buffer.clear();
+    _current.filePosition = position;
+    _current.buffer.grow( length );
+
+    size_t actual = _file.read( _current.buffer.write( length ), _position, length );
+    _current.buffer.unwrite( length - actual );
+  }
+
+  size_t read( void* buffer, UINT64 position, size_t length ) {
+    if( position >= _current.filePosition && (position + length) <= _current.filePosition + _current.buffer.position() ) {
+      memcpy( buffer, _current.buffer.front() + position - _current.filePosition, length );
+      return length;
+    } else {
+      return _file.read( buffer, position, length );
+    }
+  }
+
   size_t read( void* buffer, size_t length ) {
     memcpy( buffer, read( length ), length );
     return length;
@@ -44,13 +62,8 @@ public:
     if( _position < _current.filePosition || (_position + length) > _current.filePosition + _current.buffer.position() ) {
       // data isn't in the current buffer
       // this isn't necessarily the most efficient way to do this, but it should work
-      _current.buffer.clear();
-      _current.filePosition = _position;
-      _current.buffer.grow( length );
-
-      size_t actual = _file.read( _current.buffer.write( _current.buffer.size() ), _position, _current.buffer.size() );
-      _current.buffer.unwrite( _current.buffer.size() - actual );
-      assert( actual >= length );
+      cache( _position, _current.buffer.size() );
+      assert( _current.buffer.position() + _current.filePosition >= _position + length );
     }
 
     result = _current.buffer.front() + ( _position - _current.filePosition );

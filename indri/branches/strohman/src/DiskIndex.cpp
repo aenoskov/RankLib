@@ -84,6 +84,8 @@ void indri::index::DiskIndex::open( const std::string& base, const std::string& 
   _invertedFile.openRead( invertedFilePath );
   _directFile.openRead( directFilePath );
 
+  _lengthsBuffer.cache( 0, _documentLengths.size() );
+
   for( int field=1; field <= _fieldData.size(); field++ ) {
     std::stringstream fieldFilename;
     fieldFilename << "field" << field;
@@ -233,7 +235,7 @@ int indri::index::DiskIndex::documentLength( int documentID ) {
   int length;
   UINT64 offset = sizeof(UINT32) * documentOffset;
 
-  size_t actual = _documentLengths.read( &length, offset, sizeof(UINT32) );
+  size_t actual = _lengthsBuffer.read( &length, offset, sizeof(UINT32) );
   assert( actual == sizeof(UINT32) );
   assert( length >= 0 );
   return length;
