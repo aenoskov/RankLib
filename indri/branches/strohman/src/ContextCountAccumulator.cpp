@@ -60,6 +60,7 @@
 #include "indri/DocumentCount.hpp"
 
 ContextCountAccumulator::ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context ) :
+  _name(name),
   _matches(matches),
   _context(context)
 {

@@ -602,6 +602,7 @@ void InferenceNetworkBuilder::after( indri::lang::ContextCounterNode* contextCou
                                                 dynamic_cast<ListIteratorNode*>(untypedContext) );
 
     _network->addEvaluatorNode( contextCount );
+    _network->addComplexEvaluatorNode( contextCount );
     _nodeMap[ contextCounterNode ] = contextCount;
   }
 }
