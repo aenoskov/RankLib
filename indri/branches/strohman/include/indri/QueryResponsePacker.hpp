@@ -1,48 +1,12 @@
 /*==========================================================================
-  Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
-
-  Use of the Lemur Toolkit for Language Modeling and Information Retrieval
-  is subject to the terms of the software license set forth in the LICENSE
-  file included with this software, and also available at
-  http://www.cs.cmu.edu/~lemur/license.html 
-  as well as the conditions below.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in
-  the documentation and/or other materials provided with the
-  distribution.
-
-  3. The names "Indri", "Center for Intelligent Information Retrieval", 
-  "CIIR", and "University of Massachusetts" must not be used to
-  endorse or promote products derived from this software without
-  prior written permission. To obtain permission, contact
-  indri-info@ciir.cs.umass.edu.
-
-  4. Products derived from this software may not be called "Indri" nor 
-  may "Indri" appear in their names without prior written permission of 
-  the University of Massachusetts. To obtain permission, contact 
-  indri-info@ciir.cs.umass.edu.
-
-  THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY OF MASSACHUSETTS AND OTHER
-  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
-  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-  FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-  THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-  DAMAGE.
-  ==========================================================================
+ * Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
+ *
+ * Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+ * is subject to the terms of the software license set forth in the LICENSE
+ * file included with this software, and also available at
+ * http://www.lemurproject.org/license.html
+ *
+ *==========================================================================
 */
 
 
@@ -89,6 +53,7 @@ public:
           size_t sendChunk = lemur_compat::min<size_t>( resultList.size() - resultsSent, (size_t) 100 );
 
           for( size_t i=0; i<sendChunk; i++ ) {
+<<<<<<< .working
             ScoredExtentResult byteSwapped;
             
             byteSwapped.begin = htonl(resultList[i + resultsSent].begin);
@@ -100,9 +65,27 @@ public:
             memcpy( networkResults + i*resultSize + 8, &byteSwapped.document, sizeof(INT32) );
             memcpy( networkResults + i*resultSize + 12, &byteSwapped.begin, sizeof(INT32) );
             memcpy( networkResults + i*resultSize + 16, &byteSwapped.end, sizeof(INT32) );
+=======
+            ScoredExtentResult byteSwapped;
+            const ScoredExtentResult& unswapped = resultList[i + resultsSent];
+
+            byteSwapped.begin = htonl(unswapped.begin);
+            byteSwapped.end = htonl(unswapped.end);
+            byteSwapped.document = htonl(unswapped.document );
+            byteSwapped.score = lemur_compat::htond(unswapped.score);
+
+            memcpy( networkResults + i*resultSize, &byteSwapped.score, sizeof(double) );
+            memcpy( networkResults + i*resultSize + 8, &byteSwapped.document, sizeof(INT32) );
+            memcpy( networkResults + i*resultSize + 12, &byteSwapped.begin, sizeof(INT32) );
+            memcpy( networkResults + i*resultSize + 16, &byteSwapped.end, sizeof(INT32) );
+>>>>>>> .merge-right.r283
           }
 
+<<<<<<< .working
           stream->reply( resultName, &networkResults, int(sendChunk * resultSize) );
+=======
+          stream->reply( resultName, networkResults, int(sendChunk * resultSize) );
+>>>>>>> .merge-right.r283
           resultsSent += sendChunk;
         }
       }
