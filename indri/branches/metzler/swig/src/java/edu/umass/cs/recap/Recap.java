@@ -38,6 +38,9 @@ public class Recap extends JFrame {
 		// parse the command line arguments
 		boolean interactive = true;
 
+		// get the screen dimension
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		
 		for( int i = 0; i < args.length; i++ ) {
 			String curArg = args[i].toLowerCase();
 			try {
@@ -56,6 +59,13 @@ public class Recap extends JFrame {
 					String nextArg = args[++i];
 					clm = new CommandLineMode( nextArg );
 				}
+				else if( curArg.equals( "-appsize" ) ) {
+					String nextArg = args[++i];
+					int width = Integer.parseInt( nextArg );
+					nextArg = args[++i];
+					int height = Integer.parseInt( nextArg );
+					screenSize = new Dimension( width, height );
+				}
 				else {
 					System.err.println( "Unrecognized argument: " + curArg );
 				}
@@ -67,22 +77,18 @@ public class Recap extends JFrame {
 		}
 		
 		if( interactive ) { // interactive mode
-			// get the screen size
-			Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-
 			// add menu bar
 			MainMenuBar mainMenuBar = new MainMenuBar();
 			setJMenuBar( mainMenuBar );
 			
 			// setup and display the application window
-			//mainPane = new MainPane( retEngine, mainMenuBar, screenSize );			
-			InfoPane infoPane = new InfoPane( retEngine, mainMenuBar, screenSize );
+			InfoPane infoPane = new InfoPane( retEngine, mainMenuBar );
 			setContentPane( infoPane );
 			
 			// register action listener for the menu
 			mainMenuBar.addActionListeners( infoPane );
 			
-			setSize( getMaximumSize() );						
+			setSize( screenSize );
 			setVisible( true );
 		}
 		else { // command line mode

@@ -153,6 +153,17 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		//StyleConstants.setBold( s, true );
 	}
 	
+	// makes a copy of this object, with no formatting
+	public RecapStyledDocument unformattedClone() {
+		RecapStyledDocument clone = null;
+		try {
+			clone = new RecapStyledDocument( getText( 0, getLength() ), defaultStyle );
+		}
+		catch( Exception e ) { /* do nothing */ }
+		
+		return clone;		
+	}
+	
 	// makes a 'deep copy' of this object 
 	public Object clone() {
 		RecapStyledDocument clone = null;

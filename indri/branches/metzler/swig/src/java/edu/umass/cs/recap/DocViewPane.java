@@ -1,5 +1,5 @@
 package edu.umass.cs.recap;
-import java.awt.Dimension;
+
 import java.awt.event.MouseListener;
 import java.util.EventListener;
 import java.util.HashMap;
@@ -39,7 +39,7 @@ public class DocViewPane extends JSplitPane {
 	private HashMap curExploreResults = null;
 	private Vector curAnalyzeResults = null;
 	
-	public DocViewPane( RetrievalEngine retEngine, Dimension screenSize ) {
+	public DocViewPane( RetrievalEngine retEngine ) {
 		super( JSplitPane.HORIZONTAL_SPLIT );
 		this.retEngine = retEngine;
 		this.curExploreResults = new HashMap();
