@@ -89,7 +89,10 @@ jobject documentvector_copy( JNIEnv* jenv, DocumentVector* vec ) {
 %}
 
 %typemap(java,out) DocumentVector* {
+// this typemap is currently unused, but should delete
+// the input to be consistent with the vector version
   jobject vec = documentvector_copy( jenv, $1 );
+  delete $1;
   $result = vec;
 }
 
