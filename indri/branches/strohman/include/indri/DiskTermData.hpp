@@ -31,7 +31,7 @@ namespace indri {
 // disktermdata_decompress
 //
 
-void disktermdata_compress( RVLCompressStream& stream, indri::index::DiskTermData* diskData, int fieldCount, int mode ) {
+inline void disktermdata_compress( RVLCompressStream& stream, indri::index::DiskTermData* diskData, int fieldCount, int mode ) {
   ::termdata_compress( stream, diskData->termData, fieldCount );
 
   if( mode & indri::index::DiskTermData::WithTermID ) {
@@ -52,7 +52,7 @@ void disktermdata_compress( RVLCompressStream& stream, indri::index::DiskTermDat
 // disktermdata_decompress
 //
 
-indri::index::DiskTermData* disktermdata_decompress( RVLDecompressStream& stream, void* buffer, int fieldCount, int mode ) {
+inline indri::index::DiskTermData* disktermdata_decompress( RVLDecompressStream& stream, void* buffer, int fieldCount, int mode ) {
   indri::index::DiskTermData* diskData = (indri::index::DiskTermData*) buffer;
 
   int termDataSize = ::termdata_size( fieldCount );
@@ -92,7 +92,7 @@ indri::index::DiskTermData* disktermdata_decompress( RVLDecompressStream& stream
 // disktermdata_decompress
 //
 
-indri::index::DiskTermData* disktermdata_decompress( RVLDecompressStream& stream, int fieldCount, int mode ) {
+inline indri::index::DiskTermData* disktermdata_decompress( RVLDecompressStream& stream, int fieldCount, int mode ) {
   // how much space are we going to need?
   int termDataSize = ::termdata_size( fieldCount );
   int totalSize = termDataSize + (Keyfile::MAX_KEY_LENGTH+2) + sizeof(indri::index::DiskTermData);
@@ -104,7 +104,7 @@ indri::index::DiskTermData* disktermdata_decompress( RVLDecompressStream& stream
 // disktermdata_delete
 //
 
-void disktermdata_delete( indri::index::DiskTermData* diskData ) {
+inline void disktermdata_delete( indri::index::DiskTermData* diskData ) {
   free( diskData );
 }
 

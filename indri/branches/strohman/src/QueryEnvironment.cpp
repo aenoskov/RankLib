@@ -60,7 +60,6 @@
 #include "indri/delete_range.hpp"
 
 #include "indri/InferenceNetwork.hpp"
-#include "indri/IndriIndex.hpp"
 #include "indri/QuerySpec.hpp"
 #include "indri/ScoredExtentResult.hpp"
 

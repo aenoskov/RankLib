@@ -2343,12 +2343,9 @@ namespace indri {
 
     class ContextSimpleCounterNode : public AccumulatorNode {
     private:
-      RawExtentNode* _raw;
-      RawExtentNode* _context;
-
       std::vector<std::string> _terms;
-      std::vector<std::string> _fields;
-      std::vector<std::string> _contexts;
+      std::string _field;
+      std::string _context;
 
       bool _hasCounts;
       bool _hasContextSize;
@@ -2356,25 +2353,24 @@ namespace indri {
       UINT64 _contextSize;
 
     public:
-      ContextSimpleCounterNode( RawExtentNode* raw, RawExtentNode* context ) :
+      ContextSimpleCounterNode( const std::vector<std::string>& terms, const std::string& field, const std::string& context ) :
          _hasCounts(false),
          _hasContextSize(false),
          _occurrences(0),
-         _contextSize(0)
+         _contextSize(0),
+         _terms(terms),
+         _field(field),
+         _context(context)
       {
-        _raw = raw;
-        _context = context;
       }
 
       ContextSimpleCounterNode( Unpacker& unpacker ) {
-        _raw = unpacker.getRawExtentNode( "raw" );
-        _context = unpacker.getRawExtentNode( "context" );
         _occurrences = unpacker.getInteger( "occurrences" );
         _contextSize = unpacker.getInteger( "contextSize" );
 
         _terms = unpacker.getStringVector( "terms" );
-        _fields = unpacker.getStringVector( "fields" );
-        _contexts = unpacker.getStringVector( "contexts" );
+        _field = unpacker.getString( "field" );
+        _context = unpacker.getString( "context" );
 
         _hasCounts = unpacker.getBoolean( "hasCounts" );
         _hasContextSize = unpacker.getBoolean( "hasContextSize" );
@@ -2385,49 +2381,18 @@ namespace indri {
       }
 
       std::string queryText() const {
-        std::stringstream qtext;
-        
-        if( _raw )
-          qtext << _raw->queryText();
-
-        if( _context ) {
-          // if we haven't added a period yet, put one in
-          int dot = qtext.str().find('.');
-          if( dot < 0 )
-            qtext << '.';
-
-          qtext << "(" << _context->queryText() << ")";
-        }
-
-        return qtext.str();
-      }
-
-      RawExtentNode* getContext() {
-        return _context;
-      }
-
-      RawExtentNode* getRawExtent() {
-        return _raw;
-      }
-
-      void setRawExtent( RawExtentNode* rawExtent ) {
-        _raw = rawExtent;
-      }
-
-      void setContext( RawExtentNode* context ) {
-        _context = context;
+        // nothing to see here -- this is an optimization node
+        return std::string();
       }
 
       void pack( Packer& packer ) {
         packer.before(this);
-        packer.put( "raw", _raw );
-        packer.put( "context", _context );
         packer.put( "occurrences", _occurrences );
         packer.put( "contextSize", _contextSize );
 
         packer.put( "terms", _terms );
-        packer.put( "fields", _fields );
-        packer.put( "contexts", _contexts );
+        packer.put( "field", _field );
+        packer.put( "context", _context );
 
         packer.put( "hasCounts", _hasCounts );
         packer.put( "hasContextSize", _hasContextSize );
@@ -2436,18 +2401,12 @@ namespace indri {
 
       void walk( Walker& walker ) {
         walker.before(this);
-        if( _raw ) _raw->walk(walker);
-        if( _context ) _context->walk(walker);
         walker.after(this);
       }
 
       Node* copy( Copier& copier ) {
         copier.before(this);
-        RawExtentNode* duplicateRaw = _raw ? dynamic_cast<RawExtentNode*>(_raw->copy(copier)) : 0;
-        RawExtentNode* duplicateContext = _context ? dynamic_cast<RawExtentNode*>(_context->copy(copier)) : 0;
         ContextSimpleCounterNode* duplicate = new ContextSimpleCounterNode(*this);
-        duplicate->setContext(duplicateContext);
-        duplicate->setRawExtent(duplicateRaw);
         return copier.after(this, duplicate);
       }
 
@@ -2467,28 +2426,16 @@ namespace indri {
         return _contextSize;
       }
 
-      void setTerms( const std::vector<std::string>& terms ) {
-        _terms = terms;
-      }
-
-      void setFields( const std::vector<std::string>& fields ) {
-        _fields = fields;
-      }
-
-      void setContexts( const std::vector<std::string>& contexts ) {
-        _contexts = contexts;
-      }
-
       const std::vector<std::string>& terms() const {
         return _terms;
       }
 
-      const std::vector<std::string>& fields() const {
-        return _fields;
+      const std::string& field() const {
+        return _field;
       }
 
-      const std::vector<std::string>& contexts() const {
-        return _contexts;
+      const std::string& context() const {
+        return _context;
       }
 
       void setContextSize( UINT64 contextSize ) {

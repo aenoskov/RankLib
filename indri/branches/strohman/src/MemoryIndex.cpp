@@ -129,6 +129,42 @@ std::string indri::index::MemoryIndex::term( int termID ) {
 }
 
 //
+// field
+//
+
+std::string indri::index::MemoryIndex::field( int fieldID ) {
+  if( fieldID <= 0 || fieldID > _fieldData.size() )
+    return "";
+  
+  return _fieldData[fieldID-1].name;
+}
+
+//
+// field
+//
+
+int indri::index::MemoryIndex::field( const std::string& fieldName ) {
+  return field( fieldName.c_str() );
+}
+
+//
+// field
+//
+
+int indri::index::MemoryIndex::field( const char* fieldName ) {
+  return _fieldID( fieldName );
+}
+
+//
+// documentCount
+//
+
+UINT64 indri::index::MemoryIndex::documentCount( const std::string& term ) {
+  term_entry** entry = _stringToTerm.find( term.c_str() );
+  return (*entry)->termData->corpus.documentCount;
+}
+
+//
 // fieldDocumentCount
 //
 

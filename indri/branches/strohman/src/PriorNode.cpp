@@ -133,3 +133,8 @@ double PriorNode::maximumBackgroundScore() {
 const std::string& PriorNode::getName() const {
   return _name;
 }
+
+void PriorNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}
+

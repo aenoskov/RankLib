@@ -97,8 +97,13 @@ namespace indri {
       int term( const char* t );
       std::string term( int termID );
 
+      int field( const char* fieldName );
+      int field( const std::string& fieldName );
+      std::string field( int fieldID );
+
       int documentLength( int documentID );
       UINT64 documentCount();
+      UINT64 documentCount( const std::string& term );
       UINT64 uniqueTermCount();
       
       UINT64 termCount( const std::string& term );

@@ -70,6 +70,8 @@ private:
   Repository& _repository;
   ListCache _cache;
 
+  indri::index::Index* _indexWithDocument( int documentID );
+
 public:
   LocalQueryServer( Repository& repository );
 
@@ -86,7 +88,6 @@ public:
 
   // terms
   INT64 termCount();
-  INT64 termCount( int term );
   INT64 termCount( const std::string& term );
   INT64 stemCount( const std::string& stem );
   std::string termName( int term );
@@ -94,7 +95,6 @@ public:
   
   // fields
   std::vector<std::string> fieldList();
-  INT64 termFieldCount( int term, const std::string& field );
   INT64 termFieldCount( const std::string& term, const std::string& field );
   INT64 stemFieldCount( const std::string& stem, const std::string& field );
 

@@ -182,3 +182,8 @@ void UnorderedWindowNode::annotate( Annotator& annotator, int documentID, int be
     }
   }
 }
+
+void UnorderedWindowNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}
+

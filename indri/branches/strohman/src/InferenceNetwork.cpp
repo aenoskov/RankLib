@@ -79,19 +79,30 @@ void InferenceNetwork::_moveToDocument( int candidate ) {
 }
 
 //
+// _indexFinished
+//
+
+void InferenceNetwork::_indexFinished( indri::index::Index& index ) {
+  // doc iterators
+  delete_vector_contents<indri::index::DocListIterator*>( _docIterators );
+
+  // field iterators
+  delete_vector_contents<indri::index::DocExtentListIterator*>( _fieldIterators );
+}
+
+//
 // _indexChanged
 //
 
 void InferenceNetwork::_indexChanged( indri::index::Index& index ) {
   // doc iterators
-  for( int i=0; i<_docIterators.begin(); iter != _docIterators.begin(); iter++ ) {
-    (*iter)->indexChanged( index );
+  for( int i=0; i<_termNames.size(); i++ ) {
+    _docIterators.push_back( index.docListIterator( _termNames[i] ) );
   }
 
   // field iterators
-  std::vector<indri::index::DocExtentListIterator*>::iterator fiter;
-  for( fiter = _fieldIterators.begin(); fiter != _fieldIterators.end(); fiter++ ) {
-    (*fiter)->indexChanged( index );
+  for( int i=0; i<_fieldNames.size(); i++ ) {
+    _fieldIterators.push_back( index.fieldListIterator( _fieldNames[i] ) );
   }
 
   // extent iterator nodes
@@ -108,7 +119,7 @@ void InferenceNetwork::_indexChanged( indri::index::Index& index ) {
 
   // evaluator nodes
   std::vector<EvaluatorNode*>::iterator eiter;
-  for( eiter = _evaluatorNodes.begin(); eiter != _evaluatorNodes.end(); eiter++ ) {
+  for( eiter = _evaluators.begin(); eiter != _evaluators.end(); eiter++ ) {
     (*eiter)->indexChanged( index );
   }
 }
@@ -145,12 +156,22 @@ InferenceNetwork::~InferenceNetwork() {
   delete_vector_contents<EvaluatorNode*>( _evaluators );
 }
 
-void InferenceNetwork::addDocIterator( indri::index::DocListIterator* posInfoList ) {
-  _docIterators.push_back( posInfoList );
+indri::index::DocListIterator* InferenceNetwork::getDocIterator( int index ) {
+  return _docIterators[index];
 }
 
-void InferenceNetwork::addFieldIterator( indri::index::DocExtentListIterator* fieldIterator ) {
-  _fieldIterators.push_back( fieldIterator );
+indri::index::DocExtentListIterator* InferenceNetwork::getFieldIterator( int index ) {
+  return _fieldIterators[index];
+}
+
+int InferenceNetwork::addDocIterator( const std::string& termName ) {
+  _termNames.push_back( termName );
+  return _termNames.size()-1;
+}
+
+int InferenceNetwork::addFieldIterator( const std::string& fieldName ) {
+  _fieldNames.push_back( fieldName );
+  return _fieldNames.size()-1;
 }
 
 void InferenceNetwork::addListNode( ListIteratorNode* listNode ) {
@@ -179,7 +200,7 @@ const std::vector<EvaluatorNode*>& InferenceNetwork::getEvaluators() const {
 
 void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
   int lastCandidate = MAX_INT32;
-  int collectionSize = index->documentBase() + index->docCount();
+  int collectionSize = index.documentBase() + index.documentCount();
   int scoredDocuments = 0;
   int candidate = 0;
 
@@ -206,7 +227,7 @@ void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
       }
 
       // ask all the evaluators to evaluate this document
-      _evaluateDocument( candidate );
+      _evaluateDocument( index, candidate );
       scoredDocuments++;
 
       // if that was the last document, we can quit now
@@ -225,10 +246,10 @@ void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
 //
 
 const InferenceNetwork::MAllResults& InferenceNetwork::evaluate() {
-  std::vector<indri::index::Index*> indexes = _repository->indexes();
+  std::vector<indri::index::Index*> indexes = _repository.indexes();
   
   for( int i=0; i<indexes.size(); i++ ) {
-    indri::index::Index* index = indexes[i];
+    indri::index::Index& index = *indexes[i];
 
     // TODO: index->lockIterators();
     // TODO: index->lockStatistics();
@@ -238,6 +259,9 @@ const InferenceNetwork::MAllResults& InferenceNetwork::evaluate() {
     // TODO: index->unlockStatistics()
 
     _evaluateIndex( index );
+
+    // remove all the iterators
+    _indexFinished( index );
   }
 
   _results.clear();

@@ -29,7 +29,8 @@
 				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="TRUE"
-				DebugInformationFormat="4"/>
+				DebugInformationFormat="4"
+				DisableSpecificWarnings="4267,4018,4244"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -103,6 +104,9 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
+				RelativePath=".\Annotator.cpp">
+			</File>
+			<File
 				RelativePath=".\BooleanAndNode.cpp">
 			</File>
 			<File
@@ -115,7 +119,13 @@
 				RelativePath=".\CompressedCollection.cpp">
 			</File>
 			<File
+				RelativePath=".\ContextCountAccumulator.cpp">
+			</File>
+			<File
 				RelativePath=".\ContextSimpleCountAccumulator.cpp">
+			</File>
+			<File
+				RelativePath=".\Copier.cpp">
 			</File>
 			<File
 				RelativePath=".\DirectoryIterator.cpp">
@@ -139,6 +149,9 @@
 				RelativePath=".\DocExtentListMemoryBuilderIterator.cpp">
 			</File>
 			<File
+				RelativePath=".\DocListIteratorNode.cpp">
+			</File>
+			<File
 				RelativePath=".\DocListMemoryBuilder.cpp">
 			</File>
 			<File
@@ -146,6 +159,9 @@
 			</File>
 			<File
 				RelativePath=".\DocumentIteratorFactory.cpp">
+			</File>
+			<File
+				RelativePath=".\DocumentVector.cpp">
 			</File>
 			<File
 				RelativePath=".\ExtentAndNode.cpp">
@@ -217,6 +233,9 @@
 				RelativePath=".\ListBeliefNode.cpp">
 			</File>
 			<File
+				RelativePath=".\LocalQueryServer.cpp">
+			</File>
+			<File
 				RelativePath=".\MemoryIndex.cpp">
 			</File>
 			<File
@@ -250,6 +269,9 @@
 				RelativePath=".\OrNode.cpp">
 			</File>
 			<File
+				RelativePath=".\Packer.cpp">
+			</File>
+			<File
 				RelativePath=".\Parameters.cpp">
 			</File>
 			<File
@@ -268,13 +290,31 @@
 				RelativePath=".\PowerPointDocumentExtractor.cpp">
 			</File>
 			<File
+				RelativePath=".\PriorFactory.cpp">
+			</File>
+			<File
 				RelativePath=".\PriorNode.cpp">
+			</File>
+			<File
+				RelativePath=".\QueryAnnotation.cpp">
 			</File>
 			<File
 				RelativePath=".\QueryEnvironment.cpp">
 			</File>
 			<File
+				RelativePath=".\QueryExpander.cpp">
+			</File>
+			<File
+				RelativePath=".\QueryLexer.cpp">
+			</File>
+			<File
+				RelativePath=".\QueryParser.cpp">
+			</File>
+			<File
 				RelativePath=".\Repository.cpp">
+			</File>
+			<File
+				RelativePath=".\RMExpander.cpp">
 			</File>
 			<File
 				RelativePath=".\StemmerFactory.cpp">
@@ -292,6 +332,9 @@
 				RelativePath=".\TermFrequencyBeliefNode.cpp">
 			</File>
 			<File
+				RelativePath=".\TermScoreFunctionFactory.cpp">
+			</File>
+			<File
 				RelativePath=".\TextDocumentExtractor.cpp">
 			</File>
 			<File
@@ -302,6 +345,12 @@
 			</File>
 			<File
 				RelativePath=".\UnorderedWindowNode.cpp">
+			</File>
+			<File
+				RelativePath=".\UnpackerInternal.cpp">
+			</File>
+			<File
+				RelativePath=".\Walker.cpp">
 			</File>
 			<File
 				RelativePath=".\WeightedAndNode.cpp">
@@ -538,6 +587,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\HTMLParser.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\Index.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\IndexEnvironment.hpp">

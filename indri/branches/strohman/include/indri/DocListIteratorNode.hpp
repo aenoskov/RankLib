@@ -64,17 +64,20 @@
 class DocListIteratorNode : public ListIteratorNode {
 private:
   indri::index::DocListIterator* _list;
+  class InferenceNetwork& _network;
+  int _listID;
   greedy_vector<Extent> _extents;
   std::string _name;
 
 public:
-  DocListIteratorNode( const std::string& name, indri::index::DocListIterator* list );
+  DocListIteratorNode( const std::string& name, class InferenceNetwork& network, int listID );
 
   int nextCandidateDocument();
+  void indexChanged( indri::index::Index& index );
+
   void prepare( int documentID );
   const greedy_vector<Extent>& extents();
-  const std::string& getName() const;
-  void annotate( Annotator& annotator, int documentID, int begin, int end );
+  const std::string& getName() const;  void annotate( Annotator& annotator, int documentID, int begin, int end );
 };
 
 #endif // INDRI_DOCLISTITERATORNODE_HPP

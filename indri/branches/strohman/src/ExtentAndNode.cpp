@@ -156,3 +156,7 @@ void ExtentAndNode::annotate( Annotator& annotator, int documentID, int begin, i
   annotator.addMatches( _extents, this, documentID, begin, end );
 }
 
+void ExtentAndNode::indexChanged( indri::index::Index& index ) {
+  // do nothing
+}
+
