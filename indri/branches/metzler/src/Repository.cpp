@@ -134,6 +134,11 @@ std::vector<IndriIndex::FieldDescription> repository_fieldsForIndex( std::vector
 }
 
 void Repository::_copyParameters( Parameters& options ) {
+  if( options.exists("segmenter") ) {
+	  _parameters.set( "segmenter", "" );
+	  _parameters["segmenter"] = options["segmenter"];
+  }
+
   if( options.exists("field") ) {
     _parameters.set( "field", "" );
     _parameters["field"] = options["field"];
