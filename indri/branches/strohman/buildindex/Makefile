@@ -7,7 +7,7 @@ LIBS=-lindri $(patsubst %, -l%, $(DEPENDENCIES))
 APP=buildindex
 
 all:
-	$(CXX) $(CXXFLAGS) $(APP).cpp -o $(APP) $(LIBPATH) $(LIBS) $(CPPLDFLAGS)
+	$(CXX) -lxpdf $(CXXFLAGS) $(APP).cpp -o $(APP) $(LIBPATH) $(LIBS) $(CPPLDFLAGS)
 
 install:
 	$(INSTALL_PROGRAM) $(APP) $(bindir)

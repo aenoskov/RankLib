@@ -776,7 +776,7 @@ void Repository::_merge() {
 
   // no need to merge when there's only one index (or none)
   bool needsWrite = (state->size() > 1) ||
-                    (state->size() == 1 && dynamic_cast<indri::index::DiskIndex*>((*state)[0]));
+                    (state->size() == 1 && dynamic_cast<indri::index::MemoryIndex*>((*state)[0]));
 
   if( !needsWrite )
     return;
