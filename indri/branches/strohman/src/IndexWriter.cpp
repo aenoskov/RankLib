@@ -591,6 +591,11 @@ void IndexWriter::_storeFrequentTerms() {
     _storeStringEntry( _frequentTerms, _topTerms[i] );
   }
 
+  for( int i=0; i<_topTerms.size(); i++ ) {
+    disktermdata_delete( _topTerms[i] );
+  }
+  _topTerms.clear();
+
   writeBuffer.flush();
 }
 
