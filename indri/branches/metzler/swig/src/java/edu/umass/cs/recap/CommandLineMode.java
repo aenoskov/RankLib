@@ -6,6 +6,7 @@ package edu.umass.cs.recap;
 
 import java.io.RandomAccessFile;
 import java.util.StringTokenizer;
+import java.util.Vector;
 
 /**
  * @author Don Metzler
@@ -15,18 +16,20 @@ import java.util.StringTokenizer;
 public class CommandLineMode {
 
 	private String query = null;
+	private int queryID = 0;
 	private String queryExtent = null;
 	private String queryOp = null;
 	private String queryCombiner = null;
 	private int numResults = 0;
 	
 	// command takes the form:
-	// queryFile,extent,operator,combiner,numResults
+	// queryFile,queryID,extent,operator,combiner,numResults
 	public CommandLineMode( String command ) throws Exception {
 		StringTokenizer str = new StringTokenizer( command, ", " );
 		String queryFile = null;
-		try {
+		try {			
 			queryFile = str.nextToken();
+			this.queryID = Integer.parseInt( str.nextToken() );
 			this.queryExtent = str.nextToken();
 			this.queryOp = str.nextToken();
 			this.queryCombiner = str.nextToken();
@@ -58,6 +61,12 @@ public class CommandLineMode {
 	// performs the specified command line commands
 	// using the given retrieval engine
 	public void run( RetrievalEngine retEngine ) {
-		retEngine.runQuery( query, queryOp, queryExtent, queryCombiner, numResults );
+		Vector results = retEngine.runQuery( query, queryOp, queryExtent, queryCombiner, numResults );
+		
+		// display the results
+		for( int i = 0; i < results.size(); i++ ) {
+			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
+			System.out.println( queryID + " Q0 " + info.docName + " " + ( i+1 ) + " " + info.score + " recap" );
+		}
 	}
 }

@@ -41,9 +41,8 @@ public class RetrievalEngine {
 	}
 	
 	// runs a query with the given parameters
-	public Vector runQuery( String query, String queryOp,
-							String queryExtent, String queryCombiner,
-							int numResults ) {
+	public Vector runQuery( String query, String queryOp, String queryExtent,
+							String queryCombiner, int numResults ) {
 		Vector queries = null;
 		Vector allScores = new Vector();		
 	
@@ -65,23 +64,18 @@ public class RetrievalEngine {
 		// run a query for each sentence
 		for( int queryNum = 0; queryNum < queries.size(); queryNum++ ) {
 			String q = (String)queries.elementAt( queryNum );
-			ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", 10 );
+			ScoredExtentResult [] scores = indri.runQuery( queryOp + queryExtent + "(" + q + ")", 1000 );
 			allScores.add( scores );
 		}
 
 		Vector results = scoreResults( allScores, queryExtent, queryCombiner );
-	
-		//for( int i = 0; i < results.size(); i++ )
-		//	System.out.println( results.elementAt(i) );
-	
+		
 		Collections.sort( results );
 		setMetadata( results );
 
 		Vector viewableResults = new Vector();
-		int rank = 1;
 		for( int i = results.size() - 1; i >= results.size() - numResults; i-- ) {
 			ScoredDocInfo info = (ScoredDocInfo)results.elementAt( i );
-			System.out.println( "0 Q0 " + info.docName + " " + (rank++) + " " + info.score + " recap" );
 			viewableResults.add( results.elementAt( i ) );
 		}
 		
@@ -95,7 +89,7 @@ public class RetrievalEngine {
 		
 		while( tok.hasMoreTokens() ) {
 			String sentence = parse( tok.nextSentence() );
-			System.out.println( "SENTENCE = " + sentence );
+			//System.out.println( "SENTENCE = " + sentence );
 			ret.add( sentence );
 		}
 		
@@ -127,17 +121,7 @@ public class RetrievalEngine {
 				candidateDocs.put( docNum, new ScoredDocInfo( docNum.intValue(), 0.0, new Vector() ) );
 			}			
 		}
-		
-		// get the parsed documents for each candidate
-		int [] docIDs = new int[ candidateDocs.size() ];
-		Iterator iter = candidateDocs.keySet().iterator();
-		int num = 0;
-		while( iter.hasNext() ) {
-			//System.out.println( ((Integer)iter.next()).intValue() );
-			docIDs[num++] = ((Integer)iter.next()).intValue();
-		}
-		DocumentVector [] docs = indri.documentVectors( docIDs );
-		
+				
 		// score the documents
 		for( int queryNum = 0; queryNum < scores.size(); queryNum++ ) {
 			HashMap results = new HashMap();
@@ -145,7 +129,7 @@ public class RetrievalEngine {
 			ScoredExtentResult [] queryScores = (ScoredExtentResult [])scores.elementAt( queryNum );
 			for( int i = 0; i < queryScores.length; i++ ) {
 				ScoredExtentResult r = (ScoredExtentResult)queryScores[i];
-				System.out.println( r.score );
+				//System.out.println( r.score );
 				Integer docNum = new Integer( r.document );
 				Vector v = (Vector)results.get( docNum );
 				if( v == null )
@@ -155,13 +139,12 @@ public class RetrievalEngine {
 			}
 		
 			// update each document's score
-			iter = candidateDocs.keySet().iterator();
-			num = 0;
+			Iterator iter = candidateDocs.keySet().iterator();
 			while( iter.hasNext() ) {
 				Integer i = (Integer)iter.next();
 				double score = 0.0;
 				if( queryCombiner.equals( "prob" ) ) 
-					score = getDocScoreProb( i , results, queryExtent, docs[ num ] );
+					score = getDocScoreProb( i , results, queryExtent );
 				else if( queryCombiner.equals( "none") ) {
 					Vector v = (Vector)results.get( i );
 					if( v.size() > 1 )
@@ -182,7 +165,7 @@ public class RetrievalEngine {
 		}
 
 		// construct the final ranked list
-		iter = candidateDocs.keySet().iterator();
+		Iterator iter = candidateDocs.keySet().iterator();
 		while( iter.hasNext() ) {
 			Integer i = (Integer)iter.next();
 			ScoredDocInfo info = (ScoredDocInfo)candidateDocs.get( i );
@@ -194,18 +177,21 @@ public class RetrievalEngine {
 	
 	// scores a single document by probabilistically combining
 	// scores
-	private double getDocScoreProb( Integer i, HashMap results, String queryExtent, DocumentVector doc ) {
+	private double getDocScoreProb( Integer i, HashMap results, String queryExtent ) {
 		double score = 0.0;
+
+		// get the document vectors for each candidate
+		int [] docIDs = new int[ 1 ];
+		docIDs[ 0 ] = i.intValue();
+		DocumentVector [] docs = indri.documentVectors( docIDs );
 		
-		// TODO: make this more sophisticated
-		// for now, just count the number of matches
 		Vector v = (Vector)results.get( i );
 		if( v == null || v.size() == 0 )
 			score = EPSILON;
 		else {
 			for( int j = 0; j < v.size(); j++ ) {
 				ScoredExtentResult s = (ScoredExtentResult)v.elementAt( j );
-				score += Math.exp( 1.0*s.score ) / 1.0 * extentCount( queryExtent, doc );
+				score += Math.exp( 1.0*s.score ) / 1.0 * extentCount( queryExtent, docs[0] );
 			}
 		}
 		
@@ -216,9 +202,12 @@ public class RetrievalEngine {
 	private int extentCount( String queryExtent, DocumentVector doc ) {
 		int num = 0;
 		
+		if( queryExtent.equals("") ) // no extent => entire document is the single extent
+			return 1;
+		
 		DocumentVector.Field [] f = doc.fields;
 		for( int i = 0; i < f.length; i++ ) {
-			if( queryExtent.equals( f[i].name ) )
+			if( queryExtent.equals( "["+f[i].name+"]" ) )
 				num++;
 		}
 		
@@ -262,7 +251,7 @@ public class RetrievalEngine {
 				info.month = 1;
 				info.year = 1989;
 			}
-			System.out.println(info);
+			//System.out.println(info);
 		}
 	}
 	
