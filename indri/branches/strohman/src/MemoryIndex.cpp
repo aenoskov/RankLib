@@ -124,7 +124,7 @@ void indri::index::MemoryIndex::_removeClosedTags( greedy_vector<indri::index::F
 // Tries to find this term in a hash table--if it isn't there, it gets added.
 //
 
-indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( const char* term, int& termID ) {
+indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( const char* term ) {
   term_entry** entry = _stringToTerm.find( const_cast<char*>(term) );
 
   // if we've seen it, return it
@@ -133,7 +133,7 @@ indri::index::MemoryIndex::term_entry* indri::index::MemoryIndex::_lookupTerm( c
 
   // this is a term we haven't seen before
   _corpusStatistics.uniqueTerms++;
-  termID = _corpusStatistics.uniqueTerms;
+  int termID = _corpusStatistics.uniqueTerms;
   
   // create a term data structure
   TermData* termData = termdata_create( _fieldData.size() );
