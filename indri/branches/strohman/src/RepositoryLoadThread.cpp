@@ -58,7 +58,6 @@ UINT64 RepositoryLoadThread::work() {
   }
 
  if( memorySize > 1.5*_memory ) {
-    std::cout << "thrashing ---- " << memorySize << std::endl;
     _repository._setThrashing( true );
     return HALF_SECOND;
   } else {
