@@ -56,6 +56,8 @@
 
 ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* document ) {
 
+  int numSentences = 0;
+
   int numTerms = document->positions.size();
   size_t sentenceBegin = 0;
   bool addTag = false;
@@ -135,6 +137,7 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
       assert( tag.end   <= document->terms.size() );
       
       document->tags.push_back( tag );
+	  numSentences++;
 
       // new beginning of sentence position
       sentenceBegin = i + 1;
@@ -143,6 +146,30 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
     prevTerm = curTerm;
     curTerm = nextTerm;
   }
+
+  // add tag to enclose the remaining data (if any)
+  if( numTerms - sentenceBegin > 0 ) {
+	TagExtent tag;
+	tag.name = "sentence";
+	tag.begin = sentenceBegin;
+	tag.end = numTerms;
+	tag.number = 0;
+
+	assert( tag.begin <= tag.end );
+	assert( tag.begin <= document->terms.size() );
+	assert( tag.end   <= document->terms.size() );
+      
+	document->tags.push_back( tag );
+	numSentences++;
+  }
+
+  // add metadata about the number of
+  // sentences in this document
+  MetadataPair pair;
+  pair.key = "numsentences";
+  pair.value = &numSentences;
+  pair.valueLength = sizeof( int );
+  document->metadata.push_back( pair );
 
   return document;
 }
