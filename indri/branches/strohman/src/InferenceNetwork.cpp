@@ -265,6 +265,10 @@ void InferenceNetwork::_evaluateIndex( indri::index::Index& index ) {
 //
 
 const InferenceNetwork::MAllResults& InferenceNetwork::evaluate() {
+  // count this query occurrence
+  _repository.countQuery();
+
+  // fetch the current index state
   Repository::index_state indexes = _repository.indexes();
   
   for( int i=0; i<indexes->size(); i++ ) {

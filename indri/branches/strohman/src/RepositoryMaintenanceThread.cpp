@@ -29,11 +29,16 @@ static float maintenance_smoothed_load( Repository::Load& load ) {
 //
 
 static bool maintenance_should_merge( Repository::index_state& state, Repository::Load& documentLoad, Repository::Load& queryLoad ) {
-  float addRatio = maintenance_smoothed_load( documentLoad ) / 
-                   (maintenance_smoothed_load( queryLoad ) + 1);
+  float smoothedQueryLoad = maintenance_smoothed_load( queryLoad ) + 1;
+  float smoothedDocumentLoad = maintenance_smoothed_load( documentLoad );
+
+  float addRatio = smoothedDocumentLoad / (smoothedQueryLoad+1); 
 
   bool couldUseMerge = state->size() >= 2;
+  bool significantQueryLoad = smoothedQueryLoad > 2;
+  bool insignificantDocumentLoad = smoothedDocumentLoad < 1;
   int indexesToMerge = state->size(); 
+  bool needsMerge = indexesToMerge > 100;
   
   // extremely heuristic choice for when indexes should be merged:
   //   when we have 100 indexes it makes sense to merge because we'll be out
@@ -42,7 +47,7 @@ static bool maintenance_should_merge( Repository::index_state& state, Repository
   //   is all weighted by the number of indexes we have to merge.
 
   return couldUseMerge &&
-         (indexesToMerge > 100 || (addRatio/50) < indexesToMerge);
+         (needsMerge || ((addRatio/50) < indexesToMerge && (significantQueryLoad || insignificantDocumentLoad)));
 }
 
 //

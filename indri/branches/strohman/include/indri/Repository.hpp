@@ -128,7 +128,6 @@ private:
 
   void _incrementLoad();
   void _countDocumentAdd();
-  void _countQuery();
   Load _computeLoad( indri::atomic::value_type* loadArray );
 
   void _buildFields();
@@ -209,6 +208,9 @@ public:
 
   /// Indexes in this repository
   index_state indexes();
+
+  /// Notify the repository that a query has happened
+  void countQuery();
 
   /// Write the most recent state out to disk
   void write();

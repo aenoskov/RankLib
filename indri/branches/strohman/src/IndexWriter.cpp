@@ -412,6 +412,8 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
   DocListIterator::TopDocument::less docLess;
 
   int lastDocument = 0;
+  int positions = 0;
+  int docs = 0;
 
   // for each matching list:
   for( iter = lists.begin(); iter != lists.end(); ++iter ) {
@@ -429,6 +431,8 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
                                                 documentData->positions.size(),
                                                 index->documentLength( documentData->document ) );
 
+      // add to document counter
+      docs++;
 
       // update the topdocs list
       if( hasTopdocs ) {
@@ -458,11 +462,15 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
 
       for( int i=0; i<documentData->positions.size(); i++ ) {
         stream << (documentData->positions[i] - lastPosition);
+        positions++;
       }
 
       iterator->nextEntry();
     }
   }
+
+  assert( docs == termData->corpus.documentCount );
+  assert( positions == termData->corpus.totalCount );
 
   // write in the final skip info
   _writeBatch( _invertedOutput, -1, listBuffer.position(), listBuffer );

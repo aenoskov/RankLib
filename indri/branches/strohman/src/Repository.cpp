@@ -224,12 +224,12 @@ void Repository::_openIndexes( Parameters& params, const std::string& parentPath
 }
 
 //
-// _countQuery
+// countQuery
 //
 // Counts each document add--useful for load average computation.
 //
 
-void Repository::_countQuery() {
+void Repository::countQuery() {
   indri::atomic::increment( _queryLoad[0] );
 }
 
@@ -938,8 +938,6 @@ void Repository::close() {
 Repository::index_state Repository::indexes() {
   // calling this method implies that some query-related operation
   // is about to happen
-  _countQuery();
-
   return _active;
 }
 
