@@ -1,48 +1,12 @@
 /*==========================================================================
-  Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
-
-  Use of the Lemur Toolkit for Language Modeling and Information Retrieval
-  is subject to the terms of the software license set forth in the LICENSE
-  file included with this software, and also available at
-  http://www.cs.cmu.edu/~lemur/license.html 
-  as well as the conditions below.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in
-  the documentation and/or other materials provided with the
-  distribution.
-
-  3. The names "Indri", "Center for Intelligent Information Retrieval", 
-  "CIIR", and "University of Massachusetts" must not be used to
-  endorse or promote products derived from this software without
-  prior written permission. To obtain permission, contact
-  indri-info@ciir.cs.umass.edu.
-
-  4. Products derived from this software may not be called "Indri" nor 
-  may "Indri" appear in their names without prior written permission of 
-  the University of Massachusetts. To obtain permission, contact 
-  indri-info@ciir.cs.umass.edu.
-
-  THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY OF MASSACHUSETTS AND OTHER
-  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
-  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-  FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-  THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-  DAMAGE.
-  ==========================================================================
+ * Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
+ *
+ * Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+ * is subject to the terms of the software license set forth in the LICENSE
+ * file included with this software, and also available at
+ * http://www.lemurproject.org/license.html
+ *
+ *==========================================================================
 */
 
 
@@ -121,40 +85,40 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
       val = 1;
     }
     else if( variation == 1 ) {
-      val = log( 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 + abs( extentLen - queryLen ) );
+      val = log( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 + my_abs( extentLen - queryLen ) );
     }
     else if( variation == 2 ) {
-      val = log( 1.0 + 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 + log( 1.0 + abs( extentLen - queryLen ) ) );
+      val = log( 1.0 + 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 + log( 1.0 + my_abs( extentLen - queryLen ) ) );
     }
     else if( variation == 3 ) {
-      val = log( 1.0 + 1.0*docCount / df ) * (tf + qf ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 + log( 1.0 + abs( extentLen - queryLen ) ) );
+      val = log( 1.0 + 1.0*docCount / df ) * (tf + qf ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 + log( 1.0 + my_abs( extentLen - queryLen ) ) );
     }
     else if( variation == 4 ) {
-      val = log( 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 + log( 1.0 + abs( extentLen - queryLen ) ) );
+      val = log( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 + log( 1.0 + my_abs( extentLen - queryLen ) ) );
     }
     else if( variation == 5 ) {
-      val = ( 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 + log( 1.0 + abs( extentLen - queryLen ) ) );
+      val = ( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 + log( 1.0 + my_abs( extentLen - queryLen ) ) );
     }
     else if( variation == 6 ) { // log |D| - log |Q| variant of 4
-      val = log( 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 - abs( log( 1.0*extentLen ) - log( 1.0*queryLen ) ) );
+      val = log( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 - my_abs( log( 1.0*extentLen ) - log( 1.0*queryLen ) ) );
     }
     else if( variation == 7 ) { // log |D| - log |Q| variant of 5
-      val = ( 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 - abs( log( 1.0*extentLen ) - log( 1.0*queryLen ) ) );
+      val = ( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 - my_abs( log( 1.0*extentLen ) - log( 1.0*queryLen ) ) );
     }
     else if( variation == 8 ) { // min(|D|, |Q|) / max(|D|, |Q|) variant of 4
-      val = log( 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 + exp( - abs( log( 1.0*extentLen ) - log( 1.0*queryLen ) ) ) );
+      val = log( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 + exp( - my_abs( log( 1.0*extentLen ) - log( 1.0*queryLen ) ) ) );
     }
     else if( variation == 9 ) { // min(|D|, |Q|) / max(|D|, |Q|) variant of 5
-      val = ( 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 + exp( - abs( log( 1.0*extentLen ) - log( 1.0*queryLen ) ) ) );
+      val = ( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 + exp( - my_abs( log( 1.0*extentLen ) - log( 1.0*queryLen ) ) ) );
     }    
     else if( variation == 10 ) {
       val = log( 1.0 + qf ) * log ( 1.0 + tf ) * log( ( docCount + 1.0 ) / ( df + 0.5 ) );
@@ -166,8 +130,8 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
       val = qf * log ( ( tf + ( 1.0*cf / contextLen ) ) / ( 1.0 + extentLen ) );
     }
     else { // defaults to variation 1
-      val = log( 1.0*docCount / df ) / ( 1.0 + abs( tf - qf ) );
-      val *= 1.0 / (1.0 + abs( extentLen - queryLen ) );
+      val = log( 1.0*docCount / df ) / ( 1.0 + my_abs( tf - qf ) );
+      val *= 1.0 / (1.0 + my_abs( extentLen - queryLen ) );
     }
 
     /*std::cout << "child name = " << child->getName() << std::endl;
@@ -246,3 +210,17 @@ const std::string& IdentitySimilarityNode::getName() const {
   return _name;
 }
 
+
+// created this to alleviate annoying compiler issues w.r.t to abs/fabs
+int IdentitySimilarityNode::my_abs( int a ) {
+	if( a >= 0 )
+		return a;
+	return -a;
+}
+
+// created this to alleviate annoying compiler issues w.r.t to abs/fabs
+double IdentitySimilarityNode::my_abs( double a ) {
+	if( a >= 0 )
+		return a;
+	return -a;
+}
