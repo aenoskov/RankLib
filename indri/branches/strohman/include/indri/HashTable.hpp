@@ -332,6 +332,7 @@ public:
 
         *bucket = nextItem;
         _deleteBucket( thisItem );
+        break;
       }
 
       bucket = &(*bucket)->next;
