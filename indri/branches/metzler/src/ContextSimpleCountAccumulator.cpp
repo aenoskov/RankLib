@@ -34,24 +34,30 @@ void ContextSimpleCountAccumulator::_computeCounts( indri::index::Index& index )
       } else {
         _occurrences += index.termCount( _terms[i] );
       }
+
+      // WARNING: for efficiency, this assumes that the document frequency is equal
+      //          to the document frequency of term[0]
+      if( i == 0 )
+	_docOccurrences += index.documentCount( _terms[i] );
+      
     }
   }
+
+  _docCount += index.documentCount();
 }
 
 ContextSimpleCountAccumulator::ContextSimpleCountAccumulator( const std::string& nodeName,
                                                               const std::vector<std::string>& terms,
                                                               const std::string& field,
-                                                              const std::string& context,
-															  UINT64 docOccurrences,
-															  int docCount ) :
+                                                              const std::string& context ) :
   _name(nodeName),
   _terms(terms),
   _field(field),
   _context(context),
   _occurrences(0),
   _size(0),
-  _docOccurrences(docOccurrences),
-  _docCount(docCount)
+  _docOccurrences(0),
+  _docCount(0)
 {
 }
 

@@ -72,8 +72,7 @@ struct CUSTOM_API QueryLexerTokenTypes {
 		ENCODED_TERM = 59,
 		OPERATOR = 60,
 		JUNK = 61,
-		LITERAL_passage = 62,
-		SLASH = 63,
+		SLASH = 62,
 		NULL_TREE_LOOKAHEAD = 3
 	};
 #ifdef __cplusplus

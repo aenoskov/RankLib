@@ -54,7 +54,6 @@ void QueryLexer::initLiterals()
 	literals["#max"] = 14;
 	literals["#identsim"] = 9;
 	literals["#syn"] = 19;
-	literals["passage"] = 62;
 	literals["#date:between"] = 23;
 	literals["#combine"] = 12;
 }
@@ -1031,7 +1030,7 @@ void QueryLexer::mTERM(bool _createToken) {
 		if ( inputState->guessing==0 ) {
 #line 130 "indrilang.g"
 			_ttype = FLOAT;
-#line 1033 "QueryLexer.cpp"
+#line 1032 "QueryLexer.cpp"
 		}
 	}
 	else {
@@ -1058,7 +1057,7 @@ void QueryLexer::mTERM(bool _createToken) {
 			if ( inputState->guessing==0 ) {
 #line 131 "indrilang.g"
 				_ttype = NEGATIVE_NUMBER;
-#line 1060 "QueryLexer.cpp"
+#line 1059 "QueryLexer.cpp"
 			}
 		}
 		else {
@@ -1117,7 +1116,7 @@ void QueryLexer::mTERM(bool _createToken) {
 					if ( inputState->guessing==0 ) {
 #line 132 "indrilang.g"
 						_ttype = NUMBER;
-#line 1119 "QueryLexer.cpp"
+#line 1118 "QueryLexer.cpp"
 					}
 				}
 				else if ((_tokenSet_0.member(LA(1))) && (true)) {
@@ -1333,7 +1332,7 @@ void QueryLexer::mOPERATOR(bool _createToken) {
 		if ( inputState->guessing==0 ) {
 #line 140 "indrilang.g"
 			_ttype = ENCODED_QUOTED_TERM;
-#line 1335 "QueryLexer.cpp"
+#line 1334 "QueryLexer.cpp"
 		}
 	}
 	else {
@@ -1358,7 +1357,7 @@ void QueryLexer::mOPERATOR(bool _createToken) {
 			if ( inputState->guessing==0 ) {
 #line 141 "indrilang.g"
 				_ttype = ENCODED_TERM;
-#line 1360 "QueryLexer.cpp"
+#line 1359 "QueryLexer.cpp"
 			}
 		}
 		else if ((LA(1) == 0x23 /* '#' */ ) && (true)) {
@@ -1425,7 +1424,7 @@ void QueryLexer::mJUNK(bool _createToken) {
 	if ( inputState->guessing==0 ) {
 #line 145 "indrilang.g"
 		_ttype = antlr::Token::SKIP;
-#line 1427 "QueryLexer.cpp"
+#line 1426 "QueryLexer.cpp"
 	}
 	if ( _createToken && _token==ANTLR_USE_NAMESPACE(antlr)nullToken && _ttype!=ANTLR_USE_NAMESPACE(antlr)Token::SKIP ) {
 	   _token = makeToken(_ttype);
