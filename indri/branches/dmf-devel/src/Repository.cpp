@@ -370,7 +370,7 @@ void Repository::close() {
 
       _index->close();
       delete _index;
-      
+      _index = 0;      
     }
 
     delete _collection;
