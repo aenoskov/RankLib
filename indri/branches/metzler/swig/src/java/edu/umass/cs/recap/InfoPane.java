@@ -50,13 +50,13 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	private int numExploreResults = 5;
 	private int numAnalyzeResults = 5;
 	
-	public InfoPane( RetrievalEngine retEngine, MainMenuBar menu, Dimension screenSize ) {
+	public InfoPane( RetrievalEngine retEngine, MainMenuBar menu ) {
 		super( JSplitPane.VERTICAL_SPLIT );
 		this.retEngine = retEngine;
 		this.menu = menu;
 		
 		tlPanel = new TimelinePanel();
-		dvPane = new DocViewPane( retEngine, screenSize );
+		dvPane = new DocViewPane( retEngine );
 		queryPanel = new QueryPanel();
 		JPanel topPanel = new JPanel();
 		
@@ -228,6 +228,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		Object src = e.getSource();
 		if( src == dvPane.getDocTextPane() ) {
 			JTextPane pane = dvPane.getDocTextPane();
+			if( !( pane.getDocument() instanceof RecapStyledDocument ) )
+				return;
 			RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();			
 			String queryText = pane.getSelectedText();
 			if( queryText != null && !queryText.trim().equals("") )
@@ -298,7 +300,6 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			ScoredDocInfo info = tlPanel.getPreviousDoc();
 			if( info == null )
 				return;
-			//DocInfo doc = new DocInfo( info.docName, info.docID );
 			tlPanel.setCurrent( info.docName );
 			dvPane.setSelectedDoc( info );
 			if( getMode().equals( "explore" ) )
@@ -309,7 +310,6 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			ScoredDocInfo info = tlPanel.getNextDoc();
 			if( info == null )
 				return;
-			//DocInfo doc = new DocInfo( info.docName, info.docID );
 			tlPanel.setCurrent( info.docName );
 			dvPane.setSelectedDoc( info );
 			if( getMode().equals( "explore" ) )
@@ -320,8 +320,9 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			ScoredDocInfo info = tlPanel.getCurrentDoc();
 			if( info == null )
 				return;
-			if( getMode().equals( "analyze") )				
-				dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
+			if( getMode().equals( "analyze") )
+				dvPane.displayDoc( ((RecapStyledDocument)dvPane.getResultPane().getDocument()).unformattedClone() );
+				//dvPane.displayDoc( (RecapStyledDocument)((RecapStyledDocument)dvPane.getResultPane().getDocument()).clone() );
 		}
 		else if( buttonText.equals( "Increase font size" ) ) {
 			retEngine.increaseDocFontSize();
