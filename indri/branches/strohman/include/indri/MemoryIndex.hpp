@@ -71,16 +71,13 @@ namespace indri {
       void _removeClosedTags( greedy_vector<indri::index::FieldExtent>& tags, unsigned int position );
       void _writeDocumentTermList( UINT64& offset, int& byteLength, int documentID, int documentLength, indri::index::TermList& locatedTerms );
       void _writeDocumentStatistics( UINT64 offset, int byteLength, int indexedLength, int totalLength, int uniqueTerms );
-      term_entry* _lookupTerm( const char* term, int& termID );
+      term_entry* _lookupTerm( const char* term );
       void _destroyTerms();
 
       int _fieldID( const std::string& fieldName );
       int _fieldID( const char* fieldName );
 
-
     public:
-
-
       UINT64 documentBase();
         
       UINT64 documentCount();
