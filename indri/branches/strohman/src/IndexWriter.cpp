@@ -410,6 +410,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
                       std::vector<DocListIterator::TopDocument>,
                       DocListIterator::TopDocument::less> topdocs;
   DocListIterator::TopDocument::less docLess;
+  double threshold;
 
   int lastDocument = 0;
   int positions = 0;
@@ -426,20 +427,27 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
       // get the latest entry from the list
       DocListIterator::DocumentData* documentData = iterator->currentEntry();
 
-      // form a topdocs entry for this document
-      DocListIterator::TopDocument topDocument( documentData->document,
-                                                documentData->positions.size(),
-                                                index->documentLength( documentData->document ) );
-
       // add to document counter
       docs++;
 
       // update the topdocs list
       if( hasTopdocs ) {
-        if( topdocs.size() < topdocsCount || docLess(topDocument, topdocs.top()) ) {
-          topdocs.push( topDocument );
-          while( topdocs.size() > topdocsCount )
-            topdocs.pop();
+        int length = index->documentLength( documentData->document );
+        int count = documentData->positions.size();
+
+        if( int(length * threshold) < positions ) {
+          // form a topdocs entry for this document
+          DocListIterator::TopDocument topDocument( documentData->document,
+                                                    count,
+                                                    length );
+
+          if( topdocs.size() < topdocsCount || docLess(topDocument, topdocs.top()) ) {
+            topdocs.push( topDocument );
+            while( topdocs.size() > topdocsCount )
+              topdocs.pop();
+          }
+
+          threshold = topdocs.top().count / double(topdocs.top().length);
         }
       }
 
@@ -455,7 +463,7 @@ void IndexWriter::_addInvertedListData( greedy_vector<WriterIndexContext*>& list
 
       // write this entry out to the list
       stream << documentData->document - lastDocument;
-      stream << documentData->positions.size();
+      stream << (int) documentData->positions.size();
       lastDocument = documentData->document;
 
       int lastPosition = 0;
