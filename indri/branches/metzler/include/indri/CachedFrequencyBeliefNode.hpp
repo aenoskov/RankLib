@@ -60,8 +60,9 @@
 #include "indri/TermScoreFunction.hpp"
 #include "indri/ListBeliefNode.hpp"
 #include "indri/ListCache.hpp"
+#include "indri/StatisticsBeliefNode.hpp"
 
-class CachedFrequencyBeliefNode : public BeliefNode {
+class CachedFrequencyBeliefNode : public StatisticsBeliefNode {
 private:
   TermScoreFunction& _function;
   greedy_vector<ScoredExtentResult> _extents;
@@ -85,6 +86,11 @@ public:
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   bool hasMatch( int documentID );
   const std::string& getName() const;
+  
+  int matches( int begin, int end );
+  int contextSize( int begin, int end );
+  
+  void advance();
 };
 
 #endif // INDRI_CACHEDFREQUENCYBELIEFNODE_HPP

@@ -47,6 +47,8 @@ indri::lang::Node* indri::lang::Unpacker::_unpack( XMLNode* child ) {
     result = new CachedFrequencyScorerNode(*this);
   } else if( type == "PriorNode" ) {
     result = new PriorNode(*this);
+  } else if( type == "IdentSimNode" ) {
+    result = new IdentSimNode(*this);
   } else if( type == "OrNode" ) {
     result = new OrNode(*this);
   } else if( type == "NotNode" ) {

@@ -166,6 +166,16 @@ const greedy_vector<ScoredExtentResult>& ListBeliefNode::score( int documentID, 
   return _scores;
 }
 
+int ListBeliefNode::matches( int begin, int end ) {
+  int occurrences = _contextOccurrences( begin, end );
+  return occurrences;
+}
+
+int ListBeliefNode::contextSize( int begin, int end ) {
+  int contextSize = _contextLength( begin, end );
+  return contextSize;
+}
+
 void ListBeliefNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   const greedy_vector<Extent>& extents = _list.extents();
   int count = 0;

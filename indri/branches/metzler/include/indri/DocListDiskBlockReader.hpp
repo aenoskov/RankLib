@@ -386,8 +386,7 @@ namespace indri {
 
         info.setTermID( _termID );
         info.setDocID( _documentData.documentID );
-	// dmf FIXME
-        info.addPositions((LOC_T*) _documentData.positions, _documentData.positionCount );
+        info.addPositions( _documentData.positions, _documentData.positionCount );
       }
 
       bool nextDocument() {

@@ -58,7 +58,6 @@
 #include "lemur/InvFPTypes.hpp"
 #include "lemur/TermInfoList.hpp"
 
-
 namespace indri {
   namespace index {
     class BagList : public ::TermInfoList {

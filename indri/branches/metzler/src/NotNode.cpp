@@ -7,7 +7,7 @@
 
 #include "indri/NotNode.hpp"
 #include "indri/Annotator.hpp"
-#include <cmath>
+#include <math.h>
 
 NotNode::NotNode( const std::string& name, BeliefNode* child )
   :

@@ -35,6 +35,10 @@ public:
     INT64 maximumContextSize;
     INT64 maximumOccurrences;
     float maximumContextFraction;
+    
+    int docOccurrences;
+    int qf;
+    int queryLength;
   };
 
 private:

@@ -137,8 +137,12 @@ public:
       scorerNode->setStatistics( oldNode->getOccurrences(), oldNode->getContextSize(),
                                  oldNode->getMaxOccurrences(), oldNode->getMinContextLength(),
                                  oldNode->getMaxContextLength(),
-                                 oldNode->getMaxContextFraction() );
-
+                                 oldNode->getMaxContextFraction(),
+                                 oldNode->getDocOccurrences(),
+                                 oldNode->getQF(),
+                                 oldNode->getDocCount(),
+                                 oldNode->getQueryLength() );
+                                
       delete newNode;
       result = defaultAfter( oldNode, scorerNode );
     } else if( !_disqualifiers.size() ) {
@@ -152,6 +156,8 @@ public:
         cachedNode = new indri::lang::CachedFrequencyScorerNode( newNode->getRawExtent(), newNode->getContext() );
         cachedNode->setNodeName( newNode->nodeName() );
         cachedNode->setSmoothing( newNode->getSmoothing() );
+        list->qf = oldNode->getQF();
+        list->queryLength = oldNode->getQueryLength();
         cachedNode->setList( list );
 
         delete newNode;

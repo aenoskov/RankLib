@@ -21,7 +21,7 @@ ANTLR_BEGIN_NAMESPACE(indri)
 ANTLR_BEGIN_NAMESPACE(lang)
 class CUSTOM_API QueryParser : public ANTLR_USE_NAMESPACE(antlr)LLkParser, public QueryLexerTokenTypes
 {
-#line 182 "indrilang.g"
+#line 183 "indrilang.g"
 
 private:
   // storage for allocated nodes
@@ -66,6 +66,7 @@ public:
 	public:  indri::lang::ScoredExtentNode*  weightNode();
 	public:  indri::lang::ScoredExtentNode*  combineNode();
 	public:  indri::lang::ScoredExtentNode*  orNode();
+	public:  indri::lang::ScoredExtentNode*  identSimNode();
 	public:  indri::lang::ScoredExtentNode*  notNode();
 	public:  indri::lang::ScoredExtentNode*  wandNode();
 	public:  indri::lang::ScoredExtentNode*  wsumNode();
@@ -123,10 +124,10 @@ protected:
 private:
 	static const char* tokenNames[];
 #ifndef NO_STATIC_CONSTS
-	static const int NUM_TOKENS = 59;
+	static const int NUM_TOKENS = 60;
 #else
 	enum {
-		NUM_TOKENS = 59
+		NUM_TOKENS = 60
 	};
 #endif
 	

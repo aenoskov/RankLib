@@ -98,6 +98,17 @@ const greedy_vector<ScoredExtentResult>& TermFrequencyBeliefNode::score( int doc
   return _extents;
 }
 
+int TermFrequencyBeliefNode::matches( int begin, int end ) {
+  const DocumentCount* entry = _list.currentEntry();
+
+  int count = entry ? entry->count : 0;
+  return count;
+}
+
+int TermFrequencyBeliefNode::contextSize( int begin, int end ) {
+  return end - begin;
+}
+
 bool TermFrequencyBeliefNode::hasMatch( int documentID ) {
   const DocumentCount* entry = _list.currentEntry();
   return ( entry && entry->document == documentID );

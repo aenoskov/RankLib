@@ -80,8 +80,7 @@ void DocListIteratorNode::prepare( int documentID ) {
     return;
 
   int count = info->termCount();
-  // dmf FIXME
-  const int* pos = (const int *) info->positions();
+  const int* pos = info->positions();
   
   for( int i = 0; i < count; i++ ) {
     _extents.push_back( Extent( pos[i], pos[i]+1 ) );

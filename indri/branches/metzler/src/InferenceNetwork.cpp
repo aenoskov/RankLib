@@ -103,8 +103,7 @@ void InferenceNetwork::_evaluateDocument( int document ) {
 }
 
 InferenceNetwork::InferenceNetwork( Repository& repository ) :
-  _repository(repository)
-{
+  _repository(repository){
 }
 
 InferenceNetwork::~InferenceNetwork() {

@@ -182,6 +182,8 @@ private:
       size = _index.termCount();
     }
 
+    int docOccurrences = 0;
+    
     std::vector<indri::lang::IndexTerm*>& terms = subtree.getTerms();
     for( unsigned int i=0; i<terms.size(); i++ ) {
       std::string processed = terms[i]->getText();
@@ -191,10 +193,16 @@ private:
       if( processed.length() != 0 ) {
         int termID = _index.term( processed.c_str() );
         occurrences += _index.fieldTermCount( fieldID, termID );
+
+        // TODO: FIX THIS!
+        // this only works for single terms
+        // it does not work for synonym (< ... >) queries!
+        docOccurrences = _index.fieldDocCount( fieldID, termID );
       }
+
     }
 
-    contextNode->setCounts( occurrences, size );
+    contextNode->setCounts( occurrences, size, docOccurrences );
   }
 
   void _computeUnrestrictedCounts( indri::lang::ContextCounterNode* contextNode, SubtreeWalker& subtree ) {
@@ -209,6 +217,9 @@ private:
     UINT64 minContextSize = MAX_INT64;
     double maxDocumentFraction = 0;
 
+    UINT64 docOccurrences = 0;
+    std::map<int, bool> docMap;
+    
     std::vector<indri::lang::IndexTerm*>& terms = subtree.getTerms();
     for( unsigned int i=0; i<terms.size(); i++ ) {
       std::string processed = terms[i]->getText();
@@ -216,21 +227,34 @@ private:
         processed = _repository.processTerm( terms[i]->getText() );
 
       if( processed.length() != 0 ) {
-        int termID = _index.term( processed.c_str() );
-        occurrences += _index.termCount( termID );
+	int termID = _index.term( processed.c_str() );
+	occurrences += _index.termCount( termID );
 
-        maxOccurrences += _index.termMaxDocumentFrequency( termID );
-        minContextSize = lemur_compat::min<UINT64>( _index.termMinDocumentLength( termID ), minContextSize );
+	// put all of the document occurrences into a map
+	// so we can count how many there are
+	if( termID != 0 ) {
+	  DocInfoList *docInfo = _index.docInfoList( termID );
+	  DocInfoList::iterator doc_iter;
+	  for( doc_iter = docInfo->begin(); doc_iter != docInfo->end(); doc_iter++ ) {
+	    int docid = (*doc_iter).docID();
+	    docMap[ docid ] = true;
+	  }
+	}
 
-        maxDocumentFraction += _index.termMaxDocumentFraction( termID );
-        maxDocumentFraction = lemur_compat::min<double>( 1.0, maxDocumentFraction );
+	maxOccurrences += _index.termMaxDocumentFrequency( termID );
+	minContextSize = lemur_compat::min<UINT64>( _index.termMinDocumentLength( termID ), minContextSize );
+	
+	maxDocumentFraction += _index.termMaxDocumentFraction( termID );
+	maxDocumentFraction = lemur_compat::min<double>( 1.0, maxDocumentFraction );
       }
     }
 
     maxContextSize = _index.maxDocumentLength();
 
     size = _index.termCount();
-    contextNode->setCounts( occurrences, size, maxOccurrences, minContextSize, maxContextSize, maxDocumentFraction );
+    docOccurrences = docMap.size();
+    
+    contextNode->setCounts( occurrences, size, maxOccurrences, minContextSize, maxContextSize, maxDocumentFraction, docOccurrences );
   }
 
   void _computeCounts( indri::lang::ContextCounterNode* contextNode, SubtreeWalker& subtree ) {
@@ -249,7 +273,8 @@ private:
                             list->maximumOccurrences,
                             list->minimumContextSize, 
                             list->maximumContextSize,
-                            list->maximumContextFraction );
+                            list->maximumContextFraction,
+                            list->docOccurrences );
     contextNode->setRawExtent( 0 );
     contextNode->setContext( 0 );
   }
@@ -276,6 +301,7 @@ public:
 
     if( list ) {
       _setCountsFromList( newNode, list );
+
     } else {
       // first, walk the subtree to find out if it's computable
       SubtreeWalker subtree;

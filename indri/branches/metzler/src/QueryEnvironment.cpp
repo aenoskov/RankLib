@@ -128,12 +128,12 @@ public:
 //
 
 // split a document ID list into sublists, one for each query server
-void qenv_scatter_document_ids( const std::vector<DOCID_T>& documentIDs, std::vector< std::vector<DOCID_T> >& docIDLists, std::vector< std::vector<DOCID_T> >& docIDPositions, int serverCount ) {
+void qenv_scatter_document_ids( const std::vector<int>& documentIDs, std::vector< std::vector<int> >& docIDLists, std::vector< std::vector<int> >& docIDPositions, int serverCount ) {
   docIDLists.resize( serverCount );
   docIDPositions.resize( serverCount );
 
   for( unsigned int i=0; i<documentIDs.size(); i++ ) {
-    DOCID_T id = documentIDs[i];
+    int id = documentIDs[i];
     int serverID = id % serverCount;
 
     docIDLists[serverID].push_back( id / serverCount );
@@ -143,8 +143,8 @@ void qenv_scatter_document_ids( const std::vector<DOCID_T>& documentIDs, std::ve
 
 // retrieve a list of results from each query server, and fold those results into a master list
 template<class _ResponseType, class _ResultType>
-void qenv_gather_document_results( const std::vector< std::vector<DOCID_T> >& docIDLists,
-                                   const std::vector< std::vector<DOCID_T> >& docIDPositions,
+void qenv_gather_document_results( const std::vector< std::vector<int> >& docIDLists,
+                                   const std::vector< std::vector<int> >& docIDPositions,
                                    greedy_vector<_ResponseType>& responses,
                                    std::vector<_ResultType>& results ) {
   for( unsigned int i=0; i<docIDLists.size(); i++ ) {
@@ -201,6 +201,9 @@ void QueryEnvironment::_copyStatistics( std::vector<indri::lang::RawScorerNode*>
     std::vector<ScoredExtentResult>& minContextLengthList = statisticsResults[ scorerNodes[i]->nodeName() ][ "minContextLength" ];
     std::vector<ScoredExtentResult>& maxContextFractionList = statisticsResults[ scorerNodes[i]->nodeName() ][ "maxContextFraction" ];
 
+    std::vector<ScoredExtentResult>& docOccurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "docOccurrences" ];
+    std::vector<ScoredExtentResult>& docCountList = statisticsResults[ scorerNodes[i]->nodeName() ][ "docCount" ];
+    
     UINT64 occurrences = UINT64(occurrencesList[0].score);
     UINT64 contextSize = UINT64(contextSizeList[0].score);
 
@@ -209,11 +212,18 @@ void QueryEnvironment::_copyStatistics( std::vector<indri::lang::RawScorerNode*>
     UINT64 minContextLength = UINT64(minContextLengthList[0].score);
     double maxContextFraction = maxContextFractionList[0].score;
 
+	UINT64 docOccurrences = UINT64(docOccurrencesList[0].score);
+	
+	int docCount = int(docCountList[0].score);
+
     scorerNodes[i]->setStatistics( occurrences, contextSize,
                                    maxOccurrences,
                                    minContextLength,
                                    maxContextLength,
-                                   maxContextFraction );
+                                   maxContextFraction,
+                                   docOccurrences,
+                                   0,
+                                   docCount );
   }
 }
 
@@ -379,10 +389,10 @@ void QueryEnvironment::close() {
   delete_vector_contents<Repository*>( _repositories );
 }
 
-std::vector<std::string> QueryEnvironment::documentMetadata( const std::vector<DOCID_T>& documentIDs, const std::string& attributeName ) {
-  std::vector< std::vector<DOCID_T> > docIDLists;
+std::vector<std::string> QueryEnvironment::documentMetadata( const std::vector<int>& documentIDs, const std::string& attributeName ) {
+  std::vector< std::vector<int> > docIDLists;
   docIDLists.resize( _servers.size() );
-  std::vector< std::vector<DOCID_T> > docIDPositions;
+  std::vector< std::vector<int> > docIDPositions;
   docIDPositions.resize( _servers.size() );
   std::vector< std::string > results;
   results.resize( documentIDs.size() );
@@ -410,7 +420,7 @@ std::vector<std::string> QueryEnvironment::documentMetadata( const std::vector<D
 
 std::vector<std::string> QueryEnvironment::documentMetadata( const std::vector<ScoredExtentResult>& results, const std::string& attributeName ) {
   // copy into an int vector
-  std::vector<DOCID_T> documentIDs;
+  std::vector<int> documentIDs;
   documentIDs.reserve(results.size());
 
   for( unsigned int i=0; i<results.size(); i++ ) {
@@ -420,9 +430,9 @@ std::vector<std::string> QueryEnvironment::documentMetadata( const std::vector<S
   return documentMetadata( documentIDs, attributeName );
 }
 
-std::vector<ParsedDocument*> QueryEnvironment::documents( const std::vector<DOCID_T>& documentIDs ) {
-  std::vector< std::vector<DOCID_T> > docIDLists;
-  std::vector< std::vector<DOCID_T> > docIDPositions;
+std::vector<ParsedDocument*> QueryEnvironment::documents( const std::vector<int>& documentIDs ) {
+  std::vector< std::vector<int> > docIDLists;
+  std::vector< std::vector<int> > docIDPositions;
   std::vector< ParsedDocument* > results;
   results.resize( documentIDs.size() );
 
@@ -451,7 +461,7 @@ std::vector<ParsedDocument*> QueryEnvironment::documents( const std::vector<DOCI
 // fetch the document names for a list of document IDs
 std::vector<ParsedDocument*> QueryEnvironment::documents( const std::vector<ScoredExtentResult>& results ) {
   // copy into an int vector
-  std::vector<DOCID_T> documentIDs;
+  std::vector<int> documentIDs;
   documentIDs.reserve(results.size());
 
   for( unsigned int i=0; i<results.size(); i++ ) {
@@ -461,11 +471,11 @@ std::vector<ParsedDocument*> QueryEnvironment::documents( const std::vector<Scor
   return documents( documentIDs );
 }
 
-void QueryEnvironment::_scoredQuery( InferenceNetwork::MAllResults& results, indri::lang::Node* queryRoot, std::string& accumulatorName, int resultsRequested, const std::vector<DOCID_T>* documentSet ) {
+void QueryEnvironment::_scoredQuery( InferenceNetwork::MAllResults& results, indri::lang::Node* queryRoot, std::string& accumulatorName, int resultsRequested, const std::vector<int>* documentSet ) {
   // add a FilterNode, unique to each server
   // send off each query for evaluation
-  std::vector< std::vector<DOCID_T> > docIDLists;
-  std::vector< std::vector<DOCID_T> > docIDPositions;
+  std::vector< std::vector<int> > docIDLists;
+  std::vector< std::vector<int> > docIDPositions;
 
   // scatter the document IDs out to the servers
   if( documentSet )
@@ -527,13 +537,13 @@ void QueryEnvironment::_scoredQuery( InferenceNetwork::MAllResults& results, ind
 }
 
 void QueryEnvironment::_annotateQuery( InferenceNetwork::MAllResults& results,
-                                       const std::vector<DOCID_T>& documentSet,
+                                       const std::vector<int>& documentSet,
                                        std::string& annotatorName,
                                        indri::lang::Node* queryRoot ) {
   // add a FilterNode, unique to each server
   // send off each query for evaluation
-  std::vector< std::vector<DOCID_T> > docIDLists;
-  std::vector< std::vector<DOCID_T> > docIDPositions;
+  std::vector< std::vector<int> > docIDLists;
+  std::vector< std::vector<int> > docIDPositions;
 
   // scatter the document IDs out to the servers
   qenv_scatter_document_ids( documentSet, docIDLists, docIDPositions, _servers.size() );
@@ -582,7 +592,7 @@ void QueryEnvironment::_annotateQuery( InferenceNetwork::MAllResults& results,
 std::vector<ScoredExtentResult> QueryEnvironment::_runQuery( InferenceNetwork::MAllResults& results,
                                                              const std::string& q,
                                                              int resultsRequested,
-                                                             const std::vector<DOCID_T>* documentSet,
+                                                             const std::vector<int>* documentSet,
                                                              QueryAnnotation** annotation ) {
   INIT_TIMER
 
@@ -605,13 +615,13 @@ std::vector<ScoredExtentResult> QueryEnvironment::_runQuery( InferenceNetwork::M
   } catch( antlr::ANTLRException exception ) {
     LEMUR_THROW( LEMUR_PARSE_ERROR, "Couldn't understand this query: " + exception.toString() );
   }
-  
+
   PRINT_TIMER( "Parsing complete" );
 
   // push down language models from ExtentRestriction nodes
   ExtentRestrictionModelAnnotatorCopier restrictionCopier;
   rootNode = dynamic_cast<indri::lang::ScoredExtentNode*>(rootNode->copy(restrictionCopier));
-  
+    
   // extract the raw scorer nodes from the query tree
   RawScorerNodeExtractor extractor;
   rootNode->walk(extractor);
@@ -646,7 +656,7 @@ std::vector<ScoredExtentResult> QueryEnvironment::_runQuery( InferenceNetwork::M
 
   if( annotation ) {
     std::string annotatorName;
-    std::vector<DOCID_T> documentSet;
+    std::vector<int> documentSet;
 
     for( size_t i=0; i<queryResults.size(); i++ ) {
       documentSet.push_back( queryResults[i].document );
@@ -667,7 +677,7 @@ std::vector<ScoredExtentResult> QueryEnvironment::runQuery( const std::string& q
   return queryResult;
 }
 
-std::vector<ScoredExtentResult> QueryEnvironment::runQuery( const std::string& query, const std::vector<DOCID_T>& documentSet, int resultsRequested ) {
+std::vector<ScoredExtentResult> QueryEnvironment::runQuery( const std::string& query, const std::vector<int>& documentSet, int resultsRequested ) {
   InferenceNetwork::MAllResults results;
   std::vector<ScoredExtentResult> queryResult = _runQuery( results, query, resultsRequested, &documentSet, 0 );
   return queryResult;
@@ -681,7 +691,7 @@ QueryAnnotation* QueryEnvironment::runAnnotatedQuery( const std::string& query, 
   return annotation;
 }
 
-QueryAnnotation* QueryEnvironment::runAnnotatedQuery( const std::string& query, const std::vector<DOCID_T>& documentSet, int resultsRequested ) {
+QueryAnnotation* QueryEnvironment::runAnnotatedQuery( const std::string& query, const std::vector<int>& documentSet, int resultsRequested ) {
   InferenceNetwork::MAllResults results;
   QueryAnnotation* annotation = 0;
   
@@ -800,10 +810,10 @@ INT64 QueryEnvironment::documentCount( const std::string& term ) {
   return totalDocumentCount;
 }
 
-std::vector<DocumentVector*> QueryEnvironment::documentVectors( const std::vector<DOCID_T>& documentIDs ) {
-  std::vector< std::vector<DOCID_T> > docIDLists;
+std::vector<DocumentVector*> QueryEnvironment::documentVectors( const std::vector<int>& documentIDs ) {
+  std::vector< std::vector<int> > docIDLists;
   docIDLists.resize( _servers.size() );
-  std::vector< std::vector<DOCID_T> > docIDPositions;
+  std::vector< std::vector<int> > docIDPositions;
   docIDPositions.resize( _servers.size() );
   std::vector< DocumentVector* > results;
   results.resize( documentIDs.size() );

@@ -49,6 +49,8 @@ namespace indri {
       virtual void after( class CachedFrequencyScorerNode* n );
       virtual void before( class PriorNode* n );
       virtual void after( class PriorNode* n );
+      virtual void before( class IdentSimNode* n );
+      virtual void after( class IdentSimNode* n );
       virtual void before( class OrNode* n );
       virtual void after( class OrNode* n );
       virtual void before( class NotNode* n );

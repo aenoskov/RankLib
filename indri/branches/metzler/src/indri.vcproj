@@ -29,7 +29,7 @@
 				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="TRUE"
-				DebugInformationFormat="4"/>
+				DebugInformationFormat="3"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -62,15 +62,16 @@
 			ManagedExtensions="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
+				GlobalOptimizations="TRUE"
 				AdditionalIncludeDirectories="../include;../contrib/antlr/include;../contrib/xpdf/include;../contrib/lemur/include;../contrib/zlib/include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
-				MinimalRebuild="TRUE"
+				MinimalRebuild="FALSE"
 				RuntimeLibrary="2"
 				BufferSecurityCheck="TRUE"
 				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="TRUE"
-				DebugInformationFormat="3"/>
+				DebugInformationFormat="0"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -193,6 +194,9 @@
 				RelativePath=".\HTMLParser.cpp">
 			</File>
 			<File
+				RelativePath=".\IdentitySimilarityNode.cpp">
+			</File>
+			<File
 				RelativePath=".\IndexEnvironment.cpp">
 			</File>
 			<File
@@ -265,9 +269,6 @@
 				RelativePath=".\PDFDocumentExtractor.cpp">
 			</File>
 			<File
-				RelativePath=".\PonteExpander.cpp">
-			</File>
-			<File
 				RelativePath=".\PorterStemmerTransformation.cpp">
 			</File>
 			<File
@@ -299,6 +300,9 @@
 			</File>
 			<File
 				RelativePath=".\RMExpander.cpp">
+			</File>
+			<File
+				RelativePath=".\SentenceSegmenterTransformation.cpp">
 			</File>
 			<File
 				RelativePath=".\StemmerFactory.cpp">
@@ -381,13 +385,10 @@
 				RelativePath="..\include\indri\BeliefNode.hpp">
 			</File>
 			<File
-				RelativePath="..\include\indri\BooleanAndNode.cpp">
+				RelativePath="..\include\indri\BooleanAndNode.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\Buffer.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\CachedFrequencyBeliefNode.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\Collection.hpp">
@@ -507,9 +508,6 @@
 				RelativePath="..\include\indri\FieldData.hpp">
 			</File>
 			<File
-				RelativePath="..\include\indri\FieldEqualsNode.hpp">
-			</File>
-			<File
 				RelativePath="..\include\indri\FieldExtent.hpp">
 			</File>
 			<File
@@ -567,13 +565,13 @@
 				RelativePath="..\include\indri\HTMLParser.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\IdentitySimilarityNode.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\IndexEnvironment.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\indri-platform.h">
-			</File>
-			<File
-				RelativePath="..\include\indri\indri-platform.h~">
 			</File>
 			<File
 				RelativePath="..\include\indri\IndriIndex.hpp">
@@ -619,6 +617,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\MaxNode.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\MemoryFrequencyList.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\MetadataPair.hpp">
@@ -687,9 +688,6 @@
 				RelativePath="..\include\indri\PDFDocumentExtractor.hpp">
 			</File>
 			<File
-				RelativePath="..\include\indri\PonteExpander.hpp">
-			</File>
-			<File
 				RelativePath="..\include\indri\PorterStemmerTransformation.hpp">
 			</File>
 			<File
@@ -756,6 +754,9 @@
 				RelativePath="..\include\indri\ScoredExtentResult.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\SentenceSegmenterTransformation.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\SimpleCopier.hpp">
 			</File>
 			<File
@@ -763,6 +764,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\SmoothingAnnotatorWalker.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\StatisticsBeliefNode.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\StemmerFactory.hpp">
@@ -822,9 +826,6 @@
 				RelativePath="..\include\indri\TFIDFTermScoreFunction.hpp">
 			</File>
 			<File
-				RelativePath="..\include\indri\TopdocsIndex.hpp">
-			</File>
-			<File
 				RelativePath="..\include\indri\Transformation.hpp">
 			</File>
 			<File
@@ -832,6 +833,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\TwoStageTermScoreFunction.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\UnknownRemoverCopier.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\UnnecessaryNodeRemoverCopier.hpp">

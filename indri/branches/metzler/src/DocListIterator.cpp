@@ -125,7 +125,7 @@ DocInfo* DocListIterator::nextEntry() const {
 
 // find the first document that contains this term that has an id >= documentID.
 // returns null if no such document exists.
-DocInfo* DocListIterator::nextEntry( DOCID_T documentID ) {
+DocInfo* DocListIterator::nextEntry( int documentID ) {
   if( _finished )
     return 0;
 
@@ -159,7 +159,7 @@ DocInfo* DocListIterator::getElement(DocInfo* elem, POS_T position) const {
   tmp->clear();
   tmp->setDocID(cur->docID());
   tmp->setTermID(cur->termID());
-  tmp->addPositions((LOC_T *)(cur->positions()),cur->termCount());
+  tmp->addPositions((int *)cur->positions(),cur->termCount());
   return elem;
 }
 

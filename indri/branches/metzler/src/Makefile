@@ -1,7 +1,7 @@
 #define this module
 MODULE	= indri
 
--include ../MakeDefns
+include ../MakeDefns
 ALLHEADER += ../include/indri/greedy_vector ../include/indri/count_iterator
 OBJLIB = libindri.a
 
@@ -36,10 +36,7 @@ $(SPECSRCS): $(QUERYSPEC)
 
 clean:
 	rm -f *.o *.a
-
-install:
-	$(INSTALL_DATA) $(ALLHEADER) $(pkgincludedir)
-	$(AR) -rs $(libdir)/$(INDRILIB) $(OBJ)
+	rm -f ../depend/*.d
 
 stamp:
 	awk -f ../src/version-stamper "stamp=`date`" ../include/indri/indri-platform.h > ../include/indri/indri-platform.h2
@@ -49,14 +46,12 @@ stamp:
 # that specifies its dependents. 
 ifneq (clean, $(MAKECMDGOALS))
 ifneq (install, $(MAKECMDGOALS))
-ifneq (stamp, $(MAKECMDGOALS))
 ifneq ($(strip $(CPPSRC)),)
 -include $(patsubst %, ../depend/%, $(CPPSRC:.cpp=.d))
 endif
 
 ifneq ($(strip $(CSRC)),)
 -include $(patsubst %, ../depend/%, $(CSRC:.c=.d))
-endif
 endif
 endif
 endif

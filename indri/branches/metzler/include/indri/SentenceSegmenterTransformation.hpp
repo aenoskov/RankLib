@@ -47,65 +47,33 @@
 
 
 //
-//
-//
-//
+// SentenceSegmenterTransformation
+// 
+// 12 October 2004 -- dam
 //
 
-#ifndef INDRI_RVLDECOMPRESSSTREAM_HPP
-#define INDRI_RVLDECOMPRESSSTREAM_HPP
+//
+// A very simple heuristic sentence segmenter that
+// adds 'sentence' extents around detected sentences.
+//
+// WARNING: currently only works in conjunction with TextParser
+// (NOT any TaggedTextParser-derived parsers)
+//
 
-class RVLDecompressStream {
+#ifndef INDRI_SENTENCESEGMENTERTRANSFORMATION_HPP
+#define INDRI_SENTENCESEGMENTERTRANSFORMATION_HPP
+
+#include "indri/Transformation.hpp"
+
+class SentenceSegmenterTransformation : public Transformation {
 private:
-  const char* _buffer;
-  int _bufferSize;
-  const char* _current;
+  ObjectHandler<ParsedDocument>* _handler;
 
 public:
-  RVLDecompressStream( const char* buffer, int size ) {
-    _buffer = buffer;
-    _bufferSize = size;
-    _current = buffer;
-  }
+  ParsedDocument* transform( ParsedDocument* document );
 
-  RVLDecompressStream& operator>> ( INT64& value ) {
-    _current = RVLCompress::decompress_longlong( _current, value );
-    assert( _current - _buffer <= _bufferSize );
-    return *this;
-  }
-
-  RVLDecompressStream& operator>> ( UINT64& value ) {
-    INT64 other;
-    _current = RVLCompress::decompress_longlong( _current, other );
-    assert( _current - _buffer <= _bufferSize );
-    value = other;
-    return *this;
-  }
-
-  RVLDecompressStream& operator>> ( int& value ) {
-    _current = RVLCompress::decompress_int( _current, value );
-    assert( _current - _buffer <= _bufferSize );    
-    return *this;
-  }
-
-  RVLDecompressStream& operator>> ( unsigned int& value ) {
-    int v;
-    _current = RVLCompress::decompress_int( _current, v );
-    value = (unsigned int) v;
-    assert( _current - _buffer <= _bufferSize );    
-    return *this;
-  }
-
-  RVLDecompressStream& operator>> ( float& value ) {
-    // doubles aren't compressed
-    memcpy( &value, _current, sizeof value );
-    _current += sizeof value;
-    return *this;
-  }
-
-  bool done() const {
-    return (_current - _buffer) >= _bufferSize;
-  }
+  void setHandler( ObjectHandler<ParsedDocument>& handler );
+  void handle( ParsedDocument* document );
 };
 
-#endif // INDRI_RVLDECOMPRESSSTREAM_HPP
+#endif // INDRI_SENTENCESEGMENTERTRANSFORMATION_HPP

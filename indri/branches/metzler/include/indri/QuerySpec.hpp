@@ -152,6 +152,69 @@ namespace indri {
 
     /* abstract */ class RawExtentNode : public Node {};
     /* abstract */ class ScoredExtentNode : public Node {};
+    
+    /* abstract */ class StatisticsNode : public ScoredExtentNode {
+    protected:
+        indri::lang::Node* _raw;
+        indri::lang::Node* _context;
+    
+    	UINT64 _docOccurrences;
+    	int _docCount;
+	    int _qf;
+
+	    int _queryLength;
+	    
+        std::string _smoothing;	    
+    
+    public:
+    	UINT64 getDocOccurrences() const {
+    	  return _docOccurrences;
+    	}
+    	
+    	int getDocCount() const {
+   	      return _docCount;
+    	}
+    	
+    	void setQF( int qf ) {
+          _qf = qf;
+    	}
+    	
+    	int getQF() const {
+    	  return _qf;
+    	}
+    	
+    	void setQueryLength( int queryLength ) {
+          _queryLength = queryLength;
+    	}
+    	
+    	int getQueryLength() const {
+    	  return _queryLength;
+    	}
+
+    	const std::string& getSmoothing() const {
+          return _smoothing;
+      	}
+      	
+      	void setSmoothing( const std::string& smoothing ) {
+        _smoothing = smoothing;
+      }
+    	
+      std::string queryText() const {
+        std::stringstream qtext;        
+        qtext << _raw->queryText();
+        if( _context ) {
+          // if we haven't added a period yet, put one in
+          int dot = qtext.str().find('.');
+          if( dot < 0 )
+            qtext << '.';
+
+          qtext << "(" << _context->queryText() << ")";
+        }
+
+        return qtext.str();
+      }   
+    };
+    
     /* abstract */ class AccumulatorNode : public Node {};
     
     class IndexTerm : public RawExtentNode {
@@ -198,6 +261,10 @@ namespace indri {
 
         return qtext.str();
       }
+
+	  void setText( std::string text ) {
+	  	_text = text;
+	  }
 
       void setStemmed(bool stemmed) {
         _stemmed = stemmed;
@@ -1126,67 +1193,68 @@ namespace indri {
     class FieldEqualsNode : public RawExtentNode {
     private:
       RawExtentNode* _field;
-      INT64 _constant;
-
+      UINT64 _constant;
+      
     public:
-      FieldEqualsNode( RawExtentNode* field, INT64 constant ) :
-        _field(field),
-        _constant(constant) {
+      FieldEqualsNode( RawExtentNode* field, UINT64 constant ) :
+	_field(field),
+	_constant(constant) {
       }
       
       FieldEqualsNode( Unpacker& unpacker ) {
-        _field = unpacker.getRawExtentNode("field");
-        _constant = unpacker.getInteger("constant");
+	_field = unpacker.getRawExtentNode("field");
+	_constant = unpacker.getInteger("constant");
       }
-
+      
       std::string typeName() const {
-        return "FieldEqualsNode";
+	return "FieldEqualsNode";
       }
-
+      
       std::string queryText() const {
-        std::stringstream qtext;
-        qtext << "#equals(" << _field->queryText() << " " << _constant << ")";
-        return qtext.str();
+	std::stringstream qtext;
+	qtext << "#equals(" << _field->queryText() << " " << _constant << ")"\
+	  ;
+	return qtext.str();
       }
-
-      INT64 getConstant() const {
-        return _constant;
+      
+      UINT64 getConstant() const {
+	return _constant;
       }
-
+      
       RawExtentNode* getField() {
-        return _field;
+	return _field;
       }
-
+      
       bool operator== ( Node& node ) {
-        FieldEqualsNode* other = dynamic_cast<FieldEqualsNode*>(&node);
-
-        return other &&
-               other->getConstant() == _constant &&
-               *other->getField() == *_field;
+	FieldEqualsNode* other = dynamic_cast<FieldEqualsNode*>(&node);
+	
+	return other &&
+	  other->getConstant() == _constant &&
+	  *other->getField() == *_field;
       }
-
+      
       Node* copy( Copier& copier ) {
-        copier.before(this);
-        RawExtentNode* fieldDuplicate = dynamic_cast<RawExtentNode*>(_field->copy(copier));
-        FieldEqualsNode* duplicate = new FieldEqualsNode( fieldDuplicate, _constant );
-        return copier.after(this, duplicate);
+	copier.before(this);
+	RawExtentNode* fieldDuplicate = dynamic_cast<RawExtentNode*>(_field->copy(copier));
+	FieldEqualsNode* duplicate = new FieldEqualsNode( fieldDuplicate, _constant );
+	return copier.after(this, duplicate);
       }
-
+      
       void walk( Walker& walker ) {
-        walker.before(this);
-        _field->walk(walker);
-        walker.after(this);
+	walker.before(this);
+	_field->walk(walker);
+	walker.after(this);
       }
-
+      
       void pack( Packer& packer ) {
-        packer.before(this);
-        packer.put("field", _field);
-        packer.put("constant", _constant);
-        packer.after(this);
+	packer.before(this);
+	packer.put("field", _field);
+	packer.put("constant", _constant);
+	packer.after(this);
       }
     };
-
-    class RawScorerNode : public ScoredExtentNode {
+    
+    class RawScorerNode : public StatisticsNode {
     private:
       UINT64 _occurrences; // number of occurrences within this context
       UINT64 _contextSize; // number of terms that occur within this context
@@ -1194,10 +1262,6 @@ namespace indri {
       UINT64 _minimumContextLength;
       UINT64 _maximumOccurrences;
       double _maximumContextFraction;
-
-      RawExtentNode* _raw;
-      RawExtentNode* _context;
-      std::string _smoothing;
 
     public:
       RawScorerNode( RawExtentNode* raw, RawExtentNode* context, std::string smoothing = "method:dirichlet,mu:2500" ) {
@@ -1211,6 +1275,9 @@ namespace indri {
         _minimumContextLength = 1;
         _maximumContextFraction = 1;
         _smoothing = smoothing;
+        
+        _docOccurrences = 0;
+        _docCount = 0;
       }
 
       RawScorerNode( Unpacker& unpacker ) {
@@ -1224,26 +1291,13 @@ namespace indri {
         _maximumOccurrences = unpacker.getInteger( "maximumOccurrences" );
         _maximumContextFraction = unpacker.getDouble( "maximumContextFraction" );
         _smoothing = unpacker.getString( "smoothing" );
+        
+        _docOccurrences = unpacker.getInteger( "docOccurrences" );
+        _docCount = unpacker.getInteger( "docCount" );
       }
 
       std::string typeName() const {
         return "RawScorerNode";
-      }
-
-      std::string queryText() const {
-        std::stringstream qtext;
-        
-        qtext << _raw->queryText();
-        if( _context ) {
-          // if we haven't added a period yet, put one in
-          int dot = qtext.str().find('.');
-          if( dot < 0 )
-            qtext << '.';
-
-          qtext << "(" << _context->queryText() << ")";
-        }
-
-        return qtext.str();
       }
 
       UINT64 getOccurrences() const {
@@ -1252,10 +1306,6 @@ namespace indri {
 
       UINT64 getContextSize() const {
         return _contextSize;
-      }
-
-      const std::string& getSmoothing() const {
-        return _smoothing;
       }
 
       UINT64 getMaxContextLength() const {
@@ -1274,14 +1324,17 @@ namespace indri {
         return _maximumContextFraction;
       }
 
-      void setStatistics( UINT64 occurrences, UINT64 contextSize ) {
+      void setStatistics( UINT64 occurrences, UINT64 contextSize, UINT64 docOccurrences, int qf, int docCount ) {
         _occurrences = occurrences;
         _contextSize = contextSize;
+        _docOccurrences = docOccurrences;
+        _qf = qf;
+        _docCount = docCount;
       }
 
       void setStatistics( UINT64 occurrences, UINT64 contextSize,
                           UINT64 maxOccurrences, UINT64 minContextLength, UINT64 maxContextLength,
-                          double maxContextFraction ) {
+                          double maxContextFraction, UINT64 docOccurrences, int qf, int docCount ) {
         _occurrences = occurrences;
         _contextSize = contextSize;
 
@@ -1289,6 +1342,10 @@ namespace indri {
         _minimumContextLength = minContextLength;
         _maximumContextLength = maxContextLength;
         _maximumContextFraction = maxContextFraction;
+        
+        _docOccurrences = docOccurrences;
+        _qf = qf;
+        _docCount = docCount;
       }
 
       void setContext( RawExtentNode* context ) {
@@ -1299,16 +1356,12 @@ namespace indri {
         _raw = rawExtent;
       }
 
-      void setSmoothing( const std::string& smoothing ) {
-        _smoothing = smoothing;
-      }
-
       RawExtentNode* getContext() {
-        return _context;
+        return dynamic_cast<RawExtentNode*>(_context);
       }
 
       RawExtentNode* getRawExtent() {
-        return _raw;
+        return dynamic_cast<RawExtentNode*>(_raw);
       }
 
       void pack( Packer& packer ) {
@@ -1323,6 +1376,9 @@ namespace indri {
         packer.put( "maximumOccurrences", _maximumOccurrences );
         packer.put( "maximumContextFraction", _maximumContextFraction );
         packer.put( "smoothing", _smoothing );
+        
+        packer.put( "docOccurrences", _docOccurrences );
+        packer.put( "docCount", _docCount );
         packer.after(this);
       }
 
@@ -1348,7 +1404,7 @@ namespace indri {
       }
     };
 
-    class TermFrequencyScorerNode : public ScoredExtentNode {
+    class TermFrequencyScorerNode : public StatisticsNode {
     private:
       UINT64 _occurrences; // number of occurrences within this context
       UINT64 _contextSize; // number of terms that occur within this context
@@ -1358,7 +1414,6 @@ namespace indri {
       double _maximumContextFraction;
 
       std::string _text;
-      std::string _smoothing;
       bool _stemmed;
 
     public:
@@ -1372,6 +1427,12 @@ namespace indri {
         _smoothing = "";
         _text = text;
         _stemmed = stemmed;
+
+		_raw = 0;
+		_context = 0;
+        
+        _docOccurrences = 0;
+        _docCount = 0;
       }
 
       TermFrequencyScorerNode( Unpacker& unpacker ) {
@@ -1384,6 +1445,22 @@ namespace indri {
         _smoothing = unpacker.getString( "smoothing" );
         _text = unpacker.getString( "text" );
         _stemmed = unpacker.getBoolean( "stemmed" );
+        
+        _docOccurrences = unpacker.getInteger( "docOccurrences" );
+        _docCount = unpacker.getInteger( "docCount" );
+      }
+      
+      std::string queryText() const {
+        std::stringstream qtext;        
+        qtext << _raw->queryText();
+        if( !_raw ) {
+          if( !_stemmed )
+            qtext << _text;
+          else
+            qtext << "\"" << _text << "\"";
+	    }
+	    
+	    return qtext.str();
       }
       
       const std::string& getText() const {
@@ -1398,27 +1475,12 @@ namespace indri {
         return "TermFrequencyScorerNode";
       }
 
-      std::string queryText() const {
-        std::stringstream qtext;
-        
-        if( !_stemmed )
-          qtext << _text;
-        else
-          qtext << "\"" << _text << "\"";
-
-        return qtext.str();
-      }
-
       UINT64 getOccurrences() const {
         return _occurrences;
       }
 
       UINT64 getContextSize() const {
         return _contextSize;
-      }
-
-      const std::string& getSmoothing() const {
-        return _smoothing;
       }
 
       UINT64 getMaxContextLength() const {
@@ -1440,7 +1502,8 @@ namespace indri {
       void setStatistics( UINT64 occurrences, UINT64 contextSize,
                           UINT64 maxOccurrences,
                           UINT64 minContextLength, UINT64 maxContextLength,
-                          double maxContextFraction ) {
+                          double maxContextFraction, UINT64 docOccurrences,
+                          int qf, int docCount, int queryLength ) {
         _occurrences = occurrences;
         _contextSize = contextSize;
 
@@ -1448,10 +1511,11 @@ namespace indri {
         _minimumContextLength = minContextLength;
         _maximumContextLength = maxContextLength;
         _maximumContextFraction = maxContextFraction;
-      }
-
-      void setSmoothing( const std::string& smoothing ) {
-        _smoothing = smoothing;
+        
+        _docOccurrences = docOccurrences;
+        _qf = qf;
+        _docCount = docCount;
+        _queryLength = queryLength;
       }
 
       void pack( Packer& packer ) {
@@ -1465,6 +1529,9 @@ namespace indri {
         packer.put( "text", _text );
         packer.put( "stemmed", _stemmed );
         packer.put( "smoothing", _smoothing );
+        
+        packer.put( "docOccurrences", _docOccurrences );
+        packer.put( "docCount", _docCount );
         packer.after(this);
       }
 
@@ -1482,20 +1549,17 @@ namespace indri {
 
     // The CachedFrequencyScorerNode should only be used on a local machine;
     // it should not be transferred across the network
-    class CachedFrequencyScorerNode : public indri::lang::ScoredExtentNode {
+    class CachedFrequencyScorerNode : public StatisticsNode {
     private:
-      indri::lang::Node* _raw;
-      indri::lang::Node* _context;
-      std::string _smoothing;
       void* _list;
     
     public:
       CachedFrequencyScorerNode( indri::lang::Node* raw, indri::lang::Node* context )
         :
-        _raw(raw),
-        _context(context),
         _list(0)
       {
+      	_raw = raw;
+      	_context = context;
       }
 
       CachedFrequencyScorerNode( Unpacker& unpacker ) {
@@ -1516,30 +1580,6 @@ namespace indri {
 
       std::string typeName() const {
         return "CachedFrequencyScorerNode";
-      }
-
-      std::string queryText() const {
-        std::stringstream qtext;
-        
-        qtext << _raw->queryText();
-        if( _context ) {
-          // if we haven't added a period yet, put one in
-          int dot = qtext.str().find('.');
-          if( dot < 0 )
-            qtext << '.';
-
-          qtext << "(" << _context->queryText() << ")";
-        }
-
-        return qtext.str();
-      }
-
-      void setSmoothing( const std::string& smoothing ) {
-        _smoothing = smoothing;
-      }
-
-      const std::string& getSmoothing() const {
-        return _smoothing;
       }
 
       indri::lang::Node* getRaw() {
@@ -1830,6 +1870,58 @@ namespace indri {
         packer.put( "weights", weights );
         packer.put( "children", nodes );
         packer.after(this);
+      }
+    };
+
+    class IdentSimNode : public UnweightedCombinationNode {
+    private:
+      int _variation;
+      
+    public:
+      IdentSimNode() : _variation(1) {}
+      IdentSimNode( Unpacker& unpacker ) {
+	_variation = unpacker.getInteger( "variation" );
+      }
+
+      void setVariation( int variation ) {
+	_variation = variation;
+      }
+
+      void setVariation( const std::string& variation ) {
+        setVariation( atoi( variation.c_str() ) );
+      }
+
+      int getVariation() {
+	return _variation;
+      }
+      
+      std::string typeName() const {
+        return "IdentSimNode";
+      }
+
+      std::string queryText() const {
+        std::stringstream qtext;
+        qtext << "#identsim(";
+        _childText(qtext);
+        qtext << ")";
+
+        return qtext.str();
+      } 
+
+      void pack( Packer& packer ) {
+        packer.before(this);
+        packer.put( "variation", _variation );
+        packer.after(this);
+      }
+
+      void walk( Walker& walker ) {
+        _walk( this, walker );
+      }
+
+      Node* copy( Copier& copier ) {
+	copier.before(this);
+	IdentSimNode* newIdentSimNode = new IdentSimNode(*this);
+	return copier.after(this, newIdentSimNode);
       }
     };
 
@@ -2229,6 +2321,9 @@ namespace indri {
       UINT64 _maximumContextLength;
       UINT64 _maximumOccurrences;
       double _maximumContextFraction;
+      
+      UINT64 _docOccurrences;
+      int _docCount;
 
     public:
       ContextCounterNode( RawExtentNode* raw, RawExtentNode* context ) :
@@ -2240,7 +2335,9 @@ namespace indri {
          _minimumContextLength(1),
          _maximumContextLength(MAX_INT32),
          _maximumOccurrences(MAX_INT32),
-         _maximumContextFraction(1.0)
+         _maximumContextFraction(1.0),
+         _docOccurrences(0),
+         _docCount(0)
       {
         _raw = raw;
         _context = context;
@@ -2260,6 +2357,9 @@ namespace indri {
         _hasCounts = unpacker.getBoolean( "hasCounts" );
         _hasContextSize = unpacker.getBoolean( "hasContextSize" );
         _hasMaxScore = unpacker.getBoolean( "hasMaxScore" );
+        
+        _docOccurrences = unpacker.getInteger( "docOccurrences" );
+        _docCount = unpacker.getInteger( "docCount" );
       }
 
       std::string typeName() const {
@@ -2315,6 +2415,9 @@ namespace indri {
         packer.put( "hasCounts", _hasCounts );
         packer.put( "hasContextSize", _hasContextSize );
         packer.put( "hasMaxScore", _hasMaxScore );
+        
+        packer.put( "docOccurrences", _docOccurrences );
+        packer.put( "docCount", _docCount );
         packer.after(this);
       }
 
@@ -2371,15 +2474,25 @@ namespace indri {
         return _maximumContextFraction;
       }
 
+      UINT64 getDocOccurrences() const {
+	return _docOccurrences;
+      }
+      
+      int getDocCount() const {
+	return _docCount;
+      }
+
       void setContextSize( UINT64 contextSize ) {
         _contextSize = contextSize;
         _hasContextSize = true;
       }
 
       void setCounts( UINT64 occurrences,
-                      UINT64 contextSize ) {
+                      UINT64 contextSize,
+                      UINT64 docOccurrences ) {
         _hasCounts = true;
         _occurrences = occurrences;
+        _docOccurrences = docOccurrences;
         setContextSize( contextSize );
       }
 
@@ -2388,15 +2501,17 @@ namespace indri {
                       UINT64 maximumOccurrences, 
                       UINT64 minimumContextLength, 
                       UINT64 maximumContextLength,
-                      double maximumContextFraction )
+                      double maximumContextFraction,
+                      UINT64 docOccurrences )
       {
-        setCounts( occurrences, contextSize );
+        setCounts( occurrences, contextSize, docOccurrences );
         _hasMaxScore = true;
         _maximumOccurrences = maximumOccurrences;
         _minimumContextLength = minimumContextLength;
         _maximumContextLength = maximumContextLength;
         _maximumContextFraction = maximumContextFraction;
       }
+      
     };
 
     class ScoreAccumulatorNode : public AccumulatorNode {

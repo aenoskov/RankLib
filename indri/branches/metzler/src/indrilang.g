@@ -80,6 +80,7 @@ tokens {
   WAND = "#wand";
   OD = "#od";
   OR = "#or";
+  IDENTSIM = "#identsim";
   NOT = "#not";
   UW = "#uw";
   COMBINE = "#combine";
@@ -220,6 +221,7 @@ scoredExtentNode returns [ indri::lang::ScoredExtentNode* s ] :
     ( WEIGHT ) => s=weightNode
   | ( COMBINE ) => s=combineNode
   | ( OR ) => s=orNode
+  | ( IDENTSIM ) => s=identSimNode
   | ( NOT ) => s=notNode
   | ( WAND ) => s=wandNode
   | ( WSUM ) => s=wsumNode
@@ -352,6 +354,15 @@ orNode returns [ indri::lang::ScoredExtentNode* r ]
   } :
   OR r=unweightedList[on];
 
+identSimNode returns [ indri::lang::ScoredExtentNode* r ]
+  {
+    indri::lang::IdentSimNode* isn = new indri::lang::IdentSimNode;
+    _nodes.push_back(isn);
+  } :
+  IDENTSIM variation:NUMBER r=unweightedList[isn] {
+    isn->setVariation( variation->getText() );
+  };
+  
 maxNode returns [ indri::lang::ScoredExtentNode* r ]
   {
     indri::lang::MaxNode* mn = new indri::lang::MaxNode;

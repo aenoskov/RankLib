@@ -53,7 +53,7 @@
 //
 
 #include "indri/CompressedCollection.hpp"
-#include "zlib.h"
+#include <zlib.h>
 #include "lemur/string-set.h"
 #include "indri/XMLNode.hpp"
 #include "lemur/Exception.hpp"
