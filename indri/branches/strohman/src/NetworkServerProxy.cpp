@@ -18,6 +18,7 @@
 
 #include "indri/NetworkServerProxy.hpp"
 #include "indri/ParsedDocument.hpp"
+#include "indri/ScopedLock.hpp"
 #include <iostream>
 
 //
@@ -27,11 +28,17 @@
 class NetworkServerProxyResponse : public QueryServerResponse {
 private:
   QueryResponseUnpacker _unpacker;
+  NetworkMessageStream* _stream;
 
 public:
   NetworkServerProxyResponse( NetworkMessageStream* stream ) :
-    _unpacker( stream )
+    _unpacker( stream ),
+    _stream( stream )
   {
+  }
+
+  ~NetworkServerProxyResponse() {
+    _stream->mutex().unlock();
   }
 
   InferenceNetwork::MAllResults& getResults() {
@@ -52,6 +59,10 @@ public:
   NetworkServerProxyDocumentsResponse( NetworkMessageStream* stream ) :
     _stream(stream)
   {
+  }
+
+  ~NetworkServerProxyDocumentsResponse() {
+    _stream->mutex().unlock();
   }
 
   // caller deletes the ParsedDocuments
@@ -162,6 +173,10 @@ public:
   {
   }
 
+  ~NetworkServerProxyMetadataResponse() {
+    _stream->mutex().unlock();
+  }
+
   std::vector<std::string>& getResults() {
     XMLReplyReceiver r;
     r.wait(_stream);
@@ -201,6 +216,10 @@ public:
     _stream(stream),
     _readResponse(false)
   {
+  }
+
+  ~NetworkServerProxyVectorsResponse() {
+    _stream->mutex().unlock();
   }
 
   std::vector<DocumentVector*>& getResults() {
@@ -281,6 +300,10 @@ public:
   {
   }
 
+  ~NetworkServerProxyDocumentIDsResponse() {
+    _stream->mutex().unlock();
+  }
+
   std::vector<DOCID_T>& getResults() {
     if( !_readResponse ) {
       XMLReplyReceiver r;
@@ -309,6 +332,48 @@ NetworkServerProxy::NetworkServerProxy( NetworkMessageStream* stream ) :
 {
 }
 
+//
+// _numericRequest
+//
+// Sends a request for a numeric quantity; deletes the node
+// passed in as a parameter
+//
+
+INT64 NetworkServerProxy::_numericRequest( XMLNode* node ) {
+  ScopedLock lock( _stream->mutex() );
+  _stream->request( node );
+  delete node;
+
+  XMLReplyReceiver r;
+  r.wait( _stream );
+
+  XMLNode* reply = r.getReply();
+  return string_to_i64( reply->getValue() );
+}
+
+//
+// _stringRequest
+//
+// Sends a request for a string quantity; deletes the node
+// passed in as a parameter
+//
+
+std::string NetworkServerProxy::_stringRequest( XMLNode* node ) {
+  ScopedLock lock( _stream->mutex() );
+  _stream->request( node );
+  delete node;
+
+  XMLReplyReceiver r;
+  r.wait( _stream );
+
+  XMLNode* reply = r.getReply();
+  return reply->getValue();
+}
+
+//
+// runQuery
+//
+
 QueryServerResponse* NetworkServerProxy::runQuery( std::vector<indri::lang::Node*>& roots, int resultsRequested, bool optimize ) {
   indri::lang::Packer packer;
 
@@ -319,6 +384,8 @@ QueryServerResponse* NetworkServerProxy::runQuery( std::vector<indri::lang::Node
   XMLNode* query = packer.xml();
   query->addAttribute( "resultsRequested", i64_to_string(resultsRequested) );
   query->addAttribute( "optimize", optimize ? "1" : "0" );
+
+  _stream->mutex().lock();
   _stream->request( query );
 
   return new NetworkServerProxyResponse( _stream );
@@ -341,6 +408,7 @@ QueryServerMetadataResponse* NetworkServerProxy::documentMetadata( const std::ve
   request->addChild( documents );
 
   // send request
+  _stream->mutex().lock();
   _stream->request( request );
   delete request;
 
@@ -357,6 +425,8 @@ QueryServerDocumentsResponse* NetworkServerProxy::documents( const std::vector<i
   for( unsigned int i=0; i<documentIDs.size(); i++ ) {
     docRequest->addChild( new XMLNode("doc", i64_to_string(documentIDs[i])) );
   }
+
+  _stream->mutex().lock();
   _stream->request( docRequest );
   delete docRequest;
 
@@ -381,6 +451,7 @@ QueryServerDocumentsResponse* NetworkServerProxy::documentsFromMetadata( const s
   docRequest->addChild( attributeValuesNode );
 
   // request the documents
+  _stream->mutex().lock();
   _stream->request( docRequest );
   delete docRequest;
 
@@ -394,9 +465,6 @@ QueryServerDocumentsResponse* NetworkServerProxy::documentsFromMetadata( const s
 QueryServerDocumentIDsResponse* NetworkServerProxy::documentIDsFromMetadata( const std::string& attributeName, const std::vector<std::string>& attributeValues ) {
   XMLNode* docRequest = new XMLNode( "docids-from-metadata" );
  
-  _stream->request( docRequest );
-  delete docRequest;
-
   // store the attribute name
   docRequest->addChild( new XMLNode( "attributeName", attributeName ) );
 
@@ -408,6 +476,7 @@ QueryServerDocumentIDsResponse* NetworkServerProxy::documentIDsFromMetadata( con
   docRequest->addChild( attributeValuesNode );
 
   // request the documents
+  _stream->mutex().lock();
   _stream->request( docRequest );
   delete docRequest;
 
@@ -420,13 +489,7 @@ QueryServerDocumentIDsResponse* NetworkServerProxy::documentIDsFromMetadata( con
 
 INT64 NetworkServerProxy::termCount() {
   std::auto_ptr<XMLNode> request( new XMLNode( "term-count" ) );
-  _stream->request( request.get() );
-
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_i64( reply->getValue() );
+  return _numericRequest( request.get() );
 }
 
 //
@@ -434,81 +497,48 @@ INT64 NetworkServerProxy::termCount() {
 //
 
 INT64 NetworkServerProxy::termCount( const std::string& term ) {
-  std::auto_ptr<XMLNode> request( new XMLNode( "term-count-text", term ) );
-  _stream->request( request.get() );
-
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_i64( reply->getValue() );
+  XMLNode* request = new XMLNode( "term-count-text", term );
+  return _numericRequest( request );
 }
 
 INT64 NetworkServerProxy::stemCount( const std::string& term ) {
-  std::auto_ptr<XMLNode> request( new XMLNode( "stem-count-text", term ) );
-  _stream->request( request.get() );
-
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_i64( reply->getValue() );
+  XMLNode* request = new XMLNode( "stem-count-text", term );
+  return _numericRequest( request );
 }
 
 std::string NetworkServerProxy::termName( int term ) {
-  std::auto_ptr<XMLNode> request( new XMLNode( "term-name", i64_to_string(term) ) );
-  _stream->request( request.get() );
-
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return reply->getValue();
+  XMLNode* request = new XMLNode( "term-name", i64_to_string(term) );
+  return _stringRequest( request );
 }
 
 int NetworkServerProxy::termID( const std::string& term ) {
-  std::auto_ptr<XMLNode> request( new XMLNode( "term-id", term ) );
-  _stream->request( request.get() );
-
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_int(reply->getValue());
+  XMLNode* request = new XMLNode( "term-id", term );
+  return _numericRequest( request );
 }
 
 INT64 NetworkServerProxy::termFieldCount( const std::string& term, const std::string& field ) {
-  std::auto_ptr<XMLNode> request( new XMLNode( "term-field-count" ) );
+  XMLNode* request = new XMLNode( "term-field-count" );
   XMLNode* termNode = new XMLNode( "term-text", term );
   XMLNode* fieldNode = new XMLNode( "field", field );
   request->addChild( termNode );
   request->addChild( fieldNode );
-  _stream->request( request.get() );
 
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_i64(reply->getValue());
+  return _numericRequest( request );
 }
 
 INT64 NetworkServerProxy::stemFieldCount( const std::string& stem, const std::string& field ) {
-  std::auto_ptr<XMLNode> request( new XMLNode( "stem-field-count" ) );
+  XMLNode* request = new XMLNode( "stem-field-count" );
   XMLNode* stemNode = new XMLNode( "stem-text", stem );
   XMLNode* fieldNode = new XMLNode( "field", field );
   request->addChild( stemNode );
   request->addChild( fieldNode );
-  _stream->request( request.get() );
 
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_i64(reply->getValue());
+  return _numericRequest( request );
 }
 
 std::vector<std::string> NetworkServerProxy::fieldList() {
   std::auto_ptr<XMLNode> request( new XMLNode( "field-list" ) );
+  ScopedLock( _stream->mutex() );
   _stream->request( request.get() );
 
   XMLReplyReceiver r;
@@ -527,38 +557,17 @@ std::vector<std::string> NetworkServerProxy::fieldList() {
 
 int NetworkServerProxy::documentLength( int documentID ) {
   XMLNode* request = new XMLNode( "document-length", i64_to_string(documentID) );
-  _stream->request( request );
-  delete request;
-
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_int(reply->getValue());
+  return (int) _numericRequest( request );
 }
 
 INT64 NetworkServerProxy::documentCount() {
   XMLNode* request = new XMLNode( "document-count" );
-  _stream->request( request );
-  delete request;
-
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_int(reply->getValue());
+  return _numericRequest( request );
 }
 
 INT64 NetworkServerProxy::documentCount( const std::string& term ) {
   XMLNode* request = new XMLNode( "document-term-count", term );
-  _stream->request( request );
-  delete request;
-
-  XMLReplyReceiver r;
-  r.wait( _stream );
-
-  XMLNode* reply = r.getReply();
-  return string_to_int(reply->getValue());
+  return _numericRequest( request );
 }
 
 QueryServerVectorsResponse* NetworkServerProxy::documentVectors( const std::vector<int>& documentIDs ) {
@@ -568,6 +577,7 @@ QueryServerVectorsResponse* NetworkServerProxy::documentVectors( const std::vect
     request->addChild( new XMLNode( "document", i64_to_string(documentIDs[i]) ) );
   }
 
+  _stream->mutex().lock();
   _stream->request( request );
   delete request;
 
