@@ -405,6 +405,24 @@ static void print_files(FILE *list, struct fcb *f)
   else fprintf(list,"  **no files open\n");
 }
 
+static void print_ix_block_entry(FILE *list, struct ix_block *b, int i)
+{int lc,temp; struct key k; struct level0_pntr p0; struct leveln_pntr pn;
+
+  lc = b->keys[i].lc;
+  fprintf(list,"%4d%3d ",b->keys[i].sc,lc);
+  k.lc = b->keys[i].lc;
+  mvc(b->keys,b->keys[i].sc,k.text,0,k.lc);
+  print_key_struct(list,&k,"");
+  if ( b->level>0 ) {
+    temp = unpackn_ptr(b,i,&pn);
+    fprintf(list," - %d %ld (lc=%d)\n",pn.segment,pn.block,temp);
+  }
+  else {
+    temp = unpack0_ptr(b,i,&p0);
+    fprintf(list," - %d %ld %ld (lc=%d)\n",p0.segment,p0.sc,p0.lc,temp);
+  }
+}
+
 void print_index_block(FILE *list, struct ix_block *b)
 {int i,j,lc,load,temp; struct level0_pntr ptr; struct leveln_pntr pn; unsigned char t[maxkey_lc]; struct key k;
 
@@ -423,23 +441,17 @@ void print_index_block(FILE *list, struct ix_block *b)
       else fprintf(list,"%2x ",t[i]);
     fprintf(list,"\n");
   }
-  fprintf(list,", next=%d,%ld, prev=%d,%ld\n",b->next.segment,
+  fprintf(list,"   next=%d,%ld, prev=%d,%ld\n",b->next.segment,
     b->next.block,b->prev.segment,b->prev.block);
-  for (i=0; i<b->keys_in_block; i++) {
-    lc = b->keys[i].lc;
-    fprintf(list,"%4d%3d ",b->keys[i].sc,lc);
-    k.lc = b->keys[i].lc;
-    mvc(b->keys,b->keys[i].sc,k.text,0,k.lc);
-    print_key_struct(list,&k,"");
-    if ( b->level>0 ) {
-      temp = unpackn_ptr(b,i,&pn);
-      fprintf(list," - %d %ld (lc=%d)\n",pn.segment,pn.block,temp);
-    }
-    else {
-      temp = unpack0_ptr(b,i,&ptr);
-      fprintf(list," - %d %ld %ld (lc=%d)\n",ptr.segment,ptr.sc,ptr.lc,temp);
-    }
+  if ( b->keys_in_block<50 ) {
+    for (i=0; i<b->keys_in_block; i++) print_ix_block_entry(list,b,i);
   }
+  else {
+    for (i=0; i<20; i++) print_ix_block_entry(list,b,i);
+    fprintf(list,"    ...\n");
+    for (i=b->keys_in_block-20; i<b->keys_in_block; i++) print_ix_block_entry(list,b,i);
+  }
+
 }
 
 static void print_index_block1(FILE *list, struct fcb *f, int bufix)
@@ -543,7 +555,7 @@ void print_fcb(FILE *list, struct fcb *f)
     fprintf(list," index, level=%d\n",f->buffer[i].b.ix.level);
   }
   for (i=0; i<f->buffers_in_use; i++) {
-    fprintf(list,"**buffer %d ",i);
+    fprintf(list,"**buffer %d (%d/%d)",i,f->buffer[i].contents.segment,f->buffer[i].contents.block);
     fprintf(list,"index block\n");
     print_index_block1(list,f,i);
   }

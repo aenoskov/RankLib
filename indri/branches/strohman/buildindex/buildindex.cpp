@@ -1,48 +1,12 @@
 /*==========================================================================
-  Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
-
-  Use of the Lemur Toolkit for Language Modeling and Information Retrieval
-  is subject to the terms of the software license set forth in the LICENSE
-  file included with this software, and also available at
-  http://www.cs.cmu.edu/~lemur/license.html 
-  as well as the conditions below.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in
-  the documentation and/or other materials provided with the
-  distribution.
-
-  3. The names "Indri", "Center for Intelligent Information Retrieval", 
-  "CIIR", and "University of Massachusetts" must not be used to
-  endorse or promote products derived from this software without
-  prior written permission. To obtain permission, contact
-  indri-info@ciir.cs.umass.edu.
-
-  4. Products derived from this software may not be called "Indri" nor 
-  may "Indri" appear in their names without prior written permission of 
-  the University of Massachusetts. To obtain permission, contact 
-  indri-info@ciir.cs.umass.edu.
-
-  THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY OF MASSACHUSETTS AND OTHER
-  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
-  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-  FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-  THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-  DAMAGE.
-  ==========================================================================
+ * Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
+ *
+ * Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+ * is subject to the terms of the software license set forth in the LICENSE
+ * file included with this software, and also available at
+ * http://www.lemurproject.org/license.html
+ *
+ *==========================================================================
 */
 
 //
@@ -112,7 +76,9 @@ the parameter file and as <tt>metadata.field=fieldname</tt> on the
 command line.</dd> 
 <dt>field</dt>
 <dd>a complex element specifying the fields to index as data, eg
-TITLE. This parameter can appear multiple times. The subelements are: 
+TITLE. This parameter can appear multiple times in a parameter file. 
+<b>If provided on the command line, only the first field specified will 
+be indexed</b>. The subelements are:  
 <dl>
 <dt>name</dt><dd>the field name, specified as
 &lt;field&gt;&lt;name&gt;fieldname&lt;/name&gt;&lt;/field&gt; in the
@@ -329,7 +295,10 @@ specifying the metadata fields to index, eg DOCNO. Specified as
 the parameter file and as <tt>metadata.field=fieldname</tt> on the
 command line.</dd> 
 <dt>field</dt>
-<dd>a complex element specifying the fields to index as data, eg TITLE. This parameter can appear multiple times. The subelements are:
+<dd>a complex element specifying the fields to index as data, eg TITLE.
+This parameter can appear multiple times in a parameter file. 
+<b>If provided on the command line, only the first field specified will 
+be indexed</b>. The subelements are:
 <dl>
 <dt>name</dt><dd>the field name, specified as
 &lt;field&gt;&lt;name&gt;fieldname&lt;/name&gt;&lt;/field&gt; in the
@@ -453,6 +422,48 @@ static bool copy_parameters_to_string_vector( std::vector<std::string>& vec, Par
   return true;
 }
 
+bool augmentSpec(FileClassEnvironmentFactory::Specification *spec,
+		 std::vector<std::string> &fields,
+		 std::vector<std::string> &metadata) {
+  //add to index and metadata fields in spec if necessary. 
+  // return true if a field is changed.
+  bool retval = false;
+  
+  std::vector<std::string>::iterator i1, i2;
+  for (i1 = fields.begin(); i1 != fields.end(); i1++) {
+    for (i2 = spec->index.begin(); i2 != spec->index.end() && (*i1) != (*i2); 
+	 i2++);
+    if (i2 == spec->index.end()) {
+      std::cerr << "Adding " << (*i1) << " to " << spec->name << " as an indexed field" << std::endl;
+      spec->index.push_back(*i1);
+      // added a field, make sure it is indexable
+      // only add include tags if there are some already.
+      // if it is empty, *all* tags are included.
+      if (! spec->include.empty()) {
+	std::vector<std::string>::iterator i3;
+	for (i3 = spec->include.begin(); 
+	     i3 != spec->include.end() && (*i1) != (*i3); i3++);
+	if (i3 == spec->include.end()) {
+	  spec->include.push_back(*i1);
+	  std::cerr << "Adding " << (*i1) << " to " << spec->name << " as an included tag" << std::endl;
+	}
+      }
+      retval = true;
+    }
+  }
+  
+  for (i1 = metadata.begin(); i1 != metadata.end(); i1++) {
+    for (i2 = spec->metadata.begin(); 
+	 i2 != spec->metadata.end() && (*i1) != (*i2); i2++);
+    if (i2 == spec->metadata.end()) {
+      std::cerr << "Adding " << (*i1) << " to " << spec->name << " as a metadata field" << std::endl;
+      spec->metadata.push_back(*i1);
+      retval = true;
+    }
+  }
+  return retval;
+}
+
 void require_parameter( const char* name, Parameters& p ) {
   if( !p.exists( name ) ) {
     LEMUR_THROW( LEMUR_MISSING_PARAMETER_ERROR, "Must specify a " + name + " parameter." );
@@ -510,6 +521,17 @@ int main(int argc, char * argv[]) {
       require_parameter( "path", thisCorpus );
       std::string corpusPath = thisCorpus["path"];
       std::string fileClass = thisCorpus.get("class", "");
+      // augment field/metadata tags in the environment if needed.
+      if (fileClass.length()) {
+	FileClassEnvironmentFactory::Specification *spec = env.getFileClassSpec(fileClass);
+	if (spec) {
+	  // add fields if necessary, only update if changed.
+	  if (augmentSpec(spec, fields, metadata)) 
+	    env.addFileClass(*spec);
+	  delete(spec);
+	}
+      }
+      
       bool isDirectory = Path::isDirectory( corpusPath );
       
       std::string anchorText = thisCorpus.get("inlink", "");

@@ -1,48 +1,12 @@
 /*==========================================================================
-  Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
-
-  Use of the Lemur Toolkit for Language Modeling and Information Retrieval
-  is subject to the terms of the software license set forth in the LICENSE
-  file included with this software, and also available at
-  http://www.cs.cmu.edu/~lemur/license.html 
-  as well as the conditions below.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in
-  the documentation and/or other materials provided with the
-  distribution.
-
-  3. The names "Indri", "Center for Intelligent Information Retrieval", 
-  "CIIR", and "University of Massachusetts" must not be used to
-  endorse or promote products derived from this software without
-  prior written permission. To obtain permission, contact
-  indri-info@ciir.cs.umass.edu.
-
-  4. Products derived from this software may not be called "Indri" nor 
-  may "Indri" appear in their names without prior written permission of 
-  the University of Massachusetts. To obtain permission, contact 
-  indri-info@ciir.cs.umass.edu.
-
-  THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY OF MASSACHUSETTS AND OTHER
-  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
-  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-  FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-  THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-  DAMAGE.
-  ==========================================================================
+ * Copyright (c) 2003-2004 University of Massachusetts.  All Rights Reserved.
+ *
+ * Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+ * is subject to the terms of the software license set forth in the LICENSE
+ * file included with this software, and also available at
+ * http://www.lemurproject.org/license.html
+ *
+ *==========================================================================
 */
 
 //
@@ -75,21 +39,6 @@ struct file_class_environment_spec {
   const char** conflations;
 };
 
-struct file_class_environment_spec_stl {
-  std::string name;
-  std::string parser;
-  std::string iterator;
-
-  std::string startDocTag;
-  std::string endDocTag;
-  std::string endMetadataTag;
-
-  std::vector<std::string> include;
-  std::vector<std::string> exclude;
-  std::vector<std::string> index;
-  std::vector<std::string> metadata;
-  std::map<std::string,std::string> conflations;
-};
 
 //
 // Preconfigured environments
@@ -227,7 +176,7 @@ static void copy_string_pairs_to_map( std::map< std::string, std::string >& m, c
 }
 
 FileClassEnvironmentFactory::~FileClassEnvironmentFactory() { 
-  std::map<std::string, file_class_environment_spec_stl*>::iterator iter;
+  std::map<std::string, FileClassEnvironmentFactory::Specification*>::iterator iter;
 
   for( iter = _userTable.begin(); iter != _userTable.end(); iter++ ) {
     delete iter->second;
@@ -254,7 +203,7 @@ FileClassEnvironment* build_file_class_environment( const file_class_environment
   return env;
 }
 
-FileClassEnvironment* build_file_class_environment( const file_class_environment_spec_stl* spec ) {
+FileClassEnvironment* build_file_class_environment( const FileClassEnvironmentFactory::Specification * spec ) {
   FileClassEnvironment* env = new FileClassEnvironment;
   env->iterator = DocumentIteratorFactory::get( spec->iterator,
                                                 spec->startDocTag.c_str(),
@@ -271,9 +220,61 @@ FileClassEnvironment* build_file_class_environment( const file_class_environment
   return env;
 }
 
+FileClassEnvironmentFactory::Specification* FileClassEnvironmentFactory::getFileClassSpec( const std::string& name ) {
+  // look for a user-specified environment:
+  std::map<std::string, FileClassEnvironmentFactory::Specification*>::iterator iter;
+  iter = _userTable.find( name );
+
+  if( iter != _userTable.end() ) {
+    // copy and return;
+    FileClassEnvironmentFactory::Specification* spec = new FileClassEnvironmentFactory::Specification;
+    *spec = *(iter->second);
+    return spec;
+  }
+  // look for a default environment
+  const file_class_environment_spec* spec = 0;
+  for( unsigned int i=0; environments[i].name; i++ ) {
+    if( !strcmp( name.c_str(), environments[i].name ) ) {
+      spec = &environments[i];
+      break;
+    }
+  }
+
+  if( spec ) {
+      FileClassEnvironmentFactory::Specification* newSpec = new FileClassEnvironmentFactory::Specification;
+
+
+    std::vector<std::string> includeTags;
+    std::vector<std::string> excludeTags;
+    std::vector<std::string> indexTags;
+    std::vector<std::string> metadataTags;
+    std::map<std::string, std::string> conflations;
+
+    copy_strings_to_vector( includeTags, spec->includeTags );
+    copy_strings_to_vector( excludeTags, spec->excludeTags );
+    copy_string_pairs_to_map( conflations, spec->conflations );
+    copy_strings_to_vector(indexTags, spec->indexTags);
+    copy_strings_to_vector(metadataTags, spec->metadataTags);
+
+    newSpec->name = spec->name;
+    newSpec->iterator = spec->iterator;
+    newSpec->parser = spec->parser;    
+    newSpec->index = indexTags;
+    newSpec->metadata = metadataTags;
+    newSpec->include = includeTags;
+    newSpec->exclude = excludeTags;
+    newSpec->conflations = conflations;
+    newSpec->startDocTag = spec->startDocTag ? spec->startDocTag : "";
+    newSpec->endDocTag = spec->endDocTag ? spec->endDocTag : "" ;
+    newSpec->endMetadataTag = spec->endMetadataTag ? spec->endMetadataTag : "";
+    return newSpec;
+  }
+  return 0;
+}
+
 FileClassEnvironment* FileClassEnvironmentFactory::get( const std::string& name ) {
   // look for a user-specified environment:
-  std::map<std::string, file_class_environment_spec_stl*>::iterator iter;
+  std::map<std::string, FileClassEnvironmentFactory::Specification*>::iterator iter;
   iter = _userTable.find( name );
 
   if( iter != _userTable.end() ) {
@@ -304,11 +305,12 @@ void FileClassEnvironmentFactory::addFileClass( const std::string& name,
                                                 const std::string& endMetadataTag,
                                                 const std::vector<std::string>& include,
                                                 const std::vector<std::string>& exclude,
-                                                const std::vector<std::string>& index,
+                                                const std::vector<std::string>&
+ index,
                                                 const std::vector<std::string>& metadata, 
                                                 const std::map<std::string,std::string>& conflations )
 {
-  file_class_environment_spec_stl* spec = new file_class_environment_spec_stl;
+  FileClassEnvironmentFactory::Specification* spec = new FileClassEnvironmentFactory::Specification;
 
   spec->name = name;
   spec->iterator = iterator;
@@ -325,4 +327,18 @@ void FileClassEnvironmentFactory::addFileClass( const std::string& name,
   spec->endMetadataTag = endMetadataTag;
 
   _userTable[spec->name] = spec;
+}
+
+void FileClassEnvironmentFactory::addFileClass( const FileClassEnvironmentFactory::Specification &spec) {
+  // make a copy
+  FileClassEnvironmentFactory::Specification* newSpec = new FileClassEnvironmentFactory::Specification;
+  *newSpec = spec;
+  // see if there is already an entry for this name
+  std::map<std::string, FileClassEnvironmentFactory::Specification*>::iterator iter;
+  iter = _userTable.find( newSpec->name );
+  // delete it.
+  if( iter != _userTable.end() ) {
+    delete(iter->second);
+  }
+  _userTable[newSpec->name] = newSpec;
 }

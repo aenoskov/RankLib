@@ -1,48 +1,12 @@
 /*==========================================================================
-  Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
-
-  Use of the Lemur Toolkit for Language Modeling and Information Retrieval
-  is subject to the terms of the software license set forth in the LICENSE
-  file included with this software, and also available at
-  http://www.cs.cmu.edu/~lemur/license.html 
-  as well as the conditions below.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  1. Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  2. Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in
-  the documentation and/or other materials provided with the
-  distribution.
-
-  3. The names "Indri", "Center for Intelligent Information Retrieval", 
-  "CIIR", and "University of Massachusetts" must not be used to
-  endorse or promote products derived from this software without
-  prior written permission. To obtain permission, contact
-  indri-info@ciir.cs.umass.edu.
-
-  4. Products derived from this software may not be called "Indri" nor 
-  may "Indri" appear in their names without prior written permission of 
-  the University of Massachusetts. To obtain permission, contact 
-  indri-info@ciir.cs.umass.edu.
-
-  THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY OF MASSACHUSETTS AND OTHER
-  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
-  BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-  FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-  THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-  DAMAGE.
-  ==========================================================================
+ * Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
+ *
+ * Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+ * is subject to the terms of the software license set forth in the LICENSE
+ * file included with this software, and also available at
+ * http://www.lemurproject.org/license.html
+ *
+ *==========================================================================
 */
 
 
@@ -214,8 +178,8 @@ std::vector<QueryServerResponse*> QueryEnvironment::_runServerQuery( std::vector
   
   // this ships out the requests to each server (doesn't necessarily block until they're done)
   for( unsigned int i=0; i<_servers.size(); i++ ) {
-    QueryServerResponse* response = _servers[i]->runQuery( roots, resultsRequested, true );
-    responses.push_back( response );
+      QueryServerResponse* response = _servers[i]->runQuery( roots, resultsRequested, true );
+      responses.push_back( response );
   }
 
   // this just goes through all the results, blocking on each one,
@@ -336,7 +300,10 @@ void QueryEnvironment::addIndex( const std::string& pathname ) {
   repository->openRead( pathname, &_parameters );
   _repositories.push_back( repository );
 
-  _servers.push_back( new LocalQueryServer( *repository ) );
+  LocalQueryServer *server = new LocalQueryServer( *repository ) ;
+  _servers.push_back( server );
+  _repositoryNameMap[pathname] = std::make_pair(server, repository);
+  
 }
 
 //
@@ -349,6 +316,38 @@ void QueryEnvironment::addIndex( const std::string& pathname ) {
 
 void QueryEnvironment::addIndex( IndexEnvironment& environment ) {
   _servers.push_back( new LocalQueryServer( environment._repository ) );
+}
+
+//
+// removeIndex
+//
+
+void QueryEnvironment::removeIndex( const std::string& pathname ) {
+  // close, delete, and remove opened Repository from _repositories
+  // close, delete, and remove opened LocalQueryServer from _servers
+  // renumber map entries after removal
+  std::map<std::string, std::pair<QueryServer *, Repository *> >::iterator iter;
+  iter = _repositoryNameMap.find(pathname);
+  if (iter != _repositoryNameMap.end()) {
+    QueryServer * s = iter->second.first;
+    Repository * r = iter->second.second;
+    for (int i = 0; i < _servers.size(); i++) {
+      if (_servers[i] == s) {
+        delete(_servers[i]);
+        _servers.erase(_servers.begin() + i);
+        break;
+      }
+    }
+    
+    for (int i = 0; i < _repositories.size(); i++) {
+      if (_repositories[i] == r) {
+        delete(_repositories[i]);
+        _repositories.erase(_repositories.begin() + i);
+        break;
+      }
+    }
+    _repositoryNameMap.erase(iter);
+  }
 }
 
 //
@@ -377,6 +376,43 @@ void QueryEnvironment::addServer( const std::string& hostname ) {
 
   _messageStreams.push_back( messageStream );
   _servers.push_back( proxy );
+  _serverNameMap[hostname] = std::make_pair(proxy, stream);
+
+}
+
+//
+// removeServer
+//
+
+void QueryEnvironment::removeServer( const std::string& hostname ) {
+  // close, delete, and remove opened NetworkStream from _streams
+  // close, delete, and remove opened NetworkMessageStream from _messageStreams
+  // close, delete and remove opened NetworkServerProxy from _servers
+  // renumber map entries after removal as needed.
+  std::map<std::string, std::pair<QueryServer *, NetworkStream *> >::iterator iter;
+  iter = _serverNameMap.find(hostname);
+  if (iter != _serverNameMap.end()) {
+    QueryServer * s = iter->second.first;
+    NetworkStream * n = iter->second.second;
+    for (int i = 0; i < _servers.size(); i++) {
+      if (_servers[i] == s) {
+        delete(_servers[i]);
+        _servers.erase(_servers.begin() + i);
+        break;
+      }
+    }
+    
+    for (int i = 0; i < _streams.size(); i++) {
+      if (_streams[i] == n) {
+        delete(_streams[i]);
+        _streams.erase(_streams.begin() + i);
+        delete(_messageStreams[i]);
+        _messageStreams.erase(_messageStreams.begin() + i);
+        break;
+      }
+    }
+    _serverNameMap.erase(iter);
+  }
 }
 
 void QueryEnvironment::close() {
@@ -610,7 +646,7 @@ std::vector<ScoredExtentResult> QueryEnvironment::_runQuery( InferenceNetwork::M
   try {
     rootNode = parser.query();
   } catch( antlr::ANTLRException e ) {
-    LEMUR_THROW( LEMUR_PARSE_ERROR, "Couldn't understand this query: " + e.toString() );
+    LEMUR_THROW( LEMUR_PARSE_ERROR, "Couldn't understand this query: " + e.getMessage() );
   }
   
   PRINT_TIMER( "Parsing complete" );
