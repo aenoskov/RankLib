@@ -49,6 +49,7 @@
 #define _DOCPOSITIONINFOLIST_HPP
 
 #include "lemur/DocInfoList.hpp"
+
 class DocPositionInfoList : public DocInfoList {
 public:
   /// fetch the next entry with docID >= <documentID>

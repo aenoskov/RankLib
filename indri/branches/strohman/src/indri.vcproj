@@ -103,52 +103,19 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
-				RelativePath=".\Annotator.cpp">
-			</File>
-			<File
-				RelativePath=".\BooleanAndNode.cpp">
-			</File>
-			<File
-				RelativePath=".\CachedFrequencyBeliefNode.cpp">
-			</File>
-			<File
 				RelativePath=".\Combiner.cpp">
 			</File>
 			<File
 				RelativePath=".\CompressedCollection.cpp">
 			</File>
 			<File
-				RelativePath=".\ContextCountAccumulator.cpp">
-			</File>
-			<File
-				RelativePath=".\Copier.cpp">
-			</File>
-			<File
 				RelativePath=".\DirectoryIterator.cpp">
-			</File>
-			<File
-				RelativePath=".\DocListDiskBuilder.cpp">
-			</File>
-			<File
-				RelativePath=".\DocListFileIterator.cpp">
-			</File>
-			<File
-				RelativePath=".\DocListFrequencyIterator.cpp">
-			</File>
-			<File
-				RelativePath=".\DocListIterator.cpp">
-			</File>
-			<File
-				RelativePath=".\DocListIteratorNode.cpp">
 			</File>
 			<File
 				RelativePath=".\DocListMemoryBuilder.cpp">
 			</File>
 			<File
 				RelativePath=".\DocumentIteratorFactory.cpp">
-			</File>
-			<File
-				RelativePath=".\DocumentVector.cpp">
 			</File>
 			<File
 				RelativePath=".\ExtentAndNode.cpp">
@@ -166,16 +133,7 @@
 				RelativePath=".\FieldBetweenNode.cpp">
 			</File>
 			<File
-				RelativePath=".\FieldEqualsNode.cpp">
-			</File>
-			<File
-				RelativePath=".\FieldGreaterNode.cpp">
-			</File>
-			<File
-				RelativePath=".\FieldIteratorNode.cpp">
-			</File>
-			<File
-				RelativePath=".\FieldLessNode.cpp">
+				RelativePath=".\File.cpp">
 			</File>
 			<File
 				RelativePath=".\FileClassEnvironmentFactory.cpp">
@@ -184,31 +142,13 @@
 				RelativePath=".\FileTreeIterator.cpp">
 			</File>
 			<File
-				RelativePath=".\FilterRejectNode.cpp">
-			</File>
-			<File
-				RelativePath=".\FilterRequireNode.cpp">
-			</File>
-			<File
 				RelativePath=".\HTMLParser.cpp">
 			</File>
 			<File
 				RelativePath=".\IndexEnvironment.cpp">
 			</File>
 			<File
-				RelativePath=".\IndriIndex.cpp">
-			</File>
-			<File
-				RelativePath=".\IndriTermInfoList.cpp">
-			</File>
-			<File
 				RelativePath=".\IndriTimer.cpp">
-			</File>
-			<File
-				RelativePath=".\InferenceNetwork.cpp">
-			</File>
-			<File
-				RelativePath=".\InferenceNetworkBuilder.cpp">
 			</File>
 			<File
 				RelativePath=".\KeyfileWordMap.cpp">
@@ -217,40 +157,7 @@
 				RelativePath=".\KrovetzStemmerTransformation.cpp">
 			</File>
 			<File
-				RelativePath=".\ListBeliefNode.cpp">
-			</File>
-			<File
-				RelativePath=".\LocalQueryServer.cpp">
-			</File>
-			<File
-				RelativePath=".\NetworkMessageStream.cpp">
-			</File>
-			<File
-				RelativePath=".\NetworkServerProxy.cpp">
-			</File>
-			<File
-				RelativePath=".\NetworkServerStub.cpp">
-			</File>
-			<File
 				RelativePath=".\NormalizationTransformation.cpp">
-			</File>
-			<File
-				RelativePath=".\NotNode.cpp">
-			</File>
-			<File
-				RelativePath=".\NullListNode.cpp">
-			</File>
-			<File
-				RelativePath=".\NullScorerNode.cpp">
-			</File>
-			<File
-				RelativePath=".\OrderedWindowNode.cpp">
-			</File>
-			<File
-				RelativePath=".\OrNode.cpp">
-			</File>
-			<File
-				RelativePath=".\Packer.cpp">
 			</File>
 			<File
 				RelativePath=".\Parameters.cpp">
@@ -265,40 +172,13 @@
 				RelativePath=".\PDFDocumentExtractor.cpp">
 			</File>
 			<File
-				RelativePath=".\PonteExpander.cpp">
-			</File>
-			<File
 				RelativePath=".\PorterStemmerTransformation.cpp">
 			</File>
 			<File
 				RelativePath=".\PowerPointDocumentExtractor.cpp">
 			</File>
 			<File
-				RelativePath=".\PriorFactory.cpp">
-			</File>
-			<File
-				RelativePath=".\PriorNode.cpp">
-			</File>
-			<File
-				RelativePath=".\QueryAnnotation.cpp">
-			</File>
-			<File
-				RelativePath=".\QueryEnvironment.cpp">
-			</File>
-			<File
-				RelativePath=".\QueryExpander.cpp">
-			</File>
-			<File
-				RelativePath=".\QueryLexer.cpp">
-			</File>
-			<File
-				RelativePath=".\QueryParser.cpp">
-			</File>
-			<File
 				RelativePath=".\Repository.cpp">
-			</File>
-			<File
-				RelativePath=".\RMExpander.cpp">
 			</File>
 			<File
 				RelativePath=".\StemmerFactory.cpp">
@@ -313,12 +193,6 @@
 				RelativePath=".\TaggedTextParser.cpp">
 			</File>
 			<File
-				RelativePath=".\TermFrequencyBeliefNode.cpp">
-			</File>
-			<File
-				RelativePath=".\TermScoreFunctionFactory.cpp">
-			</File>
-			<File
 				RelativePath=".\TextDocumentExtractor.cpp">
 			</File>
 			<File
@@ -326,27 +200,6 @@
 			</File>
 			<File
 				RelativePath=".\TFIDFTermScoreFunction.cpp">
-			</File>
-			<File
-				RelativePath=".\TopdocsIndex.cpp">
-			</File>
-			<File
-				RelativePath=".\UnorderedWindowNode.cpp">
-			</File>
-			<File
-				RelativePath=".\Unpacker.cpp">
-			</File>
-			<File
-				RelativePath=".\UnpackerInternal.cpp">
-			</File>
-			<File
-				RelativePath=".\Walker.cpp">
-			</File>
-			<File
-				RelativePath=".\WeightedAndNode.cpp">
-			</File>
-			<File
-				RelativePath=".\WeightedSumNode.cpp">
 			</File>
 			<File
 				RelativePath=".\WordDocumentExtractor.cpp">
@@ -573,9 +426,6 @@
 				RelativePath="..\include\indri\indri-platform.h">
 			</File>
 			<File
-				RelativePath="..\include\indri\indri-platform.h~">
-			</File>
-			<File
 				RelativePath="..\include\indri\IndriIndex.hpp">
 			</File>
 			<File
@@ -694,42 +544,6 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\PowerPointDocumentExtractor.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\PriorFactory.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\PriorNode.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryAnnotation.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryEnvironment.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryExpander.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryLexer.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryLexerTokenTypes.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryParser.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryResponsePacker.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryResponseUnpacker.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QueryServer.hpp">
-			</File>
-			<File
-				RelativePath="..\include\indri\QuerySpec.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\RawScorerNodeExtractor.hpp">

@@ -9,6 +9,7 @@
 #define INDRI_FILE_HPP
 
 #include "indri/indri-platform.h"
+#include "indri/Mutex.hpp"
 
 class File {
 private:

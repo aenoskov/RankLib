@@ -47,6 +47,7 @@
   #define LEMUR_POSTALIGN   __attribute__ ((aligned))
 #else
   #define NOGDI
+  #define _WIN32_WINNT 0x0400
   #define WIN32_LEAN_AND_MEAN
   #include <windows.h>
   #include <winsock.h>
