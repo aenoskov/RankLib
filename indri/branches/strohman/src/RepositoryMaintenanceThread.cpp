@@ -28,7 +28,7 @@ static float maintenance_smoothed_load( Repository::Load& load ) {
 // maintenance_should_merge
 //
 
-static bool maintenance_should_merge( index_state& state, Repository::Load& documentLoad, Repository::Load& queryLoad ) {
+static bool maintenance_should_merge( Repository::index_state& state, Repository::Load& documentLoad, Repository::Load& queryLoad ) {
   float addRatio = maintenance_smoothed_load( documentLoad ) / 
                    maintenance_smoothed_load( queryLoad );
 
