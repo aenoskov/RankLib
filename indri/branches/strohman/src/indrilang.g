@@ -522,9 +522,11 @@ extentRestriction [ indri::lang::ScoredExtentNode* sn ] returns [ indri::lang::S
     indri::lang::Field* f = 0;
     er = 0;
   } :
-  O_SQUARE passageWindowSize:TERM COLON inc:NUMBER C_SQUARE
+  ( O_SQUARE TERM COLON ) => O_SQUARE passageWindowSize:TERM COLON inc:NUMBER C_SQUARE
   {
-    for( int startWindow = 0; startWindow < passageWindowSize->getText().size(); startWindow++ ) {
+    int startWindow;
+
+    for( startWindow = 0; startWindow < passageWindowSize->getText().size(); startWindow++ ) {
       if( isdigit( passageWindowSize->getText()[startWindow] ) )
         break;
     }
@@ -532,7 +534,7 @@ extentRestriction [ indri::lang::ScoredExtentNode* sn ] returns [ indri::lang::S
     int increment = atoi(inc->getText().c_str());
     int windowSize = atoi(passageWindowSize->getText().c_str() + startWindow );
     
-    er = new indri::lang::FixedWindow(sn, windowSize, increment);
+    er = new indri::lang::FixedPassage(sn, windowSize, increment);
   } |
   O_SQUARE "passage" field:TERM C_SQUARE
   {
