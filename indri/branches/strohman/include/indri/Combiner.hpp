@@ -73,12 +73,12 @@ private:
       int docUrlLen = strlen(linkDocUrl);
       int textLen = strlen(linkText);
 
-      int total = docnoLen + sizeof "DOCNO=" + 
+      int total = docnoLen + sizeof "LINKDOCNO=" + 
                   docUrlLen + sizeof "LINKFROM=" +
                   textLen + sizeof "TEXT=" + 1;
 
       sprintf( linkinfo.write(total),
-               "LINKDOCNO=%\nLINKFROM=%s\nTEXT=%s\n",
+               "LINKDOCNO=%s\nLINKFROM=%s\nTEXT=%s\n",
                docno,
                linkDocUrl,
                linkText );

@@ -29,7 +29,9 @@
 
 IndriTimer::IndriTimer()
   :
-  _start(0)
+  _start(0),
+  _elapsed(0),
+  _stopped(true)
 {
 }
 

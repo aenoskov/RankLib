@@ -312,6 +312,8 @@ public:
         _deleteBucket( item );
         item = nextItem;
       }
+
+      _table[i] = 0;
     }
     _count = 0;
   }
