@@ -351,39 +351,6 @@ public:
     _count = 0;
   }
 
-  void status() {
-    std::cout << "hash table status" << std::endl;
-    std::cout << "  buckets: " << _buckets << std::endl;
-    std::cout << "  count: " << _count << std::endl;
-
-    int histogram[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    
-    for( size_t i=0; i<_buckets; i++ ) {
-      int countBucket = 0;
-
-      bucket_type* current = _table[i];
-      
-      for( ; current; current = current->next ) {
-        countBucket++;
-      }
-
-      if( countBucket > 10 )
-        countBucket = 10;
-
-      histogram[countBucket]++;
-    }
-
-    int accum = 0;
-
-    for( int j = 0; j <= 10; j++ ) {
-      std::cout << " " << histogram[j];
-      accum += j*histogram[j];
-    }
-
-    std::cout << std::endl;
-    std::cout << "avg chain: " << float(accum) / (_buckets - histogram[0] + 1) << std::endl;
-  }
-
   const iterator& end() {
     return _end;
   }
