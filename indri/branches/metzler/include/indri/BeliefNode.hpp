@@ -22,6 +22,7 @@
 #include "indri/InferenceNetworkNode.hpp"
 #include "indri/greedy_vector"
 #include "indri/ScoredExtentResult.hpp"
+#include "indri/Extent.hpp"
 #include <float.h>
 
 #define INDRI_HUGE_SCORE  ( DBL_MAX )
@@ -33,6 +34,7 @@ public:
   virtual double maximumScore() = 0;
   virtual const greedy_vector<ScoredExtentResult>& score( int documentID, int start, int end, int documentLength ) = 0;
   virtual bool hasMatch( int documentID ) = 0;
+  virtual const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents ) = 0;
   virtual void annotate( class Annotator& annotator, int documentID, int begin, int end ) = 0;
 };
 

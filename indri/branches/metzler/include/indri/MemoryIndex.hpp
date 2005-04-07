@@ -110,7 +110,7 @@ namespace indri {
       void _removeClosedTags( greedy_vector<indri::index::FieldExtent>& tags, unsigned int position );
       void _writeFieldExtents( int documentID, greedy_vector<indri::index::FieldExtent>& indexedTags );
       void _writeDocumentTermList( UINT64& offset, int& byteLength, int documentID, int documentLength, indri::index::TermList& locatedTerms );
-      void _writeDocumentStatistics( UINT64 offset, int byteLength, int indexedLength, int totalLength, int uniqueTerms );
+      void _writeDocumentStatistics( UINT64 offset, int byteLength, int indexedLength, int uniqueTerms );
       term_entry* _lookupTerm( const char* term );
       void _destroyTerms();
 

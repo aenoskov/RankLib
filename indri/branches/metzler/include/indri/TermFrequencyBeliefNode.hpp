@@ -31,6 +31,7 @@ private:
   class InferenceNetwork& _network;
   TermScoreFunction& _function;
   greedy_vector<ScoredExtentResult> _extents;
+  greedy_vector<bool> _matches;
   indri::index::DocListIterator* _list;
   double _maximumBackgroundScore;
   double _maximumScore;
@@ -55,6 +56,7 @@ public:
   const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   bool hasMatch( int documentID );
+  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents );
   const std::string& getName() const;
   
   int matches( int begin, int end );

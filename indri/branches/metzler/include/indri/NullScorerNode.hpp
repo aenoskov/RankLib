@@ -28,6 +28,7 @@ class NullScorerNode : public BeliefNode {
 private:
   TermScoreFunction& _scoreFunction;
   greedy_vector<ScoredExtentResult> _scores;
+  greedy_vector<bool> _matches;
   std::string _name;
   double _maximumBackgroundScore;
   double _maximumScore;
@@ -39,7 +40,10 @@ public:
   int nextCandidateDocument();
   double maximumScore();
   double maximumBackgroundScore();
+
   bool hasMatch( int documentID );
+  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents );
+
   const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   const std::string& getName() const;
