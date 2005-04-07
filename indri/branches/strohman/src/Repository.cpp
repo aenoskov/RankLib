@@ -927,8 +927,13 @@ void Repository::_merge() {
   state = 0;
 
   // merge all the indexes together
-  while( mergers->size() > 1 )
+  while( needsWrite ) {
     _merge( mergers );
+
+    needsWrite = (mergers->size() > 1) ||
+                 (mergers->size() == 1 && dynamic_cast<indri::index::MemoryIndex*>((*mergers)[0]));
+
+  }
 }
 
 //
