@@ -41,13 +41,19 @@ double ExtentRestrictionNode::maximumScore() {
 
 const greedy_vector<ScoredExtentResult>& ExtentRestrictionNode::score( int documentID, int begin, int end, int documentLength ) {
   // we're going to run through the field list, etc.
-  greedy_vector<Extent>::const_iterator fieldEnd = _field->extents().end();
-  greedy_vector<Extent>::const_iterator fieldBegin = _field->extents().begin();
-  greedy_vector<Extent>::const_iterator iter;
+  const greedy_vector<bool>& matches = _child->hasMatch( documentID, _field->extents() );
+  assert( matches.size() == _field->extents().size() );
 
+  greedy_vector<Extent>::const_iterator iter;
   _scores.clear();
 
-  for( iter = fieldBegin; iter != fieldEnd; iter++ ) {
+
+  for( size_t i = 0; i < matches.size(); i++ ) {
+    if( !matches[i] )
+      continue;
+
+    iter = &_field->extents()[i];
+
     if( iter->end < begin )
       continue; // this one isn't relevant to our cause
 
@@ -95,14 +101,34 @@ void ExtentRestrictionNode::annotate( Annotator& annotator, int documentID, int 
   }
 }
 
+//
+// hasMatch
+//
+
 bool ExtentRestrictionNode::hasMatch( int documentID ) {
   return _child->hasMatch( documentID );
 }
 
+//
+// hasMatch
+// 
+
+const greedy_vector<bool>& ExtentRestrictionNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  // just delegate -- not perfect, but close
+  return _child->hasMatch( documentID, extents );
+}
+
+//
+// getName
+//
 
 const std::string& ExtentRestrictionNode::getName() const {
   return _name;
 }
+
+//
+// indexChanged
+//
 
 void ExtentRestrictionNode::indexChanged( indri::index::Index& index ) {
   // do nothing

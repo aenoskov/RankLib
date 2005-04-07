@@ -93,6 +93,13 @@ bool TermFrequencyBeliefNode::hasMatch( int documentID ) {
   return false;
 }
 
+const greedy_vector<bool>& TermFrequencyBeliefNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  assert( false && "A TermFrequencyBeliefNode should never be asked for position information" );  
+  
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const std::string& TermFrequencyBeliefNode::getName() const {
   return _name;
 }

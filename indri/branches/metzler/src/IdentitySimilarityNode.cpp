@@ -233,3 +233,24 @@ double IdentitySimilarityNode::my_abs( double a ) {
 		return a;
 	return -a;
 }
+
+//
+// hasMatch
+//
+
+const greedy_vector<bool>& IdentitySimilarityNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  _matches.clear();
+  _matches.resize( extents.size(), false );
+
+  for( unsigned int i=0; i<_children.size(); i++ ) {
+    const greedy_vector<bool>& kidMatches = _children[i]->hasMatch( documentID, extents );
+
+    for( unsigned int j=0; j<kidMatches.size(); j++ ) {
+      if( kidMatches[j] ) {
+        _matches[j] = true;
+      }
+    }
+  }
+
+  return _matches;
+}

@@ -139,7 +139,7 @@ public:
   void addFile( const std::string& fileName );
   void addFile( const std::string& fileName, const std::string& fileClass );
 
-  void addString( const std::string& fileName, const std::string& fileClass, const std::vector<MetadataPair>& metadata );
-  void addParsedDocument( ParsedDocument* document );
+  int addString( const std::string& fileName, const std::string& fileClass, const std::vector<MetadataPair>& metadata );
+  int addParsedDocument( ParsedDocument* document );
 };
 

@@ -43,6 +43,10 @@ bool NullScorerNode::hasMatch( int documentID ) {
   return false;
 }
 
+const greedy_vector<bool>& NullScorerNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  return _matches;
+}
+
 const greedy_vector<ScoredExtentResult>& NullScorerNode::score( int documentID, int begin, int end, int documentLength ) {
   _scores.clear();
   _scores.push_back( ScoredExtentResult( _maximumScore, documentID, begin, end ) );

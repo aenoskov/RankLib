@@ -49,6 +49,15 @@ bool FilterRequireNode::hasMatch( int documentID ) {
   return (_filter->extents().size() && _required->hasMatch( documentID ));
 }
 
+const greedy_vector<bool>& FilterRequireNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  if( _filter->extents().size() ) {
+    return _required->hasMatch( documentID, extents );
+  }
+
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const std::string& FilterRequireNode::getName() const {
   return _name;
 }

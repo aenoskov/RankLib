@@ -30,6 +30,7 @@ class CachedFrequencyBeliefNode : public StatisticsBeliefNode {
 private:
   TermScoreFunction& _function;
   greedy_vector<ScoredExtentResult> _extents;
+  greedy_vector<bool> _matches;
   greedy_vector<DocumentContextCount>::iterator _iter;
   ListCache::CachedList* _list;
   double _maximumBackgroundScore;
@@ -51,6 +52,7 @@ public:
   const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
   void annotate( class Annotator& annotator, int documentID, int begin, int end );
   bool hasMatch( int documentID );
+  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents ); 
   const std::string& getName() const;
   
   int matches( int begin, int end );

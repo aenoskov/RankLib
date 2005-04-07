@@ -72,6 +72,10 @@ const greedy_vector<ScoredExtentResult>& WeightedSumNode::score( int documentID,
   return _scores;
 }
 
+//
+// annotate
+//
+
 void WeightedSumNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   annotator.add(this, documentID, begin, end);
 
@@ -80,6 +84,10 @@ void WeightedSumNode::annotate( Annotator& annotator, int documentID, int begin,
   }
 }
 
+//
+// hasMatch
+//
+
 bool WeightedSumNode::hasMatch( int documentID ) {
   for( unsigned int i=0; i<_children.size(); i++ ) {
     if( _children[i]->hasMatch( documentID ) )
@@ -87,6 +95,27 @@ bool WeightedSumNode::hasMatch( int documentID ) {
   }
 
   return false;
+}
+
+//
+// hasMatch
+//
+
+const greedy_vector<bool>& WeightedSumNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+  _matches.clear();
+  _matches.resize( extents.size(), false );
+
+  for( unsigned int i=0; i<_children.size(); i++ ) {
+    const greedy_vector<bool>& kidMatches = _children[i]->hasMatch( documentID, extents );
+
+    for( unsigned int j=0; j<kidMatches.size(); j++ ) {
+      if( kidMatches[j] ) {
+        _matches[j] = true;
+      }
+    }
+  }
+
+  return _matches;
 }
 
 void WeightedSumNode::addChild( double weight, BeliefNode* child ) {
