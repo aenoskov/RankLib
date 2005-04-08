@@ -40,8 +40,8 @@ private:
   ListIteratorNode* _matches; 
 
   std::string _name;
-  UINT64 _occurrences;
-  UINT64 _contextSize;
+  double _occurrences;
+  double _contextSize;
 
   EvaluatorNode::MResults _results;
 
@@ -49,8 +49,8 @@ public:
   ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context );
   ~ContextCountAccumulator();
 
-  UINT64 getOccurrences() const;
-  UINT64 getContextSize() const;
+  double getOccurrences() const;
+  double getContextSize() const;
 
   const ListIteratorNode* getContextNode() const;
   const ListIteratorNode* getMatchesNode() const;

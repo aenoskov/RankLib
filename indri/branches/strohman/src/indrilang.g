@@ -53,6 +53,7 @@ tokens {
   FILREJ = "#filrej";
   ANY = "#any";
   BAND = "#band";
+  WSYN = "#wsyn";
   SYN = "#syn";
   // numerics
   PRIOR = "#prior";
@@ -358,15 +359,25 @@ priorNode returns [ indri::lang::PriorNode* p ]
 
     _nodes.push_back(p);
   };
-  
+    
 //
 // Extent operators start here:
+//    #wsyn = wsynNode
 //    #odn = odNode
 //    #uwn = uwNode
 //    #band = bandNode
 //    #filrej = filrejNode
 //    #filreq = filreqNode
 //
+
+// wsynNode : WSYN O_PAREN ( weight qualifiedTerm )+ C_PAREN
+wsynNode returns [ indri::lang::WSynNode* ws ]
+  {
+    RawExtentNode* rn = 0;
+    ws = new WSynNode;
+    _nodes.push_back(ws);
+  } :
+  WSYN O_PAREN ( options { greedy=true; } : w=floating n=qualifiedTerm { ws->addChild( atof(w->getText().c_str()), n ) )+ C_PAREN;
   
 // odNode : OD DECIMAL O_PAREN ( qualifiedTerm )+ C_PAREN
 odNode returns [ indri::lang::ODNode* od ] 
@@ -482,6 +493,7 @@ unqualifiedTerm returns [ RawExtentNode* re ] :
   | ( O_ANGLE ) => re=synonym_list
   | ( O_BRACE ) => re=synonym_list_brace
   | ( SYN ) => re=synonym_list_alt
+  | ( WSYN ) => re=wsynNode
   | ( ANY ) => re=anyField
   | ( LESS ) => re=lessNode
   | ( GREATER ) => re=greaterNode
