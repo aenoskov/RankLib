@@ -84,6 +84,7 @@ void UnorderedWindowNode::prepare( int documentID ) {
       p.begin = childPositions[j].begin;
       p.end = childPositions[j].end;
       p.last = -1;
+      p.weight = childPositions[j].weight;
 
       allPositions.push_back( p );
     }
@@ -110,6 +111,7 @@ void UnorderedWindowNode::prepare( int documentID ) {
   for( int i=0; i<allPositions.size(); i++ ) {
     int termsFound = 1;
     unsigned int current;
+    double weight = 1;
 
     for( current=i+1; current < allPositions.size() && termsFound != _children.size(); current++ ) {
       if( (allPositions[current].end - allPositions[i].begin > _windowSize) && (_windowSize >= 0) )
@@ -119,11 +121,12 @@ void UnorderedWindowNode::prepare( int documentID ) {
       // then this is a new term for this window
       if( allPositions[current].last < i ) {
         termsFound++;
+        weight *= allPositions[current].weight;
       } 
     }
 
     if( termsFound == _children.size() ) {
-      _extents.push_back( Extent( allPositions[i].begin, allPositions[current-1].end ) );
+      _extents.push_back( Extent( weight, allPositions[i].begin, allPositions[current-1].end ) );
     }
   }
 }
