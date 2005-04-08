@@ -50,6 +50,9 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	// general text highlighting
 	protected Match highlight = null;
 	
+	// position lookup
+	private int [] positionLookup = null;
+	
 	// create a new RecapStyledDocument
 	public RecapStyledDocument( String text, Style defaultStyle ) {
 		// add text to document with default style
@@ -66,7 +69,9 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		namedEntityMatches = new Vector();
 
 		queryPositions = new ArrayList();
-		
+
+		positionLookup = new int[ text.length() ];
+		for(int i = 0; i < text.length(); i++ ) positionLookup[i]=-999;
 		initNamedEntityMatches();
 	}
 	
@@ -130,7 +135,8 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	
 	// applies a style to the given segment of text
 	protected void applyStyle( String style, int begin, int end ) {
-		try { replace( begin, end - begin, getText(begin, end-begin), getStyle( style ) );	}
+		//try { replace( begin, end - begin, getText(begin, end-begin), getStyle( style ) );	}
+		try { replace( positionLookup[begin-1], positionLookup[end-1] - positionLookup[begin-1], getText(positionLookup[begin-1], positionLookup[end-1]-positionLookup[begin-1]), getStyle( style ) );	}
 		catch(Exception e) { /* do nothing */ }							
 	}
 	
@@ -173,9 +179,11 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		try { text = getText( 0, this.getLength() ); }
 		catch( Exception e ) { /* do nothing */ }
 		StringTokenizer tok = new StringTokenizer( text, "<>", true );
+		int actualPosition = -1;
 		try {
 			tok0 = tok.nextToken().toLowerCase();
 			pos0 = 0;
+			actualPosition = setPositions( pos0, 0, tok0.length(), true );
 			tok1 = tok.nextToken().toLowerCase();
 			pos1 = tok0.length();
 		}
@@ -190,15 +198,43 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 					s = getStyle( "ne:" + tok1 );
 				if( s != null ) {
 					// TODO: fix this to change 'type' for different types of named entities
-					namedEntityMatches.add( new Match( pos0, pos1 + tok1.length() + 1, -1 ) );
-					applyStyle( s.getName(), pos0, pos1 + tok1.length() + 1 );
+					//namedEntityMatches.add( new Match( pos0, pos1 + tok1.length() + 1, -1 ) );
+					//applyStyle( s.getName(), pos0, pos1 + tok1.length() + 1 );
+					actualPosition = setPositions( pos0, actualPosition-1, 1 + tok1.length() + 1, false ) - 1;					
 				}
+				else
+					actualPosition = setPositions( pos1, actualPosition, tok1.length(), true );
 			}
+			else
+				actualPosition = setPositions( pos1, actualPosition, tok1.length(), true );
 			tok0 = tok1;
 			pos0 = pos1;
 			tok1 = token;
 			pos1 = pos1 + tok0.length();
 		}
+
+		String newText = "";
+		for( int i = 0; i < text.length(); i++ ) {
+			//System.out.print("["+positionLookup[i]+"]"+"("+text.charAt(i)+")");
+			if( i == 0 && positionLookup[ i ] != -1 )
+				newText += text.charAt( i );
+			else if( i > 0 && positionLookup[ i ] != positionLookup[ i - 1 ] )
+				newText += text.charAt( i );
+		}
+		System.out.println();
+		
+		try { replace( 0, this.getLength(), newText, null ); }
+		catch( Exception e ) { /* do nothing */ }
+	}
+
+	private int setPositions( int startPos, int actualPosition, int length, boolean inc ) {
+		for( int i = 1; i <= length; i++ ) {
+			if( inc )
+				positionLookup[ startPos - 1 + i ] = actualPosition + i;
+			else
+				positionLookup[ startPos - 1 + i ] = actualPosition;
+		}
+		return positionLookup[ startPos - 1 + length ];
 	}
 	
 	// initializes the document styles
