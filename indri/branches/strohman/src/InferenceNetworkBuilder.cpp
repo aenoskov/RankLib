@@ -25,6 +25,7 @@
 #include "indri/ExtentInsideNode.hpp"
 #include "indri/ExtentAndNode.hpp"
 #include "indri/ExtentOrNode.hpp"
+#include "indri/WeightedExtentOrNode.hpp"
 #include "indri/OrderedWindowNode.hpp"
 #include "indri/UnorderedWindowNode.hpp"
 #include "indri/FieldIteratorNode.hpp"
@@ -55,7 +56,7 @@
 
 #include <stdexcept>
 
-TermScoreFunction* InferenceNetworkBuilder::_buildTermScoreFunction( const std::string& smoothing, UINT64 occurrences, UINT64 contextSize ) const {
+TermScoreFunction* InferenceNetworkBuilder::_buildTermScoreFunction( const std::string& smoothing, double occurrences, double contextSize ) const {
   double collectionFrequency;
 
   if( occurrences ) {
@@ -193,6 +194,21 @@ void InferenceNetworkBuilder::after( indri::lang::ExtentOr* extentOr ) {
 
     _network->addListNode( extentOrNode );
     _nodeMap[extentOr] = extentOrNode;
+  }
+}
+
+//
+// WeightedExtentOr
+//
+
+void InferenceNetworkBuilder::after( indri::lang::WeightedExtentOr* weightedExtentOr ) {
+  if( _nodeMap.find( weightedExtentOr ) == _nodeMap.end() ) {
+    std::vector<ListIteratorNode*> translation = _translate<ListIteratorNode>( weightedExtentOr->getChildren() );
+    std::vector<double>& weights = weightedExtentOr->getWeights();
+    WeightedExtentOrNode* weightedExtentOrNode = new WeightedExtentOrNode( weightedExtentOr->nodeName(), translation, weights );
+
+    _network->addListNode( weightedExtentOrNode );
+    _nodeMap[weightedExtentOr] = weightedExtentOrNode;
   }
 }
 
@@ -623,7 +639,7 @@ void InferenceNetworkBuilder::after( indri::lang::TermFrequencyScorerNode* termS
                                         termScorerNode->getOccurrences(),
                                         termScorerNode->getContextSize() );
 
-    if( termScorerNode->getOccurrences() ) {
+    if( termScorerNode->getOccurrences() > 0 ) {
       bool stopword = false;
       std::string processed = termScorerNode->getText();
       int termID = 0;
@@ -666,7 +682,7 @@ void InferenceNetworkBuilder::after( indri::lang::RawScorerNode* rawScorerNode )
                                         rawScorerNode->getOccurrences(),
                                         rawScorerNode->getContextSize() );
 
-    if( rawScorerNode->getOccurrences() && iterator != 0 ) {
+    if( rawScorerNode->getOccurrences() > 0 && iterator != 0 ) {
       ListIteratorNode* rawIterator = 0;
       ListIteratorNode* context = dynamic_cast<ListIteratorNode*>(untypedContextNode);
 

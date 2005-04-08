@@ -73,6 +73,10 @@ public:
     }
   }
 
+  void before( indri::lang::WeightedExtentOr* wExOr ) {
+    _disqualifiedTree = true;
+  }
+
   void before( indri::lang::ODNode* odNode ) {
     _disqualifiedTree = true;
   }

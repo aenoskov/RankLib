@@ -55,9 +55,9 @@ int ListBeliefNode::_contextLength( int begin, int end ) {
   return contextLength;
 }
 
-int ListBeliefNode::_contextOccurrences( int begin, int end ) {
+double ListBeliefNode::_contextOccurrences( int begin, int end ) {
   const greedy_vector<Extent>& extents = _list.extents();
-  int count = 0;
+  double count = 0;
   int lastEnd = 0;
 
   // look for all occurrences within bounds and that don't overlap
@@ -65,7 +65,7 @@ int ListBeliefNode::_contextOccurrences( int begin, int end ) {
     if( extents[i].begin >= begin &&
         extents[i].end <= end &&
         extents[i].begin >= lastEnd ) {
-      count++;
+      count += extents[i].weight;
       lastEnd = extents[i].end;
     }
   }
@@ -73,16 +73,16 @@ int ListBeliefNode::_contextOccurrences( int begin, int end ) {
   return count;
 }
 
-int ListBeliefNode::_documentOccurrences() {
+double ListBeliefNode::_documentOccurrences() {
   assert( _raw ); // score() maintains this invariant
   const greedy_vector<Extent>& extents = _raw->extents();
-  int count = 0;
+  double count = 0;
   int lastEnd = 0;
 
   // look for all occurrences within bounds and that don't overlap
   for( size_t i=0; i<extents.size(); i++ ) {
     if( extents[i].begin >= lastEnd ) {
-      count++;
+      count += extents[i].weight;
       lastEnd = extents[i].end;
     }
   }
@@ -118,8 +118,8 @@ double ListBeliefNode::maximumScore() {
 
 const greedy_vector<ScoredExtentResult>& ListBeliefNode::score( int documentID, int begin, int end, int documentLength ) {
   int contextSize = _contextLength( begin, end );
-  int occurrences = _contextOccurrences( begin, end );
-  int documentOccurrences = _raw ? _documentOccurrences() : occurrences;
+  double occurrences = _contextOccurrences( begin, end );
+  double documentOccurrences = _raw ? _documentOccurrences() : occurrences;
   double score = 0;
   
   score = _scoreFunction.scoreOccurrence( occurrences, contextSize, documentOccurrences, documentLength );
