@@ -92,8 +92,8 @@ public:
 	);
 	public:  indri::lang::ScoredExtentNode*  sumNode();
 	public:  indri::lang::WeightedExtentOr*  wsynNode();
-	public:  indri::lang::ODNode*  odNode();
 	public:  RawExtentNode*  unscoredTerm();
+	public:  indri::lang::ODNode*  odNode();
 	public:  indri::lang::UWNode*  uwNode();
 	public:  indri::lang::BAndNode*  bandNode();
 	public:  indri::lang::Field*  anyField();
