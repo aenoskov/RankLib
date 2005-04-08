@@ -57,7 +57,10 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	
 	// retrieval engine interface
 	protected RetrievalEngine retEngine = null;
-		
+
+	// current document being analyzed
+	private RecapStyledDocument curAnalyzeDoc = null;
+	
 	public InfoPane( RetrievalEngine retEngine, MainMenuBar menu ) {
 		super( JSplitPane.VERTICAL_SPLIT );
 		this.retEngine = retEngine;
@@ -137,7 +140,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 //	private void runAnalyzeQuery( String query ) {
 	private void runAnalyzeQuery( AnalyzeQuery query ) {
 		// error checking
-		if( query == null || query.equals("") ) {
+		if( query == null || query.getQueries().size() == 0 ) {
 			showErrorDialog( "Unable to evaluate empty or null query!");
 			return;
 		}
@@ -231,7 +234,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				JTextPane textPane = dvPane.getDocTextPane();
 				if( !( textPane.getDocument() instanceof RecapStyledDocument ) )
 					return;
-				RecapStyledDocument doc = (RecapStyledDocument)textPane.getDocument();			
+				RecapStyledDocument doc = (RecapStyledDocument)textPane.getDocument();
+				
 				doc.setHighlight( m.begin, m.end );
 			}
 		}
@@ -246,6 +250,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 			//RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();			
 			String queryText = pane.getSelectedText();
 			if( queryText != null && !queryText.trim().equals("") ) {
+				curAnalyzeDoc = (RecapStyledDocument)pane.getDocument();
 				queryPanel.setAnalyzeQuery( new AnalyzeQuery( pane.getSelectedText(), pane.getSelectionStart(), pane.getSelectionEnd() ) );
 				queryPanel.setQueryText( RecapTools.removeTags( pane.getSelectedText() ) );
 			}
@@ -446,9 +451,10 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 
 	private void highlightExtent( int docID, int begin, int end ) {
 		JTextPane docTextPane = dvPane.getDocTextPane();
+		RecapStyledDocument styledDoc = (RecapStyledDocument)docTextPane.getDocument();
 		ParsedDocument doc = retEngine.getParsedDocument( docID );				
-		int startPos = doc.positions[ begin ].begin;
-		int endPos = doc.positions[ end - 1 ].end;
+		int startPos = styledDoc.getScreenPos( doc.positions[ begin ].begin );
+		int endPos = styledDoc.getScreenPos( doc.positions[ end - 1 ].end );
 		int curPos = docTextPane.getCaretPosition();
 		docTextPane.grabFocus();
 		if( curPos > endPos )

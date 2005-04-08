@@ -7,7 +7,8 @@ import java.util.Vector;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
-import javax.swing.border.Border;
+import javax.swing.ToolTipManager;
+
 /*
  * Created on Nov 7, 2004
  *
@@ -22,57 +23,85 @@ import javax.swing.border.Border;
  * allow for easy/quick jumping to the matches.
  *
  */
-public class QuickFindScrollPane extends JScrollPane { //implements MouseListener {
+public class QuickFindScrollPane extends JScrollPane {
 	
-	private int byteLength = -1;
+	private RecapStyledDocument doc = null;
 	private Vector matches = null;
-	private Border border = null;
+	private QuickFindBorder border = null;
+	private int byteLength = -1;
 
 	private ArrayList queryPositions = null;	
 	
-	public QuickFindScrollPane( Vector matches, ArrayList queryPositions, int byteLength ) {
-		this.matches = matches;
-		this.byteLength = byteLength;
-		this.queryPositions = queryPositions;
+	public QuickFindScrollPane( RecapStyledDocument doc ) {
+		this.doc = doc;
+		this.matches = doc.getViewableSentenceMatches();
+		this.byteLength = doc.getLength();
+		this.queryPositions = doc.getQueryPositions();
+				
+		border = new QuickFindBorder( doc );		
+		this.setBorder( border );
 		
-		border = new QuickFindBorder( matches, byteLength );		
-		this.setBorder( border );		
+		ToolTipManager.sharedInstance().registerComponent( this );
 	}
 
 	public void setMatches( Vector matches ) {		
 		this.matches = matches;
-		border = new QuickFindBorder( matches, byteLength ); 
-		this.setBorder( border );
+		border.setMatches( matches );
 	}
 	
-	public Match processClick( MouseEvent event ) {
-		Point p = event.getPoint();	
-		Match queryPos = null;
-		
+	public Pair getMatch( Point p ) {
 		int height = this.getHeight();
 		int width = this.getWidth();
-		
+
 		for( int i = 0; i < matches.size(); i++ ) {
 			Match m = (Match)matches.elementAt(i);
-			int top = (int)(height*m.begin/(byteLength*1.0));
-			int bottom = (int)(height*m.end/(byteLength*1.0));
+			int begin = doc.getScreenPos( m.begin );
+			int end = doc.getScreenPos( m.end );
+			int top = (int)(height*begin/(byteLength*1.0));
+			int bottom = (int)(height*end/(byteLength*1.0));
 			
 			Rectangle r = new Rectangle( 0, top, width, bottom-top );
 			if( r.contains( p ) ) {
-				JTextPane textPane = (JTextPane)this.getViewport().getComponent( 0 );
-				int curPos = textPane.getCaretPosition();
-				textPane.grabFocus();
-				if( curPos > m.end )
-					textPane.setCaretPosition( m.begin );
-				else
-					textPane.setCaretPosition( m.end );
-				textPane.setCaretPosition( m.begin );
-				textPane.moveCaretPosition( m.end );
-				
-				queryPos = (Match)queryPositions.get( i );
+				return new Pair( m, queryPositions.get( i ) );
 			}
 		}
 		
+		return null;
+	}
+	
+	public Match processClick( MouseEvent event ) {
+		Match queryPos = null;
+		
+		Pair p = getMatch( event.getPoint() );
+		if( p == null )
+			return null;
+
+		Match m = (Match)p.left;		
+		if( m != null ) {
+			JTextPane textPane = (JTextPane)this.getViewport().getComponent( 0 );
+			RecapStyledDocument styledDoc = (RecapStyledDocument)textPane.getDocument();
+			int curPos = textPane.getCaretPosition();
+			textPane.grabFocus();
+			int begin = styledDoc.getScreenPos( m.begin );
+			int end = styledDoc.getScreenPos( m.end );
+			if( curPos > end )
+				textPane.setCaretPosition( begin );
+			else
+				textPane.setCaretPosition( end );
+			textPane.setCaretPosition( begin );
+			textPane.moveCaretPosition( end );
+			
+			queryPos = (Match)p.right;						
+		}
+				
 		return queryPos;
+	}
+	
+	public String getToolTipText( MouseEvent e ) {
+		Pair p = getMatch( e.getPoint() );
+		if( p == null )
+			return null;
+		Match m = (Match)p.left;
+		return "<html><b>Score:</b> " + m.type + "</html>";
 	}
 }

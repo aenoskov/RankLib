@@ -15,7 +15,6 @@ import edu.umass.cs.indri.QueryAnnotationNode;
 import edu.umass.cs.indri.ScoredExtentResult;
 
 /**
- * @author Don Metzler
  * 
  * Snippet code by Trevor Strohman
  *
@@ -252,7 +251,7 @@ public class RecapTools {
 			end = input.indexOf( tagEnd, begin );
 			
 			if( builder == null ) {
-				if( begin < 0 ) {
+				if( begin < 0 || ( begin >= 0 && end < 0 ) ) {
 					return input;
 				} else {
 					builder = new StringBuffer();
@@ -279,35 +278,4 @@ public class RecapTools {
 
 		return s;
 	}	
-
-/*	private String removeTags( String s ) {
-		String ret = "";
-		
-		String tok0 = null;
-		String tok1 = null;
-
-		StringTokenizer tok = new StringTokenizer( s, "<>", true );
-		
-		try {
-			tok0 = tok.nextToken();
-			ret += tok0;
-		}
-		catch( Exception e ) { return ret; }
-
-		try { tok1 = tok.nextToken(); }
-		catch( Exception e ) { return ret; }
-
-		while( tok.hasMoreTokens() ) {
-			String token = tok.nextToken();
-			if( !token.equals(">") || !tok0.equals("<") )
-				ret += tok1;
-			tok0 = tok1;
-			tok1 = token;
-		}
-		
-		ret += tok1;
-		
-		return ret.replaceAll("<>", "");
-	} */
-
 }

@@ -28,7 +28,6 @@ public class AnalyzeQuery {
 		while( tok.hasMoreTokens() ) {
 			String sent = tok.nextSentence();
 			int length = tok.getUnparsedSentenceLength();
-			System.out.println( "SENTENCE = {" + sent + "}, length = " + length );
 			queries.add( sent );
 			positions.add( new Match( begin, begin+length ) );
 			begin = begin + length;
