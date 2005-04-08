@@ -60,7 +60,7 @@ const greedy_vector<bool>& FilterRejectNode::hasMatch( int documentID, const gre
     return _disallowed->hasMatch( documentID, extents );
   }
 
-  _matches.resize( false, extents.size() );
+  _matches.resize( extents.size(), false );
   return _matches;
 }
 
