@@ -30,6 +30,7 @@ private:
       return begin < other.begin;
     }
 
+    double weight;
     int type;
     int begin;
     int end;
