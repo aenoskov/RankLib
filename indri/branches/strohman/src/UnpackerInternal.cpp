@@ -17,6 +17,8 @@ indri::lang::Node* indri::lang::Unpacker::_unpack( XMLNode* child ) {
     result = new Field(*this);
   } else if( type == "ExtentInside" ) {
     result = new ExtentInside(*this);
+  } else if( type == "WeightedExtentOr" ) {
+    result = new WeightedExtentOr(*this);
   } else if( type == "ExtentOr" ) {
     result = new ExtentOr(*this);
   } else if( type == "ExtentAnd" ) {
