@@ -370,7 +370,7 @@ priorNode returns [ indri::lang::PriorNode* p ]
 //    #filreq = filreqNode
 //
 
-// wsynNode : WSYN O_PAREN ( weight qualifiedTerm )+ C_PAREN
+// wsynNode : WSYN O_PAREN ( weight unscoredNode )+ C_PAREN
 wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
   {
     ws = new indri::lang::WeightedExtentOr;
@@ -380,7 +380,7 @@ wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
     RawExtentNode* n = 0;
   } :
   WSYN O_PAREN
-       ( options { greedy=true; } : w=floating n=qualifiedTerm { ws->addChild( w, n ); } )+
+       ( options { greedy=true; } : w=floating n=unscoredNode { ws->addChild( w, n ); } )+
        C_PAREN;
   
 // odNode : OD DECIMAL O_PAREN ( qualifiedTerm )+ C_PAREN
