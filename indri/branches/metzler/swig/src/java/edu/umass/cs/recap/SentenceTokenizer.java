@@ -40,7 +40,7 @@ public class SentenceTokenizer extends StringTokenizer {
 		// single term
 		if( firstToken ) {
 			if( hasMoreTokens() )
-				curTerm = nextToken(); //nextNonDelimToken(); //nextToken();
+				curTerm = nextToken();
 			else
 				curTerm = "";
 			firstToken = false;
@@ -53,7 +53,7 @@ public class SentenceTokenizer extends StringTokenizer {
 			if( !lastDelim )
 				ret += curTerm;
 
-			nextTerm = nextToken(); //nextNonDelimToken(); //nextToken();
+			nextTerm = nextToken();
 			if( delims.indexOf( nextTerm ) != -1 ) {
 				lastDelim = true;
 				ret += nextTerm;
@@ -95,19 +95,15 @@ public class SentenceTokenizer extends StringTokenizer {
 			curTerm = nextTerm;
 			
 			if( foundSentence ) {
-				//System.out.println("SENTENCE(1) = " + ret);
 				unparsedSentenceLength = ret.length();
 				return RecapTools.removeDelims( RecapTools.removeTags( ret ), delims );
-				//return ret;
 			}
 		}
 
-		//ret += curTerm + " ";
-		ret += curTerm;
-		//System.out.println("SENTENCE(2) = " + ret);
+		if( !lastDelim )
+			ret += curTerm;
 		unparsedSentenceLength = ret.length();
 		return RecapTools.removeDelims( RecapTools.removeTags( ret ), delims );
-		//return ret;
 	}
 		
 	// returns the unparsed sentence length

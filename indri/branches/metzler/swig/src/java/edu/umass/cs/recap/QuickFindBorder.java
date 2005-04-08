@@ -20,19 +20,26 @@ import javax.swing.border.EmptyBorder;
  */
 public class QuickFindBorder extends EmptyBorder {
 
+	private RecapStyledDocument doc = null;
 	private Vector matches = null;
 	private int byteLength = -1;
 	
-	public QuickFindBorder( Vector matches, int byteLength ) {
+	public QuickFindBorder( RecapStyledDocument doc ) {
 		// add space onto the right only
 		super( 0, 0, 0, 20 );
-		
-		Collections.sort( matches );
-		
-		this.matches = matches;
-		this.byteLength = byteLength;
+
+		this.doc = doc;
+		this.matches = doc.getViewableSentenceMatches();
+		this.byteLength = doc.getLength();		
+
+		Collections.sort( matches );		
 	}
-		
+	
+	public void setMatches( Vector matches ) {
+		Collections.sort( matches );
+		this.matches = matches;
+	}
+	
 	public boolean isBorderOpaque() {
 		return true;
 	}
@@ -44,8 +51,10 @@ public class QuickFindBorder extends EmptyBorder {
 			// this ensures we don't mark the same match twice
 			if( lastMatch != null && m.extentCompareTo( lastMatch ) == 0 )
 				continue;
-			int top = (int)(height*m.begin/(byteLength*1.0));
-			int bottom = (int)(height*m.end/(byteLength*1.0));
+			int begin = doc.getScreenPos( m.begin );
+			int end = doc.getScreenPos( m.end );
+			int top = (int)(height*begin/(byteLength*1.0));
+			int bottom = (int)(height*end/(byteLength*1.0));
 	
 			g.setColor( new Color(1.0f, 0.0f, 0.0f, 0.5f) );
 			g.fillRect( width - right, top, width, bottom-top );

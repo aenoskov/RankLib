@@ -5,6 +5,7 @@ import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Shape;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Ellipse2D;
@@ -18,6 +19,7 @@ import javax.swing.JButton;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.ToolTipManager;
 /*
  * Created on Nov 9, 2004
  *
@@ -133,6 +135,10 @@ public class TimelinePanel extends JPanel {
 		// set up source hashmap
 		sources = new HashMap();
 		sourceNames = new ArrayList();
+		
+		// registers a tooltip listener for this component
+		// have to do this because JPanel's don't have tooltip listeners by default
+		ToolTipManager.sharedInstance().registerComponent( this );
 	}
 		
 	public void setResults( Vector res ) {
@@ -506,4 +512,12 @@ public class TimelinePanel extends JPanel {
 		addMouseMotionListener( (MouseMotionListener)listener );
 	}
 
+	public String getToolTipText( MouseEvent e ) {
+		ScoredDocInfo info = getDocAt( e.getPoint() );
+		if( info != null ) {
+			String date = info.month + "/" + info.date + "/" + info.year;
+			return "<html><b>Document ID:</b> " + info.docName + "<br><b>Date:</b> " + date + "<br><b>Score:</b> " + info.score + "</html>";
+		}
+		return null;
+	}
 }

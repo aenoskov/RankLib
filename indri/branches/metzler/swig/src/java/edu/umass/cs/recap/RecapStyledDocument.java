@@ -2,10 +2,10 @@ package edu.umass.cs.recap;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-import javax.swing.ImageIcon;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -37,15 +37,18 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	
 	// annotation matches in "explore" mode
 	protected Vector annotationMatches = null;
-
-	// named entity matches
-	protected Vector namedEntityMatches = null;
 	
 	// annotation highlighting styles and colors 
 	protected final String [] highlightNames = new String [] {
 			"annotation0", "annotation1", "annotation2", "annotation3", "annotation4" };
 	protected final Color [] colorNames = new Color [] {
 			Color.GREEN, Color.CYAN, Color.RED, Color.MAGENTA, Color.ORANGE };  
+
+	// tags to be ignored (stripped out of text before being displayed)
+	protected final String [] ignoreTags = new String [] {
+			"person", "organization", "location", "date", "time", "percent", "money" };
+	
+	private HashMap ignoreMap = null; 
 
 	// general text highlighting
 	protected Match highlight = null;
@@ -60,18 +63,20 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		catch( Exception e ) { /* do nothing */ }
 		this.defaultStyle = defaultStyle;
 
+		ignoreMap = new HashMap();
+		
 		initStyles();
+		initIgnoreTags();
 		
 		// initialize match vectors
 		sentenceMatches = new Vector();
 		viewableSentenceMatches = new Vector();
 		annotationMatches = new Vector();
-		namedEntityMatches = new Vector();
+		//namedEntityMatches = new Vector();
 
 		queryPositions = new ArrayList();
 
 		positionLookup = new int[ text.length() ];
-		for(int i = 0; i < text.length(); i++ ) positionLookup[i]=-999;
 		initNamedEntityMatches();
 	}
 	
@@ -105,14 +110,20 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	
 	public void setHighlight( int begin, int end ) {
 		if( highlight != null ) {
-			applyStyle( "default", highlight.begin, highlight.end );
+			applyStyleDirect( "default", highlight.begin, highlight.end );
 			render( highlight.begin, highlight.end ); // renders the previously highlighted portion
 		}
 		highlight = new Match( begin, end );
-		applyStyle( "highlight", begin, end );
+		applyStyleDirect( "highlight", begin, end );
 		render( begin, end );
 	}
 
+	// returns the screen position corresponding to the actual position within the
+	// document
+	public int getScreenPos( int pos ) {
+		return positionLookup[ pos - 1 ]; 
+	}
+	
 /*	protected void setSentenceMatches( Vector matches ) {
 		viewableSentenceMatches = matches;
 	}*/
@@ -121,9 +132,9 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		return sentenceMatches;
 	}
 	
-	protected void setViewableSentenceMatches( Vector matches ) {
+/*	protected void setViewableSentenceMatches( Vector matches ) {
 		viewableSentenceMatches = matches;
-	}
+	}*/
 	
 	public Vector getViewableSentenceMatches() {
 		return viewableSentenceMatches;
@@ -135,8 +146,13 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	
 	// applies a style to the given segment of text
 	protected void applyStyle( String style, int begin, int end ) {
-		//try { replace( begin, end - begin, getText(begin, end-begin), getStyle( style ) );	}
 		try { replace( positionLookup[begin-1], positionLookup[end-1] - positionLookup[begin-1], getText(positionLookup[begin-1], positionLookup[end-1]-positionLookup[begin-1]), getStyle( style ) );	}
+		catch(Exception e) { /* do nothing */ }							
+	}
+
+	// applies a style to the given segment of text
+	protected void applyStyleDirect( String style, int begin, int end ) {
+		try { replace( begin, end - begin, getText(begin, end-begin), getStyle( style ) );	}
 		catch(Exception e) { /* do nothing */ }							
 	}
 	
@@ -145,27 +161,22 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		// TODO: tidy this up a bit
 		for( int i = 0; i < sentenceMatches.size(); i++ ) {
 			Match m = (Match)sentenceMatches.elementAt( i );
-			if( ( m.begin <= begin && m.end >= begin ) ||
-				( m.begin >= begin && m.end <= end ) ||
-				( m.begin <= end && m.end >= end ) )
-				applyStyle( "sentmatch", m.begin, m.end );
+			int mBegin = positionLookup[ m.begin - 1 ];
+			int mEnd = positionLookup[ m.end - 1 ];  
+			if( ( mBegin <= begin && mEnd >= begin ) ||
+				( mBegin >= begin && mEnd <= end ) ||
+				( mBegin <= end && mEnd >= end ) )
+				applyStyleDirect( "sentmatch", mBegin, mEnd );
 		}
 		
 		for( int i = 0; i < annotationMatches.size(); i++ ) {
 			Match m = (Match)annotationMatches.elementAt( i );
-			if( ( m.begin <= begin && m.end >= begin ) ||
-				( m.begin >= begin && m.end <= end ) ||
-				( m.begin <= end && m.end >= end ) )
-				applyStyle( "annotation"+(int)m.type, m.begin, m.end );
-		}
-
-		for( int i = 0; i < namedEntityMatches.size(); i++ ) {
-			Match m = (Match)namedEntityMatches.elementAt( i );
-			if( ( m.begin <= begin && m.end >= begin ) ||
-				( m.begin >= begin && m.end <= end ) ||
-				( m.begin <= end && m.end >= end ) )
-				// TODO: fix this to allow different styles for each named entity
-				applyStyle( "ne:person", m.begin, m.end );
+			int mBegin = positionLookup[ m.begin - 1 ];
+			int mEnd = positionLookup[ m.end - 1 ];  
+			if( ( mBegin <= begin && mEnd >= begin ) ||
+				( mBegin >= begin && mEnd <= end ) ||
+				( mBegin <= end && mEnd >= end ) )
+				applyStyleDirect( "annotation"+(int)m.type, mBegin, mEnd );
 		}
 	}
 	
@@ -191,17 +202,13 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		while( tok.hasMoreTokens() ) {
 			String token = tok.nextToken().toLowerCase();
 			if( token.equals(">") && tok0.equals("<") ) {
-				Style s = null;
+				boolean hasKey = false;
 				if( tok1.charAt( 0 ) == '/' )
-					s = getStyle( "ne:" + tok1.substring( 1 ) );
+					hasKey = ignoreMap.containsKey( tok1.substring( 1 ) );
 				else
-					s = getStyle( "ne:" + tok1 );
-				if( s != null ) {
-					// TODO: fix this to change 'type' for different types of named entities
-					//namedEntityMatches.add( new Match( pos0, pos1 + tok1.length() + 1, -1 ) );
-					//applyStyle( s.getName(), pos0, pos1 + tok1.length() + 1 );
+					hasKey = ignoreMap.containsKey( tok1 );
+				if( hasKey )
 					actualPosition = setPositions( pos0, actualPosition-1, 1 + tok1.length() + 1, false ) - 1;					
-				}
 				else
 					actualPosition = setPositions( pos1, actualPosition, tok1.length(), true );
 			}
@@ -221,7 +228,7 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 			else if( i > 0 && positionLookup[ i ] != positionLookup[ i - 1 ] )
 				newText += text.charAt( i );
 		}
-		System.out.println();
+		//System.out.println();
 		
 		try { replace( 0, this.getLength(), newText, null ); }
 		catch( Exception e ) { /* do nothing */ }
@@ -258,44 +265,13 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		s = addStyle( "highlight", defaultStyle );
 		StyleConstants.setBackground( s, Color.LIGHT_GRAY );
 		StyleConstants.setForeground( s, Color.BLACK );
-		//StyleConstants.setBold( s, true );
-	
-		// TODO: do this a bit more elegantly
-		// named entity styles
-		s = addStyle( "ne:person", defaultStyle );
-		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
-		StyleConstants.setForeground( s, Color.WHITE);
-		StyleConstants.setFontSize( s, 1 );
+		//StyleConstants.setBold( s, true );	
+	}
 
-		s = addStyle( "ne:organization", defaultStyle );
-		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
-		StyleConstants.setForeground( s, Color.WHITE);
-		StyleConstants.setFontSize( s, 1 );
-
-		s = addStyle( "ne:location", defaultStyle );
-		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
-		StyleConstants.setForeground( s, Color.WHITE);
-		StyleConstants.setFontSize( s, 1 );
-
-		s = addStyle( "ne:money", defaultStyle );
-		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
-		StyleConstants.setForeground( s, Color.WHITE);
-		StyleConstants.setFontSize( s, 1 );
-
-		s = addStyle( "ne:date", defaultStyle );
-		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
-		StyleConstants.setForeground( s, Color.WHITE);
-		StyleConstants.setFontSize( s, 1 );
-
-		s = addStyle( "ne:time", defaultStyle );
-		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
-		StyleConstants.setForeground( s, Color.WHITE);
-		StyleConstants.setFontSize( s, 1 );
-
-		s = addStyle( "ne:percent", defaultStyle );
-		//StyleConstants.setIcon( s, new ImageIcon("edu/umass/cs/recap/images/recap-small.png" ) );
-		StyleConstants.setForeground( s, Color.WHITE);
-		StyleConstants.setFontSize( s, 1 );
+	// initializes the ignore tags
+	private void initIgnoreTags() {
+		for( int i = 0; i < ignoreTags.length; i++ )
+			ignoreMap.put( ignoreTags[i], null );
 	}
 	
 	// makes a copy of this object, with no formatting
