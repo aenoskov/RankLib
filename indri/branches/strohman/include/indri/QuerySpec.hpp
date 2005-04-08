@@ -1357,12 +1357,8 @@ namespace indri {
 
     class TermFrequencyScorerNode : public ScoredExtentNode {
     private:
-      UINT64 _occurrences; // number of occurrences within this context
-      UINT64 _contextSize; // number of terms that occur within this context
-      UINT64 _maximumContextLength;
-      UINT64 _minimumContextLength;
-      UINT64 _maximumOccurrences;
-      double _maximumContextFraction;
+      double _occurrences; // number of occurrences within this context
+      double _contextSize; // number of terms that occur within this context
 
       std::string _text;
       std::string _smoothing;
@@ -1372,22 +1368,14 @@ namespace indri {
       TermFrequencyScorerNode( const std::string& text, bool stemmed ) {
         _occurrences = 0;
         _contextSize = 0;
-        _maximumContextLength = MAX_INT32;
-        _maximumOccurrences = MAX_INT32;
-        _minimumContextLength = 1;
-        _maximumContextFraction = 1;
         _smoothing = "";
         _text = text;
         _stemmed = stemmed;
       }
 
       TermFrequencyScorerNode( Unpacker& unpacker ) {
-        _occurrences = unpacker.getInteger( "occurrences" );
-        _contextSize = unpacker.getInteger( "contextSize" );
-        _maximumContextLength = unpacker.getInteger( "maximumContextLength" );
-        _minimumContextLength = unpacker.getInteger( "minimumContextLength" );
-        _maximumOccurrences = unpacker.getInteger( "maximumOccurrences" );
-        _maximumContextFraction = unpacker.getDouble( "maximumContextFraction" );
+        _occurrences = unpacker.getDouble( "occurrences" );
+        _contextSize = unpacker.getDouble( "contextSize" );
         _smoothing = unpacker.getString( "smoothing" );
         _text = unpacker.getString( "text" );
         _stemmed = unpacker.getBoolean( "stemmed" );
@@ -1428,33 +1416,9 @@ namespace indri {
         return _smoothing;
       }
 
-      UINT64 getMaxContextLength() const {
-        return _maximumContextLength;
-      }
-
-      UINT64 getMinContextLength() const {
-        return _minimumContextLength;
-      }
-
-      UINT64 getMaxOccurrences() const {
-        return _maximumOccurrences;
-      }
-
-      double getMaxContextFraction() const {
-        return _maximumContextFraction;
-      }
-
-      void setStatistics( UINT64 occurrences, UINT64 contextSize,
-                          UINT64 maxOccurrences,
-                          UINT64 minContextLength, UINT64 maxContextLength,
-                          double maxContextFraction ) {
+      void setStatistics( double occurrences, double contextSize ) {
         _occurrences = occurrences;
         _contextSize = contextSize;
-
-        _maximumOccurrences = maxOccurrences;
-        _minimumContextLength = minContextLength;
-        _maximumContextLength = maxContextLength;
-        _maximumContextFraction = maxContextFraction;
       }
 
       void setSmoothing( const std::string& smoothing ) {
@@ -1465,10 +1429,6 @@ namespace indri {
         packer.before(this);
         packer.put( "occurrences", _occurrences );
         packer.put( "contextSize", _contextSize );
-        packer.put( "minimumContextLength", _minimumContextLength );
-        packer.put( "maximumContextLength", _maximumContextLength );
-        packer.put( "maximumOccurrences", _maximumOccurrences );
-        packer.put( "maximumContextFraction", _maximumContextFraction );
         packer.put( "text", _text );
         packer.put( "stemmed", _stemmed );
         packer.put( "smoothing", _smoothing );

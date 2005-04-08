@@ -371,13 +371,17 @@ priorNode returns [ indri::lang::PriorNode* p ]
 //
 
 // wsynNode : WSYN O_PAREN ( weight qualifiedTerm )+ C_PAREN
-wsynNode returns [ indri::lang::WSynNode* ws ]
+wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
   {
-    RawExtentNode* rn = 0;
-    ws = new WSynNode;
+    ws = new indri::lang::WeightedExtentOr;
     _nodes.push_back(ws);
+
+    double w = 0;
+    RawExtentNode* n = 0;
   } :
-  WSYN O_PAREN ( options { greedy=true; } : w=floating n=qualifiedTerm { ws->addChild( atof(w->getText().c_str()), n ) )+ C_PAREN;
+  WSYN O_PAREN
+       ( options { greedy=true; } : w=floating n=qualifiedTerm { ws->addChild( w, n ); } )+
+       C_PAREN;
   
 // odNode : OD DECIMAL O_PAREN ( qualifiedTerm )+ C_PAREN
 odNode returns [ indri::lang::ODNode* od ] 
