@@ -1,7 +1,6 @@
 package edu.umass.cs.recap;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -34,6 +33,7 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	protected Vector viewableSentenceMatches = null;
 
 	protected ArrayList queryPositions = null;
+	protected ArrayList viewableQueryPositions = null;
 	
 	// annotation matches in "explore" mode
 	protected Vector annotationMatches = null;
@@ -72,9 +72,9 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		sentenceMatches = new Vector();
 		viewableSentenceMatches = new Vector();
 		annotationMatches = new Vector();
-		//namedEntityMatches = new Vector();
 
 		queryPositions = new ArrayList();
+		viewableQueryPositions = new ArrayList();
 
 		positionLookup = new int[ text.length() ];
 		initNamedEntityMatches();
@@ -87,16 +87,18 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		applyStyle( "sentmatch", begin, end );
 		
 		queryPositions.add( queryPos );
+		viewableQueryPositions.add( queryPos );
 	}
 
 	public void applySentenceMatchThreshold(double threshold) {
-		Collections.sort( sentenceMatches );
 		viewableSentenceMatches.clear();
+		viewableQueryPositions.clear();
 		for( int i = 0; i < sentenceMatches.size(); i++ ) {
 			Match m = (Match)sentenceMatches.elementAt( i );
 			if( m.type >= threshold ) {
 				applyStyle( "sentmatch", m.begin, m.end );
 				viewableSentenceMatches.add( m );
+				viewableQueryPositions.add( queryPositions.get( i ) );
 			}
 			else
 				applyStyle( "nostyle", m.begin, m.end );
@@ -124,24 +126,16 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 		return positionLookup[ pos - 1 ]; 
 	}
 	
-/*	protected void setSentenceMatches( Vector matches ) {
-		viewableSentenceMatches = matches;
-	}*/
-
 	public Vector getSentenceMatches() {
 		return sentenceMatches;
 	}
-	
-/*	protected void setViewableSentenceMatches( Vector matches ) {
-		viewableSentenceMatches = matches;
-	}*/
-	
+		
 	public Vector getViewableSentenceMatches() {
 		return viewableSentenceMatches;
 	}
 
-	public ArrayList getQueryPositions() {
-		return queryPositions;
+	public ArrayList getViewableQueryPositions() {
+		return viewableQueryPositions;
 	}
 	
 	// applies a style to the given segment of text
@@ -277,9 +271,7 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 	// makes a copy of this object, with no formatting
 	public RecapStyledDocument unformattedClone() {
 		RecapStyledDocument clone = null;
-		try {
-			clone = new RecapStyledDocument( getText( 0, getLength() ), defaultStyle );
-		}
+		try { clone = new RecapStyledDocument( getText( 0, getLength() ), defaultStyle ); }
 		catch( Exception e ) { /* do nothing */ }
 		
 		return clone;		

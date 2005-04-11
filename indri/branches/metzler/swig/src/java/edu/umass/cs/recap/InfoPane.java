@@ -137,7 +137,6 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	}	
 		
 	// runs an "analyze" query, scores documents, and updates appropriate on-screen info
-//	private void runAnalyzeQuery( String query ) {
 	private void runAnalyzeQuery( AnalyzeQuery query ) {
 		// error checking
 		if( query == null || query.getQueries().size() == 0 ) {
@@ -199,7 +198,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				if( pane != null && pane.getDocument() instanceof RecapStyledDocument ) {
 					RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();
 					//doc.applySentenceMatchThreshold( threshold );
-					dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
+					dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches(), doc.getViewableQueryPositions() );
 				}
 			}
 			tlPanel.setCurrent( curDoc );
@@ -245,16 +244,12 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		Object src = e.getSource();
 		if( src == dvPane.getDocTextPane() ) {
 			JTextPane pane = dvPane.getDocTextPane();
-			//if( !( pane.getDocument() instanceof RecapStyledDocument ) )
-			//	return;
-			//RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();			
 			String queryText = pane.getSelectedText();
 			if( queryText != null && !queryText.trim().equals("") ) {
 				curAnalyzeDoc = (RecapStyledDocument)pane.getDocument();
 				queryPanel.setAnalyzeQuery( new AnalyzeQuery( pane.getSelectedText(), pane.getSelectionStart(), pane.getSelectionEnd() ) );
 				queryPanel.setQueryText( RecapTools.removeTags( pane.getSelectedText() ) );
 			}
-			//doc.setHighlight( pane.getSelectionStart(), pane.getSelectionEnd() );
 		}
 		else if( e.getButton() == MouseEvent.BUTTON1 && src == tlPanel ) {
 			if( tlMouseWasDragged )
@@ -498,8 +493,7 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		JTextPane pane = dvPane.getResultPane();
 		if( pane != null && pane.getDocument() instanceof RecapStyledDocument ) {
 			RecapStyledDocument doc = (RecapStyledDocument)pane.getDocument();
-			//doc.applySentenceMatchThreshold( threshold );
-			dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches() );
+			dvPane.getQuickFindScrollPane().setMatches( doc.getViewableSentenceMatches(), doc.getViewableQueryPositions() );
 		}
 
 	}

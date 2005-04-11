@@ -29,15 +29,15 @@ public class QuickFindBorder extends EmptyBorder {
 		super( 0, 0, 0, 20 );
 
 		this.doc = doc;
-		this.matches = doc.getViewableSentenceMatches();
+		this.matches = (Vector)doc.getViewableSentenceMatches().clone();
 		this.byteLength = doc.getLength();		
 
 		Collections.sort( matches );		
 	}
 	
-	public void setMatches( Vector matches ) {
-		Collections.sort( matches );
-		this.matches = matches;
+	public void setMatches( Vector m ) {
+		matches = (Vector)m.clone();
+		Collections.sort( matches );		
 	}
 	
 	public boolean isBorderOpaque() {
