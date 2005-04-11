@@ -257,8 +257,7 @@ public class RetrievalEngine {
 			int num = 0;
 			while( iter.hasNext() ) {
 				Integer i = (Integer)iter.next();
-				double score = 0.0;
-				score = getDocScoreProb( i , results ); //, metadata[num++] );
+				double score = getDocScoreProb( i , results );
 				ScoredDocInfo info = (ScoredDocInfo)candidateDocs.get( i );
 				Vector v = (Vector)results.get( i );
 				info.score += Math.log( score );

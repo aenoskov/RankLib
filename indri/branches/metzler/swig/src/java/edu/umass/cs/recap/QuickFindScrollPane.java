@@ -34,9 +34,10 @@ public class QuickFindScrollPane extends JScrollPane {
 	
 	public QuickFindScrollPane( RecapStyledDocument doc ) {
 		this.doc = doc;
-		this.matches = doc.getViewableSentenceMatches();
 		this.byteLength = doc.getLength();
-		this.queryPositions = doc.getQueryPositions();
+
+		this.matches = doc.getViewableSentenceMatches();
+		this.queryPositions = doc.getViewableQueryPositions();
 				
 		border = new QuickFindBorder( doc );		
 		this.setBorder( border );
@@ -44,8 +45,9 @@ public class QuickFindScrollPane extends JScrollPane {
 		ToolTipManager.sharedInstance().registerComponent( this );
 	}
 
-	public void setMatches( Vector matches ) {		
+	public void setMatches( Vector matches, ArrayList queryPositions ) {		
 		this.matches = matches;
+		this.queryPositions = queryPositions;
 		border.setMatches( matches );
 	}
 	
