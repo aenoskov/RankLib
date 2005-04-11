@@ -31,29 +31,13 @@ void ExtentOrNode::prepare( int documentID ) {
   _extents.clear();
   greedy_vector<Extent> allExtents;
 
+  // put all extents in the same bag
   for( unsigned int i=0; i<_children.size(); i++ ) {
-    allExtents.append( _children[i]->extents().begin(), _children[i]->extents().end() );
+    _extents.append( _children[i]->extents().begin(), _children[i]->extents().end() );
   }
 
   // sort all extents in order of beginning
-  std::sort( allExtents.begin(), allExtents.end(), Extent::begins_before_less() );
-  Extent current;
-
-  if( allExtents.size() ) {
-    current.begin = allExtents[0].begin;
-    current.end = allExtents[0].end;
-
-    for( unsigned int i=0; i<allExtents.size(); i++ ) {
-      if( allExtents[i].begin > current.end ) {
-        _extents.push_back( current );
-        current = allExtents[i];
-      } else {
-        current.end = lemur_compat::max( allExtents[i].end, current.end );
-      }
-    }
-
-    _extents.push_back( current );
-  }
+  std::sort( _extents.begin(), _extents.end(), Extent::begins_before_less() );
 }
 
 const greedy_vector<Extent>& ExtentOrNode::extents() {

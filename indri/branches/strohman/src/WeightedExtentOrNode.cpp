@@ -38,29 +38,12 @@ void WeightedExtentOrNode::prepare( int documentID ) {
     
     for( unsigned int j=0; j<child->extents().size(); j++ ) {
       const Extent& extent = child->extents()[j];
-      allExtents.push_back( Extent( weight * extent.weight, extent.begin, extent.end ) );
+      _extents.push_back( Extent( weight * extent.weight, extent.begin, extent.end ) );
     }
   }
 
   // sort all extents in order of beginning
-  std::sort( allExtents.begin(), allExtents.end(), Extent::begins_before_less() );
-  Extent current;
-
-  if( allExtents.size() ) {
-    current.begin = allExtents[0].begin;
-    current.end = allExtents[0].end;
-
-    for( unsigned int i=0; i<allExtents.size(); i++ ) {
-      if( allExtents[i].begin > current.end ) {
-        _extents.push_back( current );
-        current = allExtents[i];
-      } else {
-        current.end = lemur_compat::max( allExtents[i].end, current.end );
-      }
-    }
-
-    _extents.push_back( current );
-  }
+  std::sort( _extents.begin(), _extents.end(), Extent::begins_before_less() );
 }
 
 const greedy_vector<Extent>& WeightedExtentOrNode::extents() {

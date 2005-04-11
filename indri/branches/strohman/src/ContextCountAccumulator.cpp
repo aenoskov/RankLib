@@ -75,7 +75,7 @@ void ContextCountAccumulator::evaluate( int documentID, int documentLength ) {
       documentOccurrences += extent.weight;
     }
 
-    documentContextSize = documentLength;
+    _occurrences += documentOccurrences;
   } else {
     const greedy_vector<Extent>& matches = _matches->extents();
     const greedy_vector<Extent>& extents = _context->extents();
@@ -95,10 +95,10 @@ void ContextCountAccumulator::evaluate( int documentID, int documentLength ) {
     for( unsigned int i=0; i<extents.size(); i++ ) {
       documentContextSize += extents[i].end - extents[i].begin;
     }
-  } 
 
-  _occurrences += documentOccurrences;
-  _contextSize += documentContextSize;
+    _occurrences += documentOccurrences;
+    _contextSize += documentContextSize;
+  } 
 }
 
 int ContextCountAccumulator::nextCandidateDocument() {
@@ -116,9 +116,7 @@ int ContextCountAccumulator::nextCandidateDocument() {
 //
 
 void ContextCountAccumulator::indexChanged( indri::index::Index& index ) {
-  // do nothing
+  if( ! _context ) {
+    _contextSize += index.termCount();
+  }
 }
-
-
-
-
