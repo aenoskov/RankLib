@@ -334,7 +334,7 @@ void PowerPointDocumentExtractor::open( const std::string& filename ) {
   slidesDispatch->Release();
 
   // add metadata to identify this file
-  MetadataPair pair;
+  indri::parse::MetadataPair pair;
 
   _unparsedDocument.metadata.clear();
 

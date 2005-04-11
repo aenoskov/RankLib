@@ -6,11 +6,11 @@
 // 24 August 2004 -- tds
 //
 
-%typemap(jni) const std::vector<MetadataPair>& "jobjectArray"
-%typemap(jtype) const std::vector<MetadataPair>& "Map"
-%typemap(jstype) const std::vector<MetadataPair>& "Map"
+%typemap(jni) const std::vector<indri::parse::MetadataPair>& "jobjectArray"
+%typemap(jtype) const std::vector<indri::parse::MetadataPair>& "Map"
+%typemap(jstype) const std::vector<indri::parse::MetadataPair>& "Map"
 
-%typemap(java,in) const std::vector<MetadataPair>& ( std::vector<MetadataPair> mdin, Buffer mdbuf ) {
+%typemap(java,in) const std::vector<indri::parse::MetadataPair>& ( std::vector<indri::parse::MetadataPair> mdin, indri::utility::Buffer mdbuf ) {
   // call map.entrySet()
   jclass mapClazz = jenv->GetObjectClass( $input );
   jmethodID mapEntrySetMethod = jenv->GetMethodID( mapClazz, "entrySet", "()Ljava/util/Set;" );
@@ -69,7 +69,7 @@
       jenv->ReleaseByteArrayElements(valueArray, valueBytes, 0);
     }
 
-    MetadataPair pair;
+    indri::parse::MetadataPair pair;
     pair.key = keyPosition;
     pair.value = valuePosition;
     pair.valueLength = valueLength;
@@ -79,5 +79,5 @@
   }
 }
 
-%typemap(javain) const std::vector<MetadataPair>& "$javainput";
+%typemap(javain) const std::vector<indri::parse::MetadataPair>& "$javainput";
 

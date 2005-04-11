@@ -21,23 +21,23 @@
 #include "lemur/lemur-compat.hpp"
 #include "indri/Annotator.hpp"
 
-ExtentOrNode::ExtentOrNode( const std::string& name, std::vector<ListIteratorNode*>& children ) :
+indri::infnet::ExtentOrNode::ExtentOrNode( const std::string& name, std::vector<ListIteratorNode*>& children ) :
   _children(children),
   _name(name)
 {
 }
 
-void ExtentOrNode::prepare( int documentID ) {
+void indri::infnet::ExtentOrNode::prepare( int documentID ) {
   _extents.clear();
-  greedy_vector<Extent> allExtents;
+  indri::utility::greedy_vector<indri::index::Extent> allExtents;
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
     allExtents.append( _children[i]->extents().begin(), _children[i]->extents().end() );
   }
 
   // sort all extents in order of beginning
-  std::sort( allExtents.begin(), allExtents.end(), Extent::begins_before_less() );
-  Extent current;
+  std::sort( allExtents.begin(), allExtents.end(), indri::index::Extent::begins_before_less() );
+  indri::index::Extent current;
 
   if( allExtents.size() ) {
     current.begin = allExtents[0].begin;
@@ -56,11 +56,11 @@ void ExtentOrNode::prepare( int documentID ) {
   }
 }
 
-const greedy_vector<Extent>& ExtentOrNode::extents() {
+const indri::utility::greedy_vector<indri::index::Extent>& indri::infnet::ExtentOrNode::extents() {
   return _extents;
 }
 
-int ExtentOrNode::nextCandidateDocument() {
+int indri::infnet::ExtentOrNode::nextCandidateDocument() {
   int candidate = INT_MAX;
   
   for( unsigned int i=0; i<_children.size(); i++ ) {
@@ -70,11 +70,11 @@ int ExtentOrNode::nextCandidateDocument() {
   return candidate;
 }
 
-const std::string& ExtentOrNode::getName() const {
+const std::string& indri::infnet::ExtentOrNode::getName() const {
   return _name;
 }
 
-void ExtentOrNode::annotate( class Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::ExtentOrNode::annotate( class indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
   annotator.addMatches( _extents, this, documentID, begin, end );
 
   for( unsigned int i=0; i<_extents.size(); i++ ) {
@@ -84,7 +84,7 @@ void ExtentOrNode::annotate( class Annotator& annotator, int documentID, int beg
   }
 }
 
-void ExtentOrNode::indexChanged( indri::index::Index& index ) {
+void indri::infnet::ExtentOrNode::indexChanged( indri::index::Index& index ) {
   // do nothing
 }
 
