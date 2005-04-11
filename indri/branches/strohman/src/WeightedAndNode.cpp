@@ -72,7 +72,9 @@ void WeightedAndNode::addChild( double weight, BeliefNode* node ) {
   child.maximumWeightedScore = node->maximumScore() * weight;
 
   _children.push_back( child );
+
   std::sort( _children.begin(), _children.end(), child_type::maxscore_less() );
+
   _computeQuorum();
 }
 

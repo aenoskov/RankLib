@@ -35,8 +35,8 @@ private:
         // #wand.  What is the threshold of each ordering?  Sort by
         // the lowest threshold.
 
-        return (one.backgroundWeightedScore + two.maximumWeightedScore) > 
-               (one.maximumWeightedScore + two.backgroundWeightedScore);
+        return (one.backgroundWeightedScore) > 
+               (two.backgroundWeightedScore);
       }
     };
 
