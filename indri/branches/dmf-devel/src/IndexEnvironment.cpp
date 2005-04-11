@@ -23,13 +23,13 @@
 #include "indri/Path.hpp"
 
 void indri::api::IndexEnvironment::_getParsingContext( indri::parse::Parser** parser,
-						       indri::parse::DocumentIterator** iterator,
+						       indri::parse::DocumentIterator** iterDoc,
                                            const std::string& className ) {
   std::string parserName;
   std::string iteratorName;
 
   *parser = 0;
-  *iterator = 0;
+  *iterDoc = 0;
 
   // look for an already-built environment
   std::map<std::string, indri::parse::FileClassEnvironment*>::iterator iter;
@@ -37,7 +37,7 @@ void indri::api::IndexEnvironment::_getParsingContext( indri::parse::Parser** pa
 
   if( iter != _environments.end() ) {
     *parser = iter->second->parser;
-    *iterator = iter->second->iterator;
+    *iterDoc = iter->second->iterator;
     return;
   }
 
@@ -46,7 +46,7 @@ void indri::api::IndexEnvironment::_getParsingContext( indri::parse::Parser** pa
   if( fce ) {
     _environments[className] = fce;
     *parser = fce->parser;
-    *iterator = fce->iterator;
+    *iterDoc = fce->iterator;
   }
 }
 
@@ -89,7 +89,7 @@ void indri::api::IndexEnvironment::setStemmer( const std::string& stemmer ) {
 }
 
 void indri::api::IndexEnvironment::addFileClass( const std::string& name, 
-                                     const std::string& iterator,
+                                     const std::string& iter,
                                      const std::string& parser,
                                      const std::string& startDocTag,
                                      const std::string& endDocTag,
@@ -100,7 +100,7 @@ void indri::api::IndexEnvironment::addFileClass( const std::string& name,
                                      const std::vector<std::string>& metadata, 
                                      const std::map<std::string,std::string>& conflations )
 {
-  this->_fileClassFactory.addFileClass( name, iterator, parser, startDocTag, endDocTag, endMetadataTag,
+  this->_fileClassFactory.addFileClass( name, iter, parser, startDocTag, endDocTag, endMetadataTag,
                                               include, exclude, index, metadata, conflations );
 
 }

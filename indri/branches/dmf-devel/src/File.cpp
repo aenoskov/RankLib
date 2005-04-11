@@ -136,7 +136,7 @@ size_t indri::file::File::read( void* buffer, UINT64 position, size_t length ) {
 #ifdef WIN32
   assert( _handle != INVALID_HANDLE_VALUE );
 
-  ScopedLock sl( _mutex );
+  indri::thread::ScopedLock sl( _mutex );
   LARGE_INTEGER actual;
   BOOL result;
   LARGE_INTEGER largePosition;
@@ -173,7 +173,7 @@ size_t indri::file::File::write( const void* buffer, UINT64 position, size_t len
 #ifdef WIN32
   assert( _handle != INVALID_HANDLE_VALUE );
 
-  ScopedLock sl( _mutex );
+  indri::thread::ScopedLock sl( _mutex );
   LARGE_INTEGER actual;
   BOOL result;
   LARGE_INTEGER largePosition;

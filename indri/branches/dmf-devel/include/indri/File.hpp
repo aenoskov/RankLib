@@ -19,7 +19,7 @@ namespace indri
     class File {
     private:
 #ifdef WIN32
-      Mutex _mutex;
+		indri::thread::Mutex _mutex;
       HANDLE _handle;
 #else
       int _handle;
