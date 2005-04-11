@@ -21,39 +21,39 @@
 #include "indri/Extent.hpp"
 #include "indri/Annotator.hpp"
 
-FilterRequireNode::FilterRequireNode( const std::string& name, 
-                                      ListIteratorNode* filter, 
-                                      BeliefNode* required ) {
+indri::infnet::FilterRequireNode::FilterRequireNode( const std::string& name, 
+                                      indri::infnet::ListIteratorNode* filter, 
+                                      indri::infnet::BeliefNode* required ) {
   _name = name;
   _filter = filter;
   _required = required;
 }
 
-int FilterRequireNode::nextCandidateDocument() {
+int indri::infnet::FilterRequireNode::nextCandidateDocument() {
   // both terms have to appear before this matches, so we take the max
   return lemur_compat::max( _filter->nextCandidateDocument(),
                             _required->nextCandidateDocument() );
 }
 
-double FilterRequireNode::maximumBackgroundScore() {
+double indri::infnet::FilterRequireNode::maximumBackgroundScore() {
   // delegate to the query as if the filter were true
   return _required->maximumBackgroundScore();
 }
 
-double FilterRequireNode::maximumScore() {
+double indri::infnet::FilterRequireNode::maximumScore() {
   return _required->maximumScore();
 }
 
-bool FilterRequireNode::hasMatch( int documentID ) {
+bool indri::infnet::FilterRequireNode::hasMatch( int documentID ) {
   // delegate to the children.
   return (_filter->extents().size() && _required->hasMatch( documentID ));
 }
 
-const std::string& FilterRequireNode::getName() const {
+const std::string& indri::infnet::FilterRequireNode::getName() const {
   return _name;
 }
 
-const greedy_vector<ScoredExtentResult>& FilterRequireNode::score( int documentID, int begin, int end, int documentLength ) {
+const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::FilterRequireNode::score( int documentID, int begin, int end, int documentLength ) {
   _extents.clear();
   // if the filter applies, return the child score.
   if (_filter->extents().size() )
@@ -62,7 +62,7 @@ const greedy_vector<ScoredExtentResult>& FilterRequireNode::score( int documentI
     return _extents;
 }
 
-void FilterRequireNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::FilterRequireNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
   // mark up the filter
   _filter->annotate( annotator, documentID, begin, end );
   // if the filter applied, mark up the matches.
@@ -71,6 +71,6 @@ void FilterRequireNode::annotate( Annotator& annotator, int documentID, int begi
   }
 }
 
-void FilterRequireNode::indexChanged( indri::index::Index& index ) {
+void indri::infnet::FilterRequireNode::indexChanged( indri::index::Index& index ) {
   // do nothing
 }

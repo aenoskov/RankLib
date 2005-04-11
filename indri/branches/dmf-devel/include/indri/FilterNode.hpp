@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 
 //
@@ -22,64 +22,71 @@
 #ifndef INDRI_FILTERNODE_HPP
 #define INDRI_FILTERNODE_HPP
 
-class FilterNode : public BeliefNode {
-private:
-  BeliefNode* _belief;
-  std::vector<int> _documents;
-  std::string _name;
-  int _index;
-
-public:
-  FilterNode( const std::string& name, BeliefNode* child, const std::vector<int>& documents )
-    :
-    _documents(documents)
+namespace indri
+{
+  namespace infnet
   {
-    _name = name;
-    _belief = child;
-    _index = 0;
-    std::sort( _documents.begin(), _documents.end() );
-  }
-
-  int nextCandidateDocument() {
-    int childNext = _belief->nextCandidateDocument();
-
-    while( _index < _documents.size() && _documents[_index] < childNext )
-      _index++;
     
-    if( _index == _documents.size() )
-      return MAX_INT32;
+    class FilterNode : public BeliefNode {
+    private:
+      BeliefNode* _belief;
+      std::vector<int> _documents;
+      std::string _name;
+      int _index;
 
-    return _documents[_index];
-  }
+    public:
+      FilterNode( const std::string& name, BeliefNode* child, const std::vector<int>& documents )
+	:
+	_documents(documents)
+      {
+	_name = name;
+	_belief = child;
+	_index = 0;
+	std::sort( _documents.begin(), _documents.end() );
+      }
 
-  void annotate( Annotator& annotator, int documentID, int begin, int end ) {
-    return _belief->annotate( annotator, documentID, begin, end );
-  }
+      int nextCandidateDocument() {
+	int childNext = _belief->nextCandidateDocument();
 
-  const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength ) {
-    return _belief->score( documentID, begin, end, documentLength );
-  }
+	while( _index < _documents.size() && _documents[_index] < childNext )
+	  _index++;
+    
+	if( _index == _documents.size() )
+	  return MAX_INT32;
 
-  double maximumScore() {
-    return _belief->maximumScore();
-  }
+	return _documents[_index];
+      }
 
-  double maximumBackgroundScore() {
-    return _belief->maximumBackgroundScore();
-  }
+      void annotate( Annotator& annotator, int documentID, int begin, int end ) {
+	return _belief->annotate( annotator, documentID, begin, end );
+      }
 
-  bool hasMatch( int documentID ) {
-    return _belief->hasMatch( documentID );
-  }
+      const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength ) {
+	return _belief->score( documentID, begin, end, documentLength );
+      }
 
-  void indexChanged( indri::index::Index& index ) {
-    // do nothing
-  }
+      double maximumScore() {
+	return _belief->maximumScore();
+      }
 
-  const std::string& getName() const {
-    return _name;
+      double maximumBackgroundScore() {
+	return _belief->maximumBackgroundScore();
+      }
+
+      bool hasMatch( int documentID ) {
+	return _belief->hasMatch( documentID );
+      }
+
+      void indexChanged( indri::index::Index& index ) {
+	// do nothing
+      }
+
+      const std::string& getName() const {
+	return _name;
+      }
+    };
   }
-};
+}
 
 #endif // INDRI_FILTERNODE_HPP
 

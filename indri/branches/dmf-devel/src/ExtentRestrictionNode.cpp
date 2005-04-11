@@ -20,30 +20,30 @@
 #include "indri/Annotator.hpp"
 #include "lemur/lemur-compat.hpp"
 
-ExtentRestrictionNode::ExtentRestrictionNode( const std::string& name, BeliefNode* child, ListIteratorNode* field ) :
+indri::infnet::ExtentRestrictionNode::ExtentRestrictionNode( const std::string& name, BeliefNode* child, ListIteratorNode* field ) :
   _name(name),
   _child(child),
   _field(field)
 {
 }
 
-int ExtentRestrictionNode::nextCandidateDocument() {
+int indri::infnet::ExtentRestrictionNode::nextCandidateDocument() {
   return _child->nextCandidateDocument();
 }
 
-double ExtentRestrictionNode::maximumBackgroundScore() {
+double indri::infnet::ExtentRestrictionNode::maximumBackgroundScore() {
   return INDRI_TINY_SCORE;
 }
 
-double ExtentRestrictionNode::maximumScore() {
+double indri::infnet::ExtentRestrictionNode::maximumScore() {
   return INDRI_HUGE_SCORE;
 }
 
-const greedy_vector<ScoredExtentResult>& ExtentRestrictionNode::score( int documentID, int begin, int end, int documentLength ) {
+const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::ExtentRestrictionNode::score( int documentID, int begin, int end, int documentLength ) {
   // we're going to run through the field list, etc.
-  greedy_vector<Extent>::const_iterator fieldEnd = _field->extents().end();
-  greedy_vector<Extent>::const_iterator fieldBegin = _field->extents().begin();
-  greedy_vector<Extent>::const_iterator iter;
+  indri::utility::greedy_vector<indri::index::Extent>::const_iterator fieldEnd = _field->extents().end();
+  indri::utility::greedy_vector<indri::index::Extent>::const_iterator fieldBegin = _field->extents().begin();
+  indri::utility::greedy_vector<indri::index::Extent>::const_iterator iter;
 
   _scores.clear();
 
@@ -60,10 +60,10 @@ const greedy_vector<ScoredExtentResult>& ExtentRestrictionNode::score( int docum
     int scoreBegin = lemur_compat::max( iter->begin, begin );
     int scoreEnd = lemur_compat::min( iter->end, end );
 
-    const greedy_vector<ScoredExtentResult>& childResults = _child->score( documentID, scoreBegin, scoreEnd, documentLength );
+    const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& childResults = _child->score( documentID, scoreBegin, scoreEnd, documentLength );
 
     for( int i=0; i<childResults.size(); i++ ) {
-      ScoredExtentResult result( childResults[i].score, documentID, scoreBegin, scoreEnd );
+      indri::api::ScoredExtentResult result( childResults[i].score, documentID, scoreBegin, scoreEnd );
       _scores.push_back( result );
     }
   }
@@ -71,12 +71,12 @@ const greedy_vector<ScoredExtentResult>& ExtentRestrictionNode::score( int docum
   return _scores;
 }
 
-void ExtentRestrictionNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::ExtentRestrictionNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
   annotator.add(this, documentID, begin, end);
   // we're going to run through the field list, etc.
-  greedy_vector<Extent>::const_iterator fieldEnd = _field->extents().end();
-  greedy_vector<Extent>::const_iterator fieldBegin = _field->extents().begin();
-  greedy_vector<Extent>::const_iterator iter;
+  indri::utility::greedy_vector<indri::index::Extent>::const_iterator fieldEnd = _field->extents().end();
+  indri::utility::greedy_vector<indri::index::Extent>::const_iterator fieldBegin = _field->extents().begin();
+  indri::utility::greedy_vector<indri::index::Extent>::const_iterator iter;
 
   for( iter = fieldBegin; iter != fieldEnd; iter++ ) {
     if( iter->end < begin )
@@ -95,16 +95,16 @@ void ExtentRestrictionNode::annotate( Annotator& annotator, int documentID, int 
   }
 }
 
-bool ExtentRestrictionNode::hasMatch( int documentID ) {
+bool indri::infnet::ExtentRestrictionNode::hasMatch( int documentID ) {
   return _child->hasMatch( documentID );
 }
 
 
-const std::string& ExtentRestrictionNode::getName() const {
+const std::string& indri::infnet::ExtentRestrictionNode::getName() const {
   return _name;
 }
 
-void ExtentRestrictionNode::indexChanged( indri::index::Index& index ) {
+void indri::infnet::ExtentRestrictionNode::indexChanged( indri::index::Index& index ) {
   // do nothing
 }
 

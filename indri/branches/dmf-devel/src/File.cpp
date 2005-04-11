@@ -1,3 +1,13 @@
+/*==========================================================================
+ * Copyright (c) 2004 University of Massachusetts.  All Rights Reserved.
+ *
+ * Use of the Lemur Toolkit for Language Modeling and Information Retrieval
+ * is subject to the terms of the software license set forth in the LICENSE
+ * file included with this software, and also available at
+ * http://www.lemurproject.org/license.html
+ *
+ *==========================================================================
+*/
 
 //
 // File
@@ -21,7 +31,7 @@
 // File constructor
 //
 
-File::File() :
+indri::file::File::File() :
 #ifdef WIN32
   _handle(INVALID_HANDLE_VALUE)
 #else
@@ -34,7 +44,7 @@ File::File() :
 // File destructor
 //
 
-File::~File() {
+indri::file::File::~File() {
   close();
 }
 
@@ -42,7 +52,7 @@ File::~File() {
 // create
 // 
 
-bool File::create( const std::string& filename ) {
+bool indri::file::File::create( const std::string& filename ) {
 #ifdef WIN32
   _handle = ::CreateFile( filename.c_str(),
                           GENERIC_READ | GENERIC_WRITE,
@@ -66,7 +76,7 @@ bool File::create( const std::string& filename ) {
 #endif
 }
 
-bool File::open( const std::string& filename ) {
+bool indri::file::File::open( const std::string& filename ) {
 #ifdef WIN32
   _handle = ::CreateFile( filename.c_str(),
                           GENERIC_READ | GENERIC_WRITE,
@@ -94,7 +104,7 @@ bool File::open( const std::string& filename ) {
 #endif
 }
 
-bool File::openRead( const std::string& filename ) {
+bool indri::file::File::openRead( const std::string& filename ) {
 #ifdef WIN32
   _handle = ::CreateFile( filename.c_str(),
                           GENERIC_READ,
@@ -122,7 +132,7 @@ bool File::openRead( const std::string& filename ) {
 #endif
 }
 
-size_t File::read( void* buffer, UINT64 position, size_t length ) {
+size_t indri::file::File::read( void* buffer, UINT64 position, size_t length ) {
 #ifdef WIN32
   assert( _handle != INVALID_HANDLE_VALUE );
 
@@ -156,7 +166,7 @@ size_t File::read( void* buffer, UINT64 position, size_t length ) {
 #endif
 }
 
-size_t File::write( const void* buffer, UINT64 position, size_t length ) {
+size_t indri::file::File::write( const void* buffer, UINT64 position, size_t length ) {
   if( length == 0 )
     return 0;
 
@@ -194,7 +204,7 @@ size_t File::write( const void* buffer, UINT64 position, size_t length ) {
 #endif
 }
 
-void File::close() {
+void indri::file::File::close() {
 #ifdef WIN32
   if( _handle != INVALID_HANDLE_VALUE ) {
     ::CloseHandle( _handle );
@@ -208,7 +218,7 @@ void File::close() {
 #endif
 }
 
-UINT64 File::size() {
+UINT64 indri::file::File::size() {
 #ifdef WIN32
   LARGE_INTEGER length;
   BOOL result = ::GetFileSizeEx( _handle, &length );
