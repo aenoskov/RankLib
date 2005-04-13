@@ -234,8 +234,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 				if( !( textPane.getDocument() instanceof RecapStyledDocument ) )
 					return;
 				RecapStyledDocument doc = (RecapStyledDocument)textPane.getDocument();
-				
-				doc.setHighlight( m.begin, m.end );
+				if( doc == curAnalyzeDoc ) // only set highlight if we're on the right document
+					doc.setHighlight( m.begin, m.end );
 			}
 		}
 	}
