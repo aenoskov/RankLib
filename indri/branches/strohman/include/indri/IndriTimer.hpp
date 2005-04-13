@@ -17,6 +17,7 @@
 //
 
 #ifndef INDRI_INDRITIMER_HPP
+#define INDRI_INDRITIMER_HPP
 
 #include <iostream>
 #include "lemur/lemur-platform.h"
