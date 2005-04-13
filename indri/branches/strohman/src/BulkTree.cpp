@@ -423,7 +423,7 @@ BulkBlock* BulkTreeReader::_fetch( UINT32 id ) {
   BulkBlock* block;
 
   if( !result ) {
-    if( _cache.size() == 256 ) {
+    if( _cache.size() >= 256 ) {
       block = _tail;
       _tail = block->previous();
       _cache.remove( block->getID() );
@@ -447,7 +447,9 @@ BulkBlock* BulkTreeReader::_fetch( UINT32 id ) {
   if( _tail == 0 )
     _tail = block;
   _head = block;
-  
+
+  assert( _cache.size() <= 256 );
+
   return block;
 }
 
