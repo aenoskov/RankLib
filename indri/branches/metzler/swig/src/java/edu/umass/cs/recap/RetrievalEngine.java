@@ -260,6 +260,8 @@ public class RetrievalEngine {
 				double score = getDocScoreProb( i , results );
 				ScoredDocInfo info = (ScoredDocInfo)candidateDocs.get( i );
 				Vector v = (Vector)results.get( i );
+				if( score == EPSILON )
+					score = Math.exp( minScore );
 				info.score += Math.log( score );
 				if( v != null && v.size() > 0 ) {
 					//info.extents.addAll( v ); // add all matches
