@@ -10,7 +10,8 @@
 #include "indri/ScopedLock.hpp"
 #include <iostream>
 
-const UINT64 TIME_DELAY = 15*1000*1000;
+const UINT64 TIME_DELAY = 10*1000*1000;
+const UINT64 SHORT_TIME_DELAY = 3*1000*1000;
 const UINT64 THRASHING_MERGE_DELAY = 300*1000*1000;
 const int MAXIMUM_INDEX_COUNT = 50;
 
@@ -96,6 +97,7 @@ UINT64 RepositoryMaintenanceThread::work() {
   bool write = false;
   bool merge = false;
   bool trim = false;
+  UINT64 memorySize = 0;
 
   {
     // lock the request queue
@@ -109,7 +111,9 @@ UINT64 RepositoryMaintenanceThread::work() {
 
       if( index ) {
         // if the index is too big, we'd better get to work
-        if( _memory < index->memorySize() ) {
+        memorySize = index->memorySize();
+
+        if( _memory < memorySize ) {
           _requests.push( WRITE );
         }
 
@@ -157,7 +161,11 @@ UINT64 RepositoryMaintenanceThread::work() {
     _repository._write();
   }
 
-  return TIME_DELAY;
+  if( memorySize > 0.75*_memory ) {
+    return SHORT_TIME_DELAY;
+  } else {
+    return TIME_DELAY;
+  }
 }
 
 //
