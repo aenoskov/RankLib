@@ -296,6 +296,7 @@ public:
 
         *bucket = nextItem;
         _deleteBucket( thisItem );
+        _count--;
         break;
       }
 
@@ -304,17 +305,22 @@ public:
   }
 
   void clear() {
-    for( size_t i=0; i<_buckets; i++ ) {
-      bucket_type* item = _table[i];
+    if( _allocator ) {
+      memset( _table, 0, sizeof(bucket_type*) * _buckets );
+    } else {
+      for( size_t i=0; i<_buckets; i++ ) {
+        bucket_type* item = _table[i];
 
-      while( item ) {
-        bucket_type* nextItem = item->next;
-        _deleteBucket( item );
-        item = nextItem;
+        while( item ) {
+          bucket_type* nextItem = item->next;
+          _deleteBucket( item );
+          item = nextItem;
+        }
+
+        _table[i] = 0;
       }
-
-      _table[i] = 0;
     }
+
     _count = 0;
   }
 
