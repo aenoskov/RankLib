@@ -801,9 +801,9 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( indri::file::Bu
     int oldFrequentTermID = pairs[i].second;
     const char* oldFrequentTerm = oldFrequentTermsRecorder.buffer().front() + pairs[i].first;
 
-    if( frequent->size() <= oldFrequentTermID ) 
+    if( frequent->size() <= oldFrequentTermID )
       frequent->resize( oldFrequentTermID+1, -1 );
-
+    
     int mapping = _lookupTermID( newFrequentTerms, oldFrequentTerm );
     assert( mapping <= _isFrequentCount );
 

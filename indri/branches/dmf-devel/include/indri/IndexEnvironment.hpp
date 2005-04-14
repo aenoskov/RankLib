@@ -181,13 +181,13 @@ namespace indri
       /// @param documentString the document to add
       /// @param fileClass the file class to add (eg trecweb).
       /// @param metadata the metadata pairs associated with the string.
-      void addString( const std::string& documentString, 
+      int addString( const std::string& documentString, 
 		      const std::string& fileClass, 
 		      const std::vector<indri::parse::MetadataPair>& metadata );
 
       /// add an already parsed document to the index and repository
       /// @param document the document to add
-      void addParsedDocument( ParsedDocument* document );
+      int addParsedDocument( ParsedDocument* document );
 
       /// Delete an existing document.
       /// @param documentID The document to delete.

@@ -62,6 +62,7 @@ indri::index::MemoryIndex::MemoryIndex( int docBase, const std::vector<Index::Fi
 {
   _baseDocumentID = docBase;
   _termListsBaseOffset = 0;
+  _fieldData.reserve( fields.size() );
 
   for( size_t i=0; i<fields.size(); i++ ) {
     int fieldID = i+1;

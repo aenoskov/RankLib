@@ -43,6 +43,10 @@ bool indri::infnet::NullScorerNode::hasMatch( int documentID ) {
   return false;
 }
 
+const indri::utility::greedy_vector<bool>& indri::infnet::NullScorerNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  return _matches;
+}
+
 const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::NullScorerNode::score( int documentID, int begin, int end, int documentLength ) {
   _scores.clear();
   _scores.push_back( indri::api::ScoredExtentResult( _maximumScore, documentID, begin, end ) );

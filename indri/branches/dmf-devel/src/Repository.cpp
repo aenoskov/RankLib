@@ -440,7 +440,7 @@ bool indri::collection::Repository::exists( const std::string& path ) {
 // addDocument
 //
 
-void indri::collection::Repository::addDocument( indri::api::ParsedDocument* document ) {
+int indri::collection::Repository::addDocument( indri::api::ParsedDocument* document ) {
   if( _readOnly )
     LEMUR_THROW( LEMUR_RUNTIME_ERROR, "addDocument: Cannot add documents to a repository that is opened for read-only access." ); 
 
@@ -466,6 +466,7 @@ void indri::collection::Repository::addDocument( indri::api::ParsedDocument* doc
   _collection->addDocument( documentID, document );
 
   _countDocumentAdd();
+  return documentID;
 }
 
 //
@@ -722,19 +723,63 @@ void indri::collection::Repository::_trim() {
   substate->assign( state->begin() + position, state->end() );
   state = 0;
 
+  // substate may be larger than 1 if we didn't have enough 
+  // memory to merge everything together.  That's okay,
+  // because we were just trimming.
   _merge( substate );
 }
 
 //
-// _merge
+// _mergeMemory
 //
-// Merge the specified indexes together.
+// Calculate the expected amount of memory used while merging
+// this set of indexes, including newly frequent term recording
+// and the bitmap size.
+// 
+
+UINT64 indri::collection::Repository::_mergeMemory( const std::vector<indri::index::Index*>& indexes ) {
+  // we use the following simple heuristic; we assume that if we take 
+  // the sum of all terms in all the indexes, 1/3 of them are unique across
+  // all indexes.  We then calculate the total vocabulary size as:
+  // 1/3 * \sum (index vocabsize) + 2/3 max (index vocabsize)
+  // This is a gross approximation of what Zipf's law tells us to expect.
+
+  // Now we calculate the number of newly frequent terms.  This is based 
+  // just on heuristics we've seen to be true in index builds.  We assume
+  // that approximately n / (log(n) * 20) of all terms in an index will become
+  // frequent, using (very conservatively) 500 bytes each.
+
+  UINT64 totalVocabulary = 0;
+  UINT64 maxVocabulary = 0;
+  UINT64 newlyFrequent = 0;
+
+  for( size_t i=0; i<indexes.size(); i++ ) {
+    indri::index::Index* index = indexes[i];
+    UINT64 uniqueCount = index->uniqueTermCount();
+
+    totalVocabulary += uniqueCount;
+    maxVocabulary = lemur_compat::max( maxVocabulary, uniqueCount );
+    newlyFrequent += (UINT64) (uniqueCount / (log( (double)uniqueCount ) * 20));
+  }
+
+  UINT64 expectedVocabulary = (totalVocabulary + (2 * maxVocabulary)) / 3;
+  UINT64 expectedBitmapSize = expectedVocabulary * 2; // approx 2 bits per word
+
+  // now, we put everything together:
+  return newlyFrequent * 500 + expectedBitmapSize * indexes.size();
+}
+
+//
+// _mergeStage
+//
+// Merges a group of indexes together, assuming a memory
+// check has already been made to ensure success
 //
 
-void indri::collection::Repository::_merge( index_state& state ) {
+indri::index::Index* indri::collection::Repository::_mergeStage( index_state& state ) {
   // this is only legal if we're not readOnly
   if( _readOnly )
-    return;
+    return 0;
 
   // make a copy of the indexes in our state
   std::vector<indri::index::Index*> indexes = *(state.get());
@@ -803,6 +848,49 @@ void indri::collection::Repository::_merge( index_state& state ) {
 
   // remove all containing states
   _removeStates( containing );
+
+  // return a disk index
+  return diskIndex;
+}
+
+//
+// _merge
+//
+// Merge at least some of the specified indexes together.
+// On return, state is equal to a set of indexes that
+// represents all the same data, but is a smaller set.
+//
+
+void indri::collection::Repository::_merge( index_state& state ) {
+  // this is only legal if we're not readOnly
+  if( _readOnly )
+    return;
+
+  size_t memoryBound = (size_t) (0.75 * _memory);
+  std::vector<indri::index::Index*>* result = new std::vector<indri::index::Index*>;
+
+  if( state->size() <= 2 || _mergeMemory( *state ) < memoryBound ) {
+    indri::index::Index* index = _mergeStage( state );
+    result->push_back( index );
+  } else {
+    // divide and conquer
+    index_state first = new std::vector<indri::index::Index*>;
+    index_state second = new std::vector<indri::index::Index*>;
+
+    first->assign( state->begin(), state->begin() + state->size() / 2 );
+    second->assign( state->begin() + state->size() / 2, state->end() );
+
+    // release the previous state object
+    state = 0;
+
+    _merge( first );
+    _merge( second );
+
+    std::copy( first->begin(), first->end(), std::back_inserter( *result ) );
+    std::copy( second->begin(), second->end(), std::back_inserter( *result ) );
+  }
+
+  state = result;
 }
 
 //
@@ -839,7 +927,13 @@ void indri::collection::Repository::_merge() {
   state = 0;
 
   // merge all the indexes together
+  while( needsWrite ) {
   _merge( mergers );
+
+    needsWrite = (mergers->size() > 1) ||
+                 (mergers->size() == 1 && dynamic_cast<indri::index::MemoryIndex*>((*mergers)[0]));
+
+  }
 }
 
 //

@@ -32,6 +32,7 @@ namespace indri
       ListIteratorNode* _filter;
       BeliefNode* _required;
       indri::utility::greedy_vector<indri::api::ScoredExtentResult> _extents;
+      indri::utility::greedy_vector<bool> _matches;
       std::string _name;
 
     public:
@@ -42,6 +43,7 @@ namespace indri
       double maximumScore();
       const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& score( int documentID, int start, int end, int documentLength );
       bool hasMatch( int documentID );
+      const indri::utility::greedy_vector<bool>& hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents );
 
       int nextCandidateDocument();
       void indexChanged( indri::index::Index& index );

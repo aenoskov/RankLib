@@ -259,7 +259,7 @@ void indri::api::IndexEnvironment::addFile( const std::string& fileName, const s
 // addString
 //
 
-void indri::api::IndexEnvironment::addString( const std::string& documentString, const std::string& fileClass, const std::vector<indri::parse::MetadataPair>& metadata ) {
+int indri::api::IndexEnvironment::addString( const std::string& documentString, const std::string& fileClass, const std::vector<indri::parse::MetadataPair>& metadata ) {
   indri::parse::UnparsedDocument document;
   indri::parse::Parser* parser;
   indri::parse::DocumentIterator* iterator;
@@ -273,24 +273,32 @@ void indri::api::IndexEnvironment::addString( const std::string& documentString,
 
   _getParsingContext( &parser, &iterator, fileClass );
 
+  if( parser == 0 ) {
+    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "File class '" + fileClass + "' wasn't recognized." );
+  }
+
   ParsedDocument* parsed = parser->parse( &document );
-  _repository.addDocument( parsed );
+  int documentID =_repository.addDocument( parsed );
 
   _documentsIndexed++;
   if( _callback ) (*_callback)( indri::api::IndexStatus::DocumentCount, nothing, _error, _documentsIndexed, _documentsSeen );
+
+  return documentID;
 }
 
 //
 // addParsedDocument
 //
 
-void indri::api::IndexEnvironment::addParsedDocument( ParsedDocument* document ) {
+int indri::api::IndexEnvironment::addParsedDocument( ParsedDocument* document ) {
   std::string nothing;
 
   _documentsSeen++;
-  _repository.addDocument( document );
+  int documentID = _repository.addDocument( document );
   _documentsIndexed++;
   if( _callback ) (*_callback)( indri::api::IndexStatus::DocumentCount, nothing, _error, _documentsIndexed, _documentsSeen );
+  
+  return documentID;
 }
 
 //

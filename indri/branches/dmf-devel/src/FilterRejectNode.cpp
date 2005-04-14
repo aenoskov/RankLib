@@ -55,6 +55,15 @@ bool indri::infnet::FilterRejectNode::hasMatch( int documentID ) {
   _disallowed->hasMatch( documentID ));
 }
 
+const indri::utility::greedy_vector<bool>& indri::infnet::FilterRejectNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  if( _filter->extents().size() == 0 ) {
+    return _disallowed->hasMatch( documentID, extents );
+  }
+
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const std::string& indri::infnet::FilterRejectNode::getName() const {
   return _name;
 }
@@ -62,13 +71,13 @@ const std::string& indri::infnet::FilterRejectNode::getName() const {
 const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::FilterRejectNode::score( int documentID, int begin, int end, int documentLength ) {
   _extents.clear();
   // if the filter doesn't apply, return the child score.
-  if (_filter->extents().size() == 0 )
+  if ( _filter->extents().size() == 0 )
     return _disallowed->score( documentID, begin, end, documentLength );
   else
     return _extents;
 }
 
-void indri::infnet::FilterRejectNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::FilterRejectNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   _filter->annotate( annotator, documentID, begin, end );
   if( _filter->extents().size() == 0 ) {
     _disallowed->annotate( annotator, documentID, begin, end );

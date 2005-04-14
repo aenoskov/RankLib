@@ -25,6 +25,7 @@
 #include "indri/ExtentInsideNode.hpp"
 #include "indri/ExtentAndNode.hpp"
 #include "indri/ExtentOrNode.hpp"
+#include "indri/WeightedExtentOrNode.hpp"
 #include "indri/OrderedWindowNode.hpp"
 #include "indri/UnorderedWindowNode.hpp"
 #include "indri/FieldIteratorNode.hpp"
@@ -55,7 +56,7 @@
 
 #include <stdexcept>
 
-indri::query::TermScoreFunction* indri::infnet::InferenceNetworkBuilder::_buildTermScoreFunction( const std::string& smoothing, UINT64 occurrences, UINT64 contextSize ) const {
+indri::query::TermScoreFunction* indri::infnet::InferenceNetworkBuilder::_buildTermScoreFunction( const std::string& smoothing, double occurrences, double contextSize ) const {
   double collectionFrequency;
 
   if( occurrences ) {
@@ -197,15 +198,30 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ExtentOr* exten
 }
 
 //
+// WeightedExtentOr
+//
+
+void indri::infnet::InferenceNetworkBuilder::after( indri::lang::WeightedExtentOr* weightedExtentOr ) {
+  if( _nodeMap.find( weightedExtentOr ) == _nodeMap.end() ) {
+    std::vector<ListIteratorNode*> translation = _translate<ListIteratorNode>( weightedExtentOr->getChildren() );
+    std::vector<double>& weights = weightedExtentOr->getWeights();
+    WeightedExtentOrNode* weightedExtentOrNode = new WeightedExtentOrNode( weightedExtentOr->nodeName(), translation, weights );
+
+    _network->addListNode( weightedExtentOrNode );
+    _nodeMap[weightedExtentOr] = weightedExtentOrNode;
+  }
+}
+
+//
 // ExtentInside
 //
 
 void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ExtentInside* extentInside ) {
   if( _nodeMap.find( extentInside ) == _nodeMap.end() ) {
-    indri::infnet::ExtentInsideNode* extentInsideNode = new indri::infnet::ExtentInsideNode( 
+    ExtentInsideNode* extentInsideNode = new ExtentInsideNode( 
       extentInside->nodeName(),
-      dynamic_cast<indri::infnet::ListIteratorNode*>(_nodeMap[extentInside->getInner()]),
-      dynamic_cast<indri::infnet::ListIteratorNode*>(_nodeMap[extentInside->getOuter()]) );
+      dynamic_cast<ListIteratorNode*>(_nodeMap[extentInside->getInner()]),
+      dynamic_cast<ListIteratorNode*>(_nodeMap[extentInside->getOuter()]) );
 
     _network->addListNode( extentInsideNode );
     _nodeMap[extentInside] = extentInsideNode;
@@ -616,14 +632,14 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::CachedFrequency
 
 void indri::infnet::InferenceNetworkBuilder::after( indri::lang::TermFrequencyScorerNode* termScorerNode ) {
   if( _nodeMap.find( termScorerNode ) == _nodeMap.end() ) {
-    BeliefNode* belief = 0;
+    indri::infnet::BeliefNode* belief = 0;
     indri::query::TermScoreFunction* function = 0;
 
     function = _buildTermScoreFunction( termScorerNode->getSmoothing(),
                                         termScorerNode->getOccurrences(),
                                         termScorerNode->getContextSize() );
 
-    if( termScorerNode->getOccurrences() ) {
+    if( termScorerNode->getOccurrences() > 0 ) {
       bool stopword = false;
       std::string processed = termScorerNode->getText();
       int termID = 0;
@@ -666,7 +682,7 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::RawScorerNode* 
                                         rawScorerNode->getOccurrences(),
                                         rawScorerNode->getContextSize() );
 
-    if( rawScorerNode->getOccurrences() && iterator != 0 ) {
+    if( rawScorerNode->getOccurrences() > 0 && iterator != 0 ) {
       ListIteratorNode* rawIterator = 0;
       ListIteratorNode* context = dynamic_cast<ListIteratorNode*>(untypedContextNode);
 

@@ -63,14 +63,14 @@ bool indri::file::File::create( const std::string& filename ) {
                           NULL );
 
   if( _handle == INVALID_HANDLE_VALUE )
-    return false;
+    LEMUR_THROW( LEMUR_IO_ERROR, "Couldn't create: " + filename );
 
   return true;
 #else 
   _handle = creat( filename.c_str(), 0600 );
 
   if( _handle < 0 )
-    return false;
+    LEMUR_THROW( LEMUR_IO_ERROR, "Couldn't create: " + filename );
 
   return true;
 #endif
@@ -87,7 +87,7 @@ bool indri::file::File::open( const std::string& filename ) {
                           NULL );
   
   if( _handle == INVALID_HANDLE_VALUE )
-    return false;
+    LEMUR_THROW( LEMUR_IO_ERROR, "Couldn't open: " + filename );
   
   return true;
 #else 
@@ -98,7 +98,7 @@ bool indri::file::File::open( const std::string& filename ) {
 #endif
   
   if( _handle < 0 )
-    return false;
+    LEMUR_THROW( LEMUR_IO_ERROR, "Couldn't open: " + filename );
 
   return true;
 #endif
@@ -115,7 +115,7 @@ bool indri::file::File::openRead( const std::string& filename ) {
                           NULL );
   
   if( _handle == INVALID_HANDLE_VALUE )
-    return false;
+    LEMUR_THROW( LEMUR_IO_ERROR, "Couldn't open for reading: " + filename );
 
   return true;
 #else 
@@ -126,7 +126,7 @@ bool indri::file::File::openRead( const std::string& filename ) {
 #endif
   
   if( _handle < 0 )
-    return false;
+    LEMUR_THROW( LEMUR_IO_ERROR, "Couldn't open for reading: " + filename );
   
   return true;
 #endif

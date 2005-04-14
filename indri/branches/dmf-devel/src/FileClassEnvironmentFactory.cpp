@@ -68,6 +68,19 @@ static file_class_environment_spec environments[] = {
     html_conflations      // conflations
   },
   {
+    "xml",               // name
+    "xml",               // parser
+    "text",               // iterator
+    NULL,                 // startDocTag
+    NULL,                 // endDocTag
+    NULL,                 // endMetadataTag
+    NULL,                 // includeTags
+    NULL,                 // excludeTags
+    NULL,                 // indexTags
+    NULL,                 // metadataTags
+    NULL                  // conflations
+  },
+  {
     "trecweb",            // name
     "html",               // parser
     "tagged",             // iterator

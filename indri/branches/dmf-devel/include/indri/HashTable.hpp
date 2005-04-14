@@ -300,6 +300,7 @@ namespace indri
 
 	    *bucket = nextItem;
 	    _deleteBucket( thisItem );
+	    _count--;
 	    break;
 	  }
 
@@ -308,6 +309,9 @@ namespace indri
       }
 
       void clear() {
+    if( _allocator ) {
+      memset( _table, 0, sizeof(bucket_type*) * _buckets );
+    } else {
 	for( size_t i=0; i<_buckets; i++ ) {
 	  bucket_type* item = _table[i];
 
@@ -319,6 +323,8 @@ namespace indri
 
 	  _table[i] = 0;
 	}
+    }
+
 	_count = 0;
       }
 

@@ -39,8 +39,8 @@ namespace indri
 	    // #wand.  What is the threshold of each ordering?  Sort by
 	    // the lowest threshold.
 
-	    return (one.backgroundWeightedScore + two.maximumWeightedScore) > 
-	      (one.maximumWeightedScore + two.backgroundWeightedScore);
+        return (one.backgroundWeightedScore) > 
+               (two.backgroundWeightedScore);
 	  }
 	};
 
@@ -52,6 +52,7 @@ namespace indri
 
       std::vector<child_type> _children;
       indri::utility::greedy_vector<indri::api::ScoredExtentResult> _scores;
+      indri::utility::greedy_vector<bool> _matches;
       std::string _name;
 
       indri::utility::greedy_vector<int> _candidates;
@@ -80,6 +81,7 @@ namespace indri
       indri::utility::greedy_vector<indri::api::ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
       void annotate( class Annotator& annotator, int documentID, int begin, int end );
       bool hasMatch( int documentID );
+      const indri::utility::greedy_vector<bool>& hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents );
       const std::string& getName() const;
     };
   }

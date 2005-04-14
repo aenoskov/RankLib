@@ -21,7 +21,7 @@ namespace indri
 {
   namespace thread
   {
-    
+     
     class Lockable {
     public:
       virtual ~Lockable() {};

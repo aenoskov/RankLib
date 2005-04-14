@@ -39,11 +39,11 @@ const std::string& indri::infnet::ContextCountAccumulator::getName() const {
   return _name;
 }
 
-UINT64 indri::infnet::ContextCountAccumulator::getOccurrences() const {
+double indri::infnet::ContextCountAccumulator::getOccurrences() const {
   return _occurrences;
 }
 
-UINT64 indri::infnet::ContextCountAccumulator::getContextSize() const {
+double indri::infnet::ContextCountAccumulator::getContextSize() const {
   return _contextSize;
 }
 
@@ -66,15 +66,16 @@ const indri::infnet::ListIteratorNode* indri::infnet::ContextCountAccumulator::g
 }
 
 void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int documentLength ) {
-  UINT64 documentOccurrences; 
-  UINT64 documentContextSize;
+  double documentOccurrences; 
+  double documentContextSize;
 
-  if( !_context ) {
-    documentOccurrences = _matches->extents().size();
-    documentContextSize = documentLength;
-  } else {
-    documentOccurrences = 0;
-    documentContextSize = 0;
+   if( !_context ) {
+     for( size_t i=0; i<_matches->extents().size(); i++ ) {
+       const indri::index::Extent& extent = _matches->extents()[i];
+       documentOccurrences += extent.weight;
+     }
+     _occurrences += documentOccurrences;
+   } else {
 
     const indri::utility::greedy_vector<indri::index::Extent>& matches = _matches->extents();
     const indri::utility::greedy_vector<indri::index::Extent>& extents = _context->extents();
@@ -87,18 +88,19 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
       if( ex < extents.size() &&
         matches[i].begin >= extents[ex].begin &&
         matches[i].end <= extents[ex].end ) {
-        documentOccurrences++;
+        documentOccurrences += matches[i].weight;
       }
     }
 
     for( unsigned int i=0; i<extents.size(); i++ ) {
       documentContextSize += extents[i].end - extents[i].begin;
     }
-  } 
 
-  _occurrences += documentOccurrences;
-  _contextSize += documentContextSize;
+    _occurrences += documentOccurrences;
+    _contextSize += documentContextSize;
+   }
 }
+
 
 int indri::infnet::ContextCountAccumulator::nextCandidateDocument() {
   int candidate = _matches->nextCandidateDocument();
@@ -115,7 +117,9 @@ int indri::infnet::ContextCountAccumulator::nextCandidateDocument() {
 //
 
 void indri::infnet::ContextCountAccumulator::indexChanged( indri::index::Index& index ) {
-  // do nothing
+  if( ! _context ) {
+    _contextSize += index.termCount();
+  }
 }
 
 

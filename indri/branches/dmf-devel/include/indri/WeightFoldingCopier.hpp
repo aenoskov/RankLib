@@ -19,7 +19,7 @@
 #define INDRI_WEIGHTFOLDINGCOPIER_HPP
 namespace indri
 {
-  namespace lang
+  namespace lang 
   {
     
     class WeightFoldingCopier : public indri::lang::Copier {

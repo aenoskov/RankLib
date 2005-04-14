@@ -239,6 +239,10 @@ indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::We
   return _scores;
 }
 
+//
+// hasMatch
+//
+
 bool indri::infnet::WeightedAndNode::hasMatch( int documentID ) {
   // advance candidates
   while( _candidatesIndex < _candidates.size() && _candidates[_candidatesIndex] <= documentID )
@@ -251,6 +255,35 @@ bool indri::infnet::WeightedAndNode::hasMatch( int documentID ) {
 
   return false;
 }
+
+//
+// hasMatch
+//
+
+const indri::utility::greedy_vector<bool>& indri::infnet::WeightedAndNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  // advance candidates
+  while( _candidatesIndex < _candidates.size() && _candidates[_candidatesIndex] <= documentID )
+    _candidatesIndex++;
+
+  _matches.clear();
+  _matches.resize( extents.size(), false );
+
+  for( unsigned int i=0; i<_children.size(); i++ ) {
+    const indri::utility::greedy_vector<bool>& kidMatches = _children[i].node->hasMatch( documentID, extents );
+
+    for( unsigned int j=0; j<kidMatches.size(); j++ ) {
+      if( kidMatches[j] ) {
+        _matches[j] = true;
+      }
+    }
+  }
+
+  return _matches;
+}
+
+//
+// getName
+//
 
 const std::string& indri::infnet::WeightedAndNode::getName() const {
   return _name;

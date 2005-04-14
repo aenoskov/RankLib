@@ -30,6 +30,7 @@ namespace indri
     private:
       BeliefNode* _child;
       indri::utility::greedy_vector<indri::api::ScoredExtentResult> _extents;
+      indri::utility::greedy_vector<bool> _matches;
       std::string _name;
 
     public:
@@ -39,6 +40,8 @@ namespace indri
       double maximumScore();
       const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& score( int documentID, int start, int end, int documentLength );
       bool hasMatch( int documentID );
+const indri::utility::greedy_vector<bool>& hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents );
+
       void annotate( class Annotator& annotator, int documentID, int begin, int end );
   
       int nextCandidateDocument();

@@ -59,7 +59,21 @@ bool indri::infnet::NotNode::hasMatch( int documentID ) {
   return !_child->hasMatch( documentID );
 }
 
-void indri::infnet::NotNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
+const indri::utility::greedy_vector<bool>& indri::infnet::NotNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  // flip the return vector
+  _matches.resize( extents.size(), false );
+  const indri::utility::greedy_vector<bool>& childMatches = _child->hasMatch( documentID, extents );
+
+  for( size_t i=0; i<childMatches.size(); i++ ) {
+    if( childMatches[i] == false ) {
+      _matches[i] = true;
+    }
+  }
+
+  return _matches;
+}
+
+void indri::infnet::NotNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   annotator.add( this, documentID, begin, end );
   _child->annotate( annotator, documentID, begin, end );
 }

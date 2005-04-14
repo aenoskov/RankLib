@@ -81,7 +81,7 @@ namespace indri
 	_precomputeConstants();
       }
 
-      double scoreOccurrence( int occurrences, int documentLength ) {
+      double scoreOccurrence( double occurrences, int documentLength ) {
 	double numerator = _idfTimesK1PlusOne * occurrences;
 	double denominator = occurrences + _k1TimesOneMinusB + _bOverAvgDocLength * documentLength;
 

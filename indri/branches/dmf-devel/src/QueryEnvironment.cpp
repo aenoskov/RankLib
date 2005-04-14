@@ -61,7 +61,7 @@
 
 // debug code: should be gone soon
 #ifdef TIME_QUERIES
-#define INIT_TIMER      indri::utility::IndriTimer t; t.start();b
+#define INIT_TIMER      indri::utility::IndriTimer t; t.start();
 #define PRINT_TIMER(s)  { t.printElapsedMicroseconds( std::cout ); std::cout << ": " << s << std::endl; }
 #else
 #define INIT_TIMER
@@ -156,7 +156,7 @@ void indri::api::QueryEnvironment::setScoringRules( const std::vector<std::strin
 
 void indri::api::QueryEnvironment::setStopwords( const std::vector<std::string>& stopwords ) {
   _parameters.set("stopper","");
-  indri::api::Parameters p = _parameters.get("stopper");
+  Parameters p = _parameters.get("stopper");
   for( unsigned int i=0; i<stopwords.size(); i++ ) {
     _parameters.append("word").set(stopwords[i]);
   }
@@ -164,11 +164,11 @@ void indri::api::QueryEnvironment::setStopwords( const std::vector<std::string>&
 
 void indri::api::QueryEnvironment::_copyStatistics( std::vector<indri::lang::RawScorerNode*>& scorerNodes, indri::infnet::InferenceNetwork::MAllResults& statisticsResults ) {
   for( unsigned int i=0; i<scorerNodes.size(); i++ ) {
-    std::vector<indri::api::ScoredExtentResult>& occurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "occurrences" ];
-    std::vector<indri::api::ScoredExtentResult>& contextSizeList = statisticsResults[ scorerNodes[i]->nodeName() ][ "contextSize" ];
+    std::vector<ScoredExtentResult>& occurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "occurrences" ];
+    std::vector<ScoredExtentResult>& contextSizeList = statisticsResults[ scorerNodes[i]->nodeName() ][ "contextSize" ];
 
-    UINT64 occurrences = UINT64(occurrencesList[0].score);
-    UINT64 contextSize = UINT64(contextSizeList[0].score);
+    double occurrences = UINT64(occurrencesList[0].score);
+    double contextSize = UINT64(contextSizeList[0].score);
 
     scorerNodes[i]->setStatistics( occurrences, contextSize );
   }
