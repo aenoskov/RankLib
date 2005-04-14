@@ -37,7 +37,7 @@
     jobject key = jenv->CallObjectMethod( mapEntry, mapEntryGetKeyMethod );
     jobject value = jenv->CallObjectMethod( mapEntry, mapEntryGetValueMethod );
 
-    size_t keyOffset = mdbuf.front();
+    size_t keyOffset = mdbuf.position();
     const char* keyChars = jenv->GetStringUTFChars( (jstring) key, 0 );
     jsize keyLength = jenv->GetStringUTFLength( (jstring) key);
     std::string keyString = keyChars;
@@ -45,7 +45,7 @@
     strncpy( keyPosition, keyChars, keyLength );
     keyPosition[keyLength] = 0;
     
-    size_t valueOffset = mdbuf.front();
+    size_t valueOffset = mdbuf.position();
     char* valuePosition = 0;
     jsize valueLength;
 
