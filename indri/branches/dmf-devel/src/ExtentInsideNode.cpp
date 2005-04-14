@@ -63,7 +63,7 @@ const std::string& indri::infnet::ExtentInsideNode::getName() const {
   return _name;
 }
 
-void indri::infnet::ExtentInsideNode::annotate( class indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::ExtentInsideNode::annotate( class Annotator& annotator, int documentID, int begin, int end ) {
   annotator.addMatches( _extents, this, documentID, begin, end );
   
   for( unsigned int i=0; i<_extents.size(); i++ ) {

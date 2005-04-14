@@ -40,6 +40,11 @@ bool indri::infnet::PriorNode::hasMatch( int documentID ) {
   return false;
 }
 
+const indri::utility::greedy_vector<bool>& indri::infnet::PriorNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::PriorNode::score( int documentID, int begin, int end, int documentLength ) {
   int key;
   double score;

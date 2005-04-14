@@ -2762,11 +2762,13 @@ JNIEXPORT void JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addFil
 }
 
 
-JNIEXPORT void JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addString(JNIEnv *jenv, jclass jcls, jlong jarg1, jstring jarg2, jstring jarg3, jobjectArray jarg4) {
+JNIEXPORT jint JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addString(JNIEnv *jenv, jclass jcls, jlong jarg1, jstring jarg2, jstring jarg3, jobjectArray jarg4) {
+    jint jresult = 0 ;
     indri::api::IndexEnvironment *arg1 = (indri::api::IndexEnvironment *) 0 ;
     std::string *arg2 = 0 ;
     std::string *arg3 = 0 ;
     std::vector<indri::parse::MetadataPair > *arg4 = 0 ;
+    int result;
     std::vector<indri::parse::MetadataPair > mdin4 ;
     indri::utility::Buffer mdbuf4 ;
     
@@ -2775,19 +2777,19 @@ JNIEXPORT void JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addStr
     arg1 = *(indri::api::IndexEnvironment **)&jarg1; 
     if(!jarg2) {
         SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "null std::string");
-        return ;
+        return 0;
     }
     const char *arg2_pstr = (const char *)jenv->GetStringUTFChars(jarg2, 0); 
-    if (!arg2_pstr) return ;
+    if (!arg2_pstr) return 0;
     std::string arg2_str(arg2_pstr);
     arg2 = &arg2_str;
     jenv->ReleaseStringUTFChars(jarg2, arg2_pstr); 
     if(!jarg3) {
         SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, "null std::string");
-        return ;
+        return 0;
     }
     const char *arg3_pstr = (const char *)jenv->GetStringUTFChars(jarg3, 0); 
-    if (!arg3_pstr) return ;
+    if (!arg3_pstr) return 0;
     std::string arg3_str(arg3_pstr);
     arg3 = &arg3_str;
     jenv->ReleaseStringUTFChars(jarg3, arg3_pstr); 
@@ -2806,9 +2808,10 @@ JNIEXPORT void JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addStr
         jsize arrayLength = jenv->GetArrayLength( entryArray );
         arg4 = &mdin4;
         
-        jclass stringClazz = jenv->FindClass("edu/java/lang/String");
+        jclass stringClazz = jenv->FindClass("java/lang/String");
+        unsigned int i;
         
-        for( unsigned int i=0; i<arrayLength; i++ ) {
+        for( i=0; i<arrayLength; i++ ) {
             jobject mapEntry = jenv->GetObjectArrayElement( entryArray, i );
             jclass mapEntryClazz = jenv->GetObjectClass( mapEntry );
             jmethodID mapEntryGetKeyMethod = jenv->GetMethodID( mapEntryClazz, "getKey", "()Ljava/lang/Object;" );
@@ -2817,12 +2820,15 @@ JNIEXPORT void JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addStr
             jobject key = jenv->CallObjectMethod( mapEntry, mapEntryGetKeyMethod );
             jobject value = jenv->CallObjectMethod( mapEntry, mapEntryGetValueMethod );
             
+            size_t keyOffset = mdbuf4.position();
             const char* keyChars = jenv->GetStringUTFChars( (jstring) key, 0 );
             jsize keyLength = jenv->GetStringUTFLength( (jstring) key);
             std::string keyString = keyChars;
             char* keyPosition = mdbuf4.write( keyLength+1 );
             strncpy( keyPosition, keyChars, keyLength );
             keyPosition[keyLength] = 0;
+            
+            size_t valueOffset = mdbuf4.position();
             char* valuePosition = 0;
             jsize valueLength;
             
@@ -2851,30 +2857,40 @@ JNIEXPORT void JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addStr
             }
             
             indri::parse::MetadataPair pair;
-            pair.key = keyPosition;
-            pair.value = valuePosition;
+            pair.key = (char*) keyOffset;
+            pair.value = (char*) valueOffset;
             pair.valueLength = valueLength;
             mdin4.push_back(pair);
             
             jenv->ReleaseStringUTFChars( (jstring)key, keyChars);
         }
+        
+        // now we need to fix up the key and value positions
+        for( i=0; i<arrayLength; i++ ) {
+            mdin4[i].key = mdbuf4.front() + (size_t) mdin4[i].key;
+            mdin4[i].value = mdbuf4.front() + (size_t) mdin4[i].value;
+        }
     }
     {
         try {
-            (arg1)->addString((std::string const &)*arg2,(std::string const &)*arg3,(std::vector<indri::parse::MetadataPair > const &)*arg4);
+            result = (int)(arg1)->addString((std::string const &)*arg2,(std::string const &)*arg3,(std::vector<indri::parse::MetadataPair > const &)*arg4);
             
         } catch( Exception& e ) {
             SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // control does not leave method when thrown.
-            return ;
+            return 0;
         }
     }
+    jresult = (jint)result; 
+    return jresult;
 }
 
 
-JNIEXPORT void JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addParsedDocument(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg2) {
+JNIEXPORT jint JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addParsedDocument(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg2) {
+    jint jresult = 0 ;
     indri::api::IndexEnvironment *arg1 = (indri::api::IndexEnvironment *) 0 ;
     indri::api::ParsedDocument *arg2 = (indri::api::ParsedDocument *) 0 ;
+    int result;
     
     (void)jenv;
     (void)jcls;
@@ -2882,14 +2898,16 @@ JNIEXPORT void JNICALL Java_edu_umass_cs_indri_indriJNI_IndexEnvironment_1addPar
     arg2 = *(indri::api::ParsedDocument **)&jarg2; 
     {
         try {
-            (arg1)->addParsedDocument(arg2);
+            result = (int)(arg1)->addParsedDocument(arg2);
             
         } catch( Exception& e ) {
             SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // control does not leave method when thrown.
-            return ;
+            return 0;
         }
     }
+    jresult = (jint)result; 
+    return jresult;
 }
 
 

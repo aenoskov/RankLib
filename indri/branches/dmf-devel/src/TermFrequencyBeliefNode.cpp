@@ -79,6 +79,13 @@ bool indri::infnet::TermFrequencyBeliefNode::hasMatch( int documentID ) {
   return false;
 }
 
+const indri::utility::greedy_vector<bool>& indri::infnet::TermFrequencyBeliefNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  assert( false && "A TermFrequencyBeliefNode should never be asked for position information" );  
+  
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const std::string& indri::infnet::TermFrequencyBeliefNode::getName() const {
   return _name;
 }

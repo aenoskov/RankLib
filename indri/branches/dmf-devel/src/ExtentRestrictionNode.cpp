@@ -41,13 +41,19 @@ double indri::infnet::ExtentRestrictionNode::maximumScore() {
 
 const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::ExtentRestrictionNode::score( int documentID, int begin, int end, int documentLength ) {
   // we're going to run through the field list, etc.
-  indri::utility::greedy_vector<indri::index::Extent>::const_iterator fieldEnd = _field->extents().end();
-  indri::utility::greedy_vector<indri::index::Extent>::const_iterator fieldBegin = _field->extents().begin();
-  indri::utility::greedy_vector<indri::index::Extent>::const_iterator iter;
+  const indri::utility::greedy_vector<bool>& matches = _child->hasMatch( documentID, _field->extents() );
+  assert( matches.size() == _field->extents().size() );
 
+  indri::utility::greedy_vector<indri::index::Extent>::const_iterator iter;
   _scores.clear();
 
-  for( iter = fieldBegin; iter != fieldEnd; iter++ ) {
+
+  for( size_t i = 0; i < matches.size(); i++ ) {
+    if( !matches[i] )
+      continue;
+
+    iter = &_field->extents()[i];
+
     if( iter->end < begin )
       continue; // this one isn't relevant to our cause
 
@@ -95,14 +101,34 @@ void indri::infnet::ExtentRestrictionNode::annotate( indri::infnet::Annotator& a
   }
 }
 
+//
+// hasMatch
+//
+
 bool indri::infnet::ExtentRestrictionNode::hasMatch( int documentID ) {
   return _child->hasMatch( documentID );
 }
 
+//
+// hasMatch
+// 
+
+const indri::utility::greedy_vector<bool>& indri::infnet::ExtentRestrictionNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  // just delegate -- not perfect, but close
+  return _child->hasMatch( documentID, extents );
+}
+
+//
+// getName
+//
 
 const std::string& indri::infnet::ExtentRestrictionNode::getName() const {
   return _name;
 }
+
+//
+// indexChanged
+//
 
 void indri::infnet::ExtentRestrictionNode::indexChanged( indri::index::Index& index ) {
   // do nothing

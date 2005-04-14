@@ -55,9 +55,9 @@ int indri::infnet::ListBeliefNode::_contextLength( int begin, int end ) {
   return contextLength;
 }
 
-int indri::infnet::ListBeliefNode::_contextOccurrences( int begin, int end ) {
+double indri::infnet::ListBeliefNode::_contextOccurrences( int begin, int end ) {
   const indri::utility::greedy_vector<indri::index::Extent>& extents = _list.extents();
-  int count = 0;
+  double count = 0;
   int lastEnd = 0;
 
   // look for all occurrences within bounds and that don't overlap
@@ -65,7 +65,7 @@ int indri::infnet::ListBeliefNode::_contextOccurrences( int begin, int end ) {
     if( extents[i].begin >= begin &&
         extents[i].end <= end &&
         extents[i].begin >= lastEnd ) {
-      count++;
+      count += extents[i].weight;
       lastEnd = extents[i].end;
     }
   }
@@ -73,16 +73,16 @@ int indri::infnet::ListBeliefNode::_contextOccurrences( int begin, int end ) {
   return count;
 }
 
-int indri::infnet::ListBeliefNode::_documentOccurrences() {
+double indri::infnet::ListBeliefNode::_documentOccurrences() {
   assert( _raw ); // score() maintains this invariant
   const indri::utility::greedy_vector<indri::index::Extent>& extents = _raw->extents();
-  int count = 0;
+  double count = 0;
   int lastEnd = 0;
 
   // look for all occurrences within bounds and that don't overlap
   for( size_t i=0; i<extents.size(); i++ ) {
     if( extents[i].begin >= lastEnd ) {
-      count++;
+      count += extents[i].weight;
       lastEnd = extents[i].end;
     }
   }
@@ -118,8 +118,8 @@ double indri::infnet::ListBeliefNode::maximumScore() {
 
 const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::ListBeliefNode::score( int documentID, int begin, int end, int documentLength ) {
   int contextSize = _contextLength( begin, end );
-  int occurrences = _contextOccurrences( begin, end );
-  int documentOccurrences = _raw ? _documentOccurrences() : occurrences;
+  double occurrences = _contextOccurrences( begin, end );
+  double documentOccurrences = _raw ? _documentOccurrences() : occurrences;
   double score = 0;
   
   score = _scoreFunction.scoreOccurrence( occurrences, contextSize, documentOccurrences, documentLength );
@@ -130,7 +130,7 @@ const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infn
   return _scores;
 }
 
-void indri::infnet::ListBeliefNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::ListBeliefNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   const indri::utility::greedy_vector<indri::index::Extent>& extents = _list.extents();
   int count = 0;
 
@@ -146,6 +146,36 @@ void indri::infnet::ListBeliefNode::annotate( indri::infnet::Annotator& annotato
 
 bool indri::infnet::ListBeliefNode::hasMatch( int documentID ) {
   return _list.extents().size() > 0;
+}
+
+const indri::utility::greedy_vector<bool>& indri::infnet::ListBeliefNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& matchExtents ) {
+  const indri::utility::greedy_vector<indri::index::Extent>& extents = _list.extents();
+  _matches.clear();
+  _matches.resize( matchExtents.size(), false );
+
+  size_t i=0;
+  size_t j=0; 
+
+  while( i < extents.size() && j < matchExtents.size() ) {
+    if( matchExtents[j].begin > extents[i].begin ) {
+      i++;
+      continue;
+    }
+
+    if( matchExtents[j].end < extents[i].end ) {
+      j++;    
+      continue;
+    }
+
+    assert( matchExtents[j].begin <= extents[i].begin );
+    assert( matchExtents[j].end >= extents[i].end );
+
+    _matches[j] = true;
+    i++;
+    j++;
+  }
+
+  return _matches;
 }
 
 const std::string& indri::infnet::ListBeliefNode::getName() const {

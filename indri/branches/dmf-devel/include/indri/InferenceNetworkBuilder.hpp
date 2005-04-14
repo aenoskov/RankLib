@@ -49,7 +49,7 @@ namespace indri
 	return translation;
       }
 
-      indri::query::TermScoreFunction* _buildTermScoreFunction( const std::string& smoothing, UINT64 occurrences, UINT64 contextSize ) const;
+      indri::query::TermScoreFunction* _buildTermScoreFunction( const std::string& smoothing, double occurrences, double contextSize ) const;
 
     public:
       InferenceNetworkBuilder( indri::collection::Repository& repository, indri::lang::ListCache& cache, int resultsRequested );
@@ -62,6 +62,7 @@ namespace indri
       void after( indri::lang::Field* field );
       void after( indri::lang::ExtentAnd* extentAnd );
       void after( indri::lang::ExtentOr* extentOr );
+  void after( indri::lang::WeightedExtentOr* weightedExtentOr );
       void after( indri::lang::ExtentInside* extentInside );
       void after( indri::lang::BAndNode* uwNode );
       void after( indri::lang::ODNode* odNode );

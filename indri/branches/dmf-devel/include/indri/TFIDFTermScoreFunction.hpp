@@ -66,7 +66,7 @@ namespace indri
 	_precomputeConstants();
       }
 
-      double scoreOccurrence( int occurrences, int documentLength ) {
+      double scoreOccurrence( double occurrences, int documentLength ) {
 	//
 	// Score function is:
 	//                                                   K1 * occurrences

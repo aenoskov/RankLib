@@ -36,7 +36,7 @@ namespace indri
 	_collectionFrequency(collectionFrequency) {
       }
 
-      double scoreOccurrence( int occurrences, int contextSize ) {
+      double scoreOccurrence( double occurrences, int contextSize ) {
 
 	//                    [  c(w;d) + \mu * p(w|C)   ]
 	//    ( 1 - \lambda ) [ ------------------------ ] + \lambda * p(w|C)
@@ -47,7 +47,7 @@ namespace indri
 	return log(p);
       }
 
-      double scoreOccurrence( int occurrences, int contextSize, int documentOccurrences, int documentLength ) {
+      double scoreOccurrence( double occurrences, int contextSize, double documentOccurrences, int documentLength ) {
 	double documentFrequency = double(documentOccurrences) / double(documentLength);
 	double dirichlet = ((double(occurrences) + _mu*documentFrequency) / (double(contextSize) + _mu));
 	double p = ( 1-_lambda ) * dirichlet + _lambda * _collectionFrequency;

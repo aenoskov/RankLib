@@ -31,6 +31,7 @@ namespace indri
     class FilterRejectNode : public BeliefNode {
     private:
       indri::utility::greedy_vector<indri::api::ScoredExtentResult> _extents;
+      indri::utility::greedy_vector<bool> _matches;
       ListIteratorNode* _filter;
       BeliefNode* _disallowed;
       std::string _name;
@@ -42,6 +43,7 @@ namespace indri
       double maximumBackgroundScore();
       double maximumScore();
       bool hasMatch( int documentID );
+      const indri::utility::greedy_vector<bool>& hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents );
       const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& score( int documentID, int start, int end, int documentLength );
       int nextCandidateDocument();
       void indexChanged( indri::index::Index& index );

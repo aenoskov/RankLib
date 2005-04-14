@@ -505,8 +505,9 @@ int main(int argc, char * argv[]) {
     
     std::vector<std::string> metadataForward;
     std::vector<std::string> metadataBackward;
-    if( copy_parameters_to_string_vector( metadataForward, parameters, "metadata.forward" ) || 
-        copy_parameters_to_string_vector( metadataBackward, parameters, "metadata.backward" ) )
+    
+    copy_parameters_to_string_vector( metadataForward, parameters, "metadata.forward" ); 
+    copy_parameters_to_string_vector( metadataBackward, parameters, "metadata.backward" );
       env.setMetadataIndexedFields( metadataForward, metadataBackward );
     
     std::vector<std::string> fields;

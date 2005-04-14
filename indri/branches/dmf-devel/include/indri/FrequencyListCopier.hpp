@@ -77,6 +77,10 @@ namespace indri
 	}
       }
 
+  void before( indri::lang::WeightedExtentOr* wExOr ) {
+    _disqualifiedTree = true;
+  }
+
       void before( indri::lang::ODNode* odNode ) {
 	_disqualifiedTree = true;
       }
@@ -110,10 +114,7 @@ namespace indri
 
 	  scorerNode->setNodeName( oldNode->nodeName() );
 	  scorerNode->setSmoothing( oldNode->getSmoothing() );
-	  scorerNode->setStatistics( oldNode->getOccurrences(), oldNode->getContextSize(),
-				     oldNode->getMaxOccurrences(), oldNode->getMinContextLength(),
-				     oldNode->getMaxContextLength(),
-				     oldNode->getMaxContextFraction() );
+      scorerNode->setStatistics( oldNode->getOccurrences(), oldNode->getContextSize() );
 
 	  delete newNode;
 	  result = defaultAfter( oldNode, scorerNode );

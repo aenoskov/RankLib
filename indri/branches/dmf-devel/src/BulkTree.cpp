@@ -433,7 +433,7 @@ indri::file::BulkBlock* indri::file::BulkTreeReader::_fetch( UINT32 id ) {
   indri::file::BulkBlock* block;
 
   if( !result ) {
-    if( _cache.size() == 256 ) {
+    if( _cache.size() >= 256 ) {
       block = _tail;
       _tail = block->previous();
       _cache.remove( block->getID() );
@@ -457,6 +457,8 @@ indri::file::BulkBlock* indri::file::BulkTreeReader::_fetch( UINT32 id ) {
   if( _tail == 0 )
     _tail = block;
   _head = block;
+
+  assert( _cache.size() <= 256 );
   
   return block;
 }

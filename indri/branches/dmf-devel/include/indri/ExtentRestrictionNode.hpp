@@ -33,6 +33,7 @@ namespace indri
       BeliefNode* _child;
       ListIteratorNode* _field;
       indri::utility::greedy_vector<indri::api::ScoredExtentResult> _scores;
+      indri::utility::greedy_vector<bool> _matches;
       std::string _name;
 
     public:
@@ -47,6 +48,7 @@ namespace indri
       const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
       void annotate( class Annotator& annotator, int documentID, int begin, int end );
       bool hasMatch( int documentID );
+      const indri::utility::greedy_vector<bool>& hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents );
       const std::string& getName() const;
     };
   }

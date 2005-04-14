@@ -89,6 +89,27 @@ bool indri::infnet::WeightedSumNode::hasMatch( int documentID ) {
   return false;
 }
 
+//
+// hasMatch
+//
+
+const indri::utility::greedy_vector<bool>& indri::infnet::WeightedSumNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  _matches.clear();
+  _matches.resize( extents.size(), false );
+
+  for( unsigned int i=0; i<_children.size(); i++ ) {
+    const indri::utility::greedy_vector<bool>& kidMatches = _children[i]->hasMatch( documentID, extents );
+
+    for( unsigned int j=0; j<kidMatches.size(); j++ ) {
+      if( kidMatches[j] ) {
+        _matches[j] = true;
+      }
+    }
+  }
+
+  return _matches;
+}
+
 void indri::infnet::WeightedSumNode::addChild( double weight, BeliefNode* child ) {
   _children.push_back(child);
   _weights.push_back(weight);

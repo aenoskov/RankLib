@@ -31,6 +31,7 @@ namespace indri
     private:
       std::vector<BeliefNode*> _children;
       indri::utility::greedy_vector<indri::api::ScoredExtentResult> _scores;
+      indri::utility::greedy_vector<bool> _matches;
       std::string _name;
 
     public:
@@ -121,6 +122,23 @@ namespace indri
 
 	return false;
       }
+
+  const indri::utility::greedy_vector<bool>& hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+    _matches.clear();
+    _matches.resize( extents.size(), false );
+
+    for( unsigned int i=0; i<_children.size(); i++ ) {
+      const indri::utility::greedy_vector<bool>& kidMatches = _children[i]->hasMatch( documentID, extents );
+
+      for( unsigned int j=0; j<kidMatches.size(); j++ ) {
+        if( kidMatches[j] ) {
+          _matches[j] = true;
+        }
+      }
+    }
+
+    return _matches;
+  }
 
       void indexChanged( indri::index::Index& index ) {
 	// do nothing

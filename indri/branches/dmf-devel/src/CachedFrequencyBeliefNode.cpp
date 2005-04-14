@@ -69,6 +69,12 @@ bool indri::infnet::CachedFrequencyBeliefNode::hasMatch( int documentID ) {
   return ( _iter < _list->entries.end() && _iter->document == documentID );
 }
 
+const indri::utility::greedy_vector<bool>& indri::infnet::CachedFrequencyBeliefNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  // bogus result
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const std::string& indri::infnet::CachedFrequencyBeliefNode::getName() const {
   return _name;
 }

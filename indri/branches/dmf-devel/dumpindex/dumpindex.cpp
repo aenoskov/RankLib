@@ -23,6 +23,28 @@
 
 int count_term_in_documents( indri::collection::Repository& r, int termID, std::vector<int>& documents );
 
+void print_invfile( indri::collection::Repository& r ) {
+  indri::collection::Repository::index_state state = r.indexes();
+
+  indri::index::Index* index = (*state)[0];
+  indri::index::DocListFileIterator* iter = index->docListFileIterator();
+  iter->startIteration();
+
+  while( !iter->finished() ) {
+    indri::index::DocListFileIterator::DocListData* entry = iter->currentEntry();
+    indri::index::TermData* termData = entry->termData;
+ 
+    entry->iterator->startIteration();
+    while( !entry->iterator->finished() )
+      entry->iterator->nextEntry();
+
+    std::cout << termData->term << std::endl;
+    iter->nextEntry();
+  }
+
+  delete iter;
+}
+
 void print_field_positions( indri::collection::Repository& r, const std::string& fieldString ) {
   indri::server::LocalQueryServer local(r);
 
@@ -263,12 +285,11 @@ void usage() {
   std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
 }
 
+#define REQUIRE_ARGS(n) { if( argc < n ) { usage(); return -1; } }
+
 int main( int argc, char** argv ) {
   try {
-    if( argc < 4 || ( ( argv[2] == "di" || argv[2] == "documentid" ) && argc < 5 ) ) {
-      usage();
-      return -1;
-    }
+    REQUIRE_ARGS(3);
 
     indri::collection::Repository r;
     char* repName = argv[1];
@@ -277,24 +298,35 @@ int main( int argc, char** argv ) {
     std::string command = argv[2];
 
     if( command == "t" || command == "term" ) {
+      REQUIRE_ARGS(4);
       std::string term = argv[3];
       print_term_counts( r, term );
     } else if( command == "tp" || command == "termpositions" ) { 
+      REQUIRE_ARGS(4);
       std::string term = argv[3];
       print_term_positions( r, term );
     } else if( command == "fp" || command == "fieldpositions" ) { 
+      REQUIRE_ARGS(4);
       std::string field = argv[3];
       print_field_positions( r, field );
     } else if( command == "dn" || command == "documentname" ) {
+      REQUIRE_ARGS(4);
       print_document_name( r, argv[3] );
     } else if( command == "dt" || command == "documenttext" ) {
+      REQUIRE_ARGS(4);
       print_document_text( r, argv[3] );
     } else if( command == "dd" || command == "documentdata" ) {
+      REQUIRE_ARGS(4);
       print_document_data( r, argv[3] );
     } else if( command == "dv" || command == "documentvector" ) {
+      REQUIRE_ARGS(4);
       print_document_vector( r, argv[3] );
     } else if( command == "di" || command == "documentid" ) {
+      REQUIRE_ARGS(5);
       print_document_id( r, argv[3], argv[4] );
+    } else if( command == "il" || command == "invlist" ) {
+      REQUIRE_ARGS(3);
+      print_invfile( r );
     } else {
       r.close();
       usage();

@@ -74,6 +74,7 @@ void indri::infnet::OrderedWindowNode::prepare( int documentID ) {
   // while the inner loop iterates over the remaining words
   for( ; _pointers[0].iter != _pointers[0].end; (_pointers[0].iter)++ ) {
     bool match = true;
+    double weight = 1.0;
 
     for( unsigned int i=1; i<_pointers.size(); i++ ) {
       // try to find the first occurrence of this term that might
@@ -92,13 +93,15 @@ void indri::infnet::OrderedWindowNode::prepare( int documentID ) {
         // word <i> appears too far from the last word
         match = false;
         break;
+      } else {
+        weight *= _pointers[i].iter->weight;
       }
     }
 
     if( match ) {
       // the match extent spans the beginning of the first term and the end of the
       // last term
-      _extents.push_back( indri::index::Extent( _pointers.front().iter->begin, _pointers.back().iter->end ) );
+      _extents.push_back( indri::index::Extent( weight, _pointers.front().iter->begin, _pointers.back().iter->end ) );
     }
   }
 }
@@ -111,7 +114,7 @@ const std::string& indri::infnet::OrderedWindowNode::getName() const {
   return _name;
 }
 
-void indri::infnet::OrderedWindowNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::OrderedWindowNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   annotator.addMatches( _extents, this, documentID, begin, end );
 
   for( size_t i=0; i<_extents.size(); i++ ) {

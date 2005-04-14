@@ -22,8 +22,8 @@
 #include "indri/Annotator.hpp"
 
 indri::infnet::FilterRequireNode::FilterRequireNode( const std::string& name, 
-                                      indri::infnet::ListIteratorNode* filter, 
-                                      indri::infnet::BeliefNode* required ) {
+                                      ListIteratorNode* filter, 
+                                      BeliefNode* required ) {
   _name = name;
   _filter = filter;
   _required = required;
@@ -49,6 +49,15 @@ bool indri::infnet::FilterRequireNode::hasMatch( int documentID ) {
   return (_filter->extents().size() && _required->hasMatch( documentID ));
 }
 
+const indri::utility::greedy_vector<bool>& indri::infnet::FilterRequireNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
+  if( _filter->extents().size() ) {
+    return _required->hasMatch( documentID, extents );
+  }
+
+  _matches.resize( extents.size(), false );
+  return _matches;
+}
+
 const std::string& indri::infnet::FilterRequireNode::getName() const {
   return _name;
 }
@@ -62,7 +71,7 @@ const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infn
     return _extents;
 }
 
-void indri::infnet::FilterRequireNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::FilterRequireNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   // mark up the filter
   _filter->annotate( annotator, documentID, begin, end );
   // if the filter applied, mark up the matches.

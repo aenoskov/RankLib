@@ -67,14 +67,18 @@ UINT64 indri::collection::RepositoryLoadThread::work() {
     }
   }
 
- if( memorySize > 1.5*_memory ) {
+ if( memorySize > 1.25*_memory ) {
     _repository._setThrashing( true );
     return HALF_SECOND;
   } else {
     _repository._setThrashing( false );
   }
   
+  if( memorySize > _memory ) {
+    return HALF_SECOND;
+  } else {
   return FIVE_SECONDS;
+  }
 }
 
 //

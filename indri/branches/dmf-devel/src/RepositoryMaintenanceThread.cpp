@@ -20,7 +20,8 @@
 #include "indri/ScopedLock.hpp"
 #include <iostream>
 
-const UINT64 TIME_DELAY = 15*1000*1000;
+const UINT64 TIME_DELAY = 10*1000*1000;
+const UINT64 SHORT_TIME_DELAY = 3*1000*1000;
 const UINT64 THRASHING_MERGE_DELAY = 300*1000*1000;
 const int MAXIMUM_INDEX_COUNT = 50;
 
@@ -106,6 +107,7 @@ UINT64 indri::collection::RepositoryMaintenanceThread::work() {
   bool write = false;
   bool merge = false;
   bool trim = false;
+  UINT64 memorySize = 0;
 
   {
     // lock the request queue
@@ -114,17 +116,19 @@ UINT64 indri::collection::RepositoryMaintenanceThread::work() {
     // if nobody has any requests, check to see if we should be working
     if( ! _requests.size() ) {
       // get the memory size of the active memory index
-      indri::collection::Repository::index_state state = _repository.indexes();
+      Repository::index_state state = _repository.indexes();
       indri::index::MemoryIndex* index = dynamic_cast<indri::index::MemoryIndex*>(state->back());
 
       if( index ) {
         // if the index is too big, we'd better get to work
-        if( _memory < index->memorySize() ) {
+        memorySize = index->memorySize();
+
+        if( _memory < memorySize ) {
           _requests.push( WRITE );
         }
 
-        indri::collection::Repository::Load documentLoad = _repository.documentLoad();
-        indri::collection::Repository::Load queryLoad = _repository.queryLoad();
+        Repository::Load documentLoad = _repository.documentLoad();
+        Repository::Load queryLoad = _repository.queryLoad();
         UINT64 lastThrashing = _repository._timeSinceThrashing();
 
         if( maintenance_should_merge( state, documentLoad, queryLoad, lastThrashing ) ) {
@@ -167,7 +171,11 @@ UINT64 indri::collection::RepositoryMaintenanceThread::work() {
     _repository._write();
   }
 
+  if( memorySize > 0.75*_memory ) {
+    return SHORT_TIME_DELAY;
+  } else {
   return TIME_DELAY;
+  }
 }
 
 //

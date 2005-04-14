@@ -31,29 +31,13 @@ void indri::infnet::ExtentOrNode::prepare( int documentID ) {
   _extents.clear();
   indri::utility::greedy_vector<indri::index::Extent> allExtents;
 
+  // put all extents in the same bag
   for( unsigned int i=0; i<_children.size(); i++ ) {
-    allExtents.append( _children[i]->extents().begin(), _children[i]->extents().end() );
+    _extents.append( _children[i]->extents().begin(), _children[i]->extents().end() );
   }
 
   // sort all extents in order of beginning
-  std::sort( allExtents.begin(), allExtents.end(), indri::index::Extent::begins_before_less() );
-  indri::index::Extent current;
-
-  if( allExtents.size() ) {
-    current.begin = allExtents[0].begin;
-    current.end = allExtents[0].end;
-
-    for( unsigned int i=0; i<allExtents.size(); i++ ) {
-      if( allExtents[i].begin > current.end ) {
-        _extents.push_back( current );
-        current = allExtents[i];
-      } else {
-        current.end = lemur_compat::max( allExtents[i].end, current.end );
-      }
-    }
-
-    _extents.push_back( current );
-  }
+  std::sort( _extents.begin(), _extents.end(), indri::index::Extent::begins_before_less() );
 }
 
 const indri::utility::greedy_vector<indri::index::Extent>& indri::infnet::ExtentOrNode::extents() {
