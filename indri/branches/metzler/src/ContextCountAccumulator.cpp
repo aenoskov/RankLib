@@ -41,11 +41,11 @@ const std::string& ContextCountAccumulator::getName() const {
   return _name;
 }
 
-UINT64 ContextCountAccumulator::getOccurrences() const {
+double ContextCountAccumulator::getOccurrences() const {
   return _occurrences;
 }
 
-UINT64 ContextCountAccumulator::getContextSize() const {
+double ContextCountAccumulator::getContextSize() const {
   return _contextSize;
 }
 
@@ -82,16 +82,17 @@ const ListIteratorNode* ContextCountAccumulator::getMatchesNode() const {
 }
 
 void ContextCountAccumulator::evaluate( int documentID, int documentLength ) {
-  UINT64 documentOccurrences; 
-  UINT64 documentContextSize;
+  double documentOccurrences = 0;
+  double documentContextSize = 0;
 
   if( !_context ) {
-    documentOccurrences = _matches->extents().size();
-    documentContextSize = documentLength;
-  } else {
-    documentOccurrences = 0;
-    documentContextSize = 0;
+    for( size_t i=0; i<_matches->extents().size(); i++ ) {
+      const Extent& extent = _matches->extents()[i];
+      documentOccurrences += extent.weight;
+    }
 
+    _occurrences += documentOccurrences;
+  } else {
     const greedy_vector<Extent>& matches = _matches->extents();
     const greedy_vector<Extent>& extents = _context->extents();
     unsigned int ex = 0;
@@ -103,17 +104,17 @@ void ContextCountAccumulator::evaluate( int documentID, int documentLength ) {
       if( ex < extents.size() &&
         matches[i].begin >= extents[ex].begin &&
         matches[i].end <= extents[ex].end ) {
-        documentOccurrences++;
+        documentOccurrences += matches[i].weight;
       }
     }
 
     for( unsigned int i=0; i<extents.size(); i++ ) {
       documentContextSize += extents[i].end - extents[i].begin;
     }
-  } 
 
-  _occurrences += documentOccurrences;
-  _contextSize += documentContextSize;
+    _occurrences += documentOccurrences;
+    _contextSize += documentContextSize;
+  } 
 
   // counts the number of documents this expression occurs in
   if( documentOccurrences )
@@ -135,5 +136,7 @@ int ContextCountAccumulator::nextCandidateDocument() {
 //
 
 void ContextCountAccumulator::indexChanged( indri::index::Index& index ) {
-  // do nothing
+  if( ! _context ) {
+    _contextSize += index.termCount();
+  }
 }

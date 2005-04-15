@@ -48,20 +48,20 @@ public:
     _collectionComponent = _collectionLambda * _collectionFrequency;
   }
 
-  double scoreOccurrence( int occurrences, int contextSize ) {
+  double scoreOccurrence( double occurrences, int contextSize ) {
     //
     //             [                      occurrences                                             ]
     // score = log [ foregroundLambda * ---------------  + collectionLambda * collectionFrequency ]
     //             [                      contextSize                                             ]
     //
 
-    double contextFrequency = contextSize ? double(occurrences) / double(contextSize) : 0.0;
+    double contextFrequency = contextSize ? occurrences / double(contextSize) : 0.0;
     return log( _foregroundLambda * contextFrequency + _collectionComponent );
   }
 
-  double scoreOccurrence( int occurrences, int contextSize, int documentOccurrences, int documentLength ) {
-    double contextFrequency = contextSize ? double(occurrences) / double(contextSize) : 0.0;
-    double documentFrequency = documentLength ? double(documentOccurrences) / double(documentLength) : 0.0;
+  double scoreOccurrence( double occurrences, int contextSize, double documentOccurrences, int documentLength ) {
+    double contextFrequency = contextSize ? occurrences / double(contextSize) : 0.0;
+    double documentFrequency = documentLength ? documentOccurrences / double(documentLength) : 0.0;
     return log( _contextLambda * contextFrequency + _documentLambda * documentFrequency + _collectionComponent );
   }
 };

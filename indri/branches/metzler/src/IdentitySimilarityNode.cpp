@@ -43,7 +43,7 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
   int docCount = _children[0]->getDocCount();
   int queryLen = _children[0]->getQueryLength();
   int extentLen = end - begin;
-  INT64 contextLen = _children[0]->getContextSize();
+  double contextLen = _children[0]->getContextSize();
 
   double uniqueQueryTerms = 0.0;
   double idfSum = 0.0;
@@ -69,9 +69,9 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
     } 
 
     int df = child->getDocOccurrences();
-    int tf = child->hasMatch( documentID ) ? child->matches( begin, end ) : 0;
+    double tf = child->hasMatch( documentID ) ? child->matches( begin, end ) : 0;
     int qf = child->getQF();
-    INT64 cf = child->getOccurrences();
+    double cf = child->getOccurrences();
 
 	// number of unique terms that appear in the query
 	if( qf > 0 )

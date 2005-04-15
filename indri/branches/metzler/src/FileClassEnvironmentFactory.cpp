@@ -51,7 +51,7 @@ static const char* html_conflations[] = { "h1", "heading", "h2", "heading", "h3"
 static const char* trec_include_tags[] = { "text", "hl", "head", "headline", "title", "ttl", "dd", "date", "pubdate", "lp", "leadpara", 0 };
 static const char* trec_metadata_tags[] = { "docno", "title", "numsentences", "ciirdate", 0 };
 static const char* trec_conflations[] = { "hl", "headline", "head", "headline", "ttl", "title", "dd", "date", "pubdate", "date", 0, 0 };
-static const char* trec_index_tags[] = { 0 };
+static const char* trec_index_tags[] = { "text", 0 };
 //static const char* trec_index_tags[] = { "sentence", "hl", "head", "headline", "title", "ttl", "dd", "date", 0 };
 
 static file_class_environment_spec environments[] = {
@@ -67,6 +67,19 @@ static file_class_environment_spec environments[] = {
     html_index_tags,      // indexTags
     html_metadata_tags,   // metadataTags
     html_conflations      // conflations
+  },
+  { 
+    "xml",               // name
+    "xml",               // parser
+    "text",               // iterator
+    NULL,                 // startDocTag
+    NULL,                 // endDocTag
+    NULL,                 // endMetadataTag
+    NULL,                 // includeTags
+    NULL,                 // excludeTags
+    NULL,                 // indexTags
+    NULL,                 // metadataTags
+    NULL                  // conflations
   },
   {
     "trecweb",            // name

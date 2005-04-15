@@ -67,7 +67,7 @@ const greedy_vector<ScoredExtentResult>& CachedFrequencyBeliefNode::score( int d
   return _extents;
 }
 
-int CachedFrequencyBeliefNode::matches( int begin, int end ) {
+double CachedFrequencyBeliefNode::matches( int begin, int end ) {
   const DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
 
   int count = 0;
@@ -79,7 +79,7 @@ int CachedFrequencyBeliefNode::matches( int begin, int end ) {
   return count;
 }
 
-int CachedFrequencyBeliefNode::contextSize( int begin, int end ) {
+double CachedFrequencyBeliefNode::contextSize( int begin, int end ) {
   const DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
 
   int contextSize = 0;
@@ -96,7 +96,8 @@ bool CachedFrequencyBeliefNode::hasMatch( int documentID ) {
 }
 
 const greedy_vector<bool>& CachedFrequencyBeliefNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
-  greedy_vector<bool> _matches;
+  // bogus result
+  _matches.resize( extents.size(), false );
   return _matches;
 }
 

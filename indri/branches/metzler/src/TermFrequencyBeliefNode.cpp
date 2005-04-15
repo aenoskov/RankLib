@@ -70,7 +70,7 @@ const greedy_vector<ScoredExtentResult>& TermFrequencyBeliefNode::score( int doc
   return _extents;
 }
 
-int TermFrequencyBeliefNode::matches( int begin, int end ) {
+double TermFrequencyBeliefNode::matches( int begin, int end ) {
   if( _list ) {
     const indri::index::DocListIterator::DocumentData* entry = _list->currentEntry();
 	if( entry )
@@ -80,7 +80,7 @@ int TermFrequencyBeliefNode::matches( int begin, int end ) {
   return 0;
 }
 
-int TermFrequencyBeliefNode::contextSize( int begin, int end ) {
+double TermFrequencyBeliefNode::contextSize( int begin, int end ) {
   return end - begin;
 }
 

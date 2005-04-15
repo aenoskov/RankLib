@@ -12,7 +12,7 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
   buffer.clear();
 
   int numTerms = document->positions.size();
-  size_t sentenceBegin = 0;
+  size_t sentenceBegin = getStartPos( document );
   bool addTag = false;
 
   std::string prevTerm = "";
@@ -25,7 +25,7 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
 
   assert( document->positions.size() == document->terms.size() );
 
-  if( !numTerms )
+  if( !numTerms || sentenceBegin >= numTerms )
     return document;
   
   TermExtent pos0 = document->positions[ sentenceBegin ];
@@ -127,6 +127,19 @@ void SentenceSegmenterTransformation::addSentenceTag( ParsedDocument* document, 
     document->tags.push_back( tag );
     numSentences++;
   }
+}
+
+size_t SentenceSegmenterTransformation::getStartPos( ParsedDocument* document ) {
+  int numTags = document->tags.size();
+
+  for( int i = 0; i < numTags; i++ ) {
+    TagExtent tag = document->tags[ i ];
+    if( !strcmp( tag.name, "text" ) )
+      return tag.begin;
+  }
+
+  // by default start at position 0
+  return 0;
 }
 
 void SentenceSegmenterTransformation::setHandler( ObjectHandler<ParsedDocument>& handler ) {
