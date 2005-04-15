@@ -27,12 +27,12 @@ private:
   // storage for allocated nodes
   std::vector<indri::lang::Node*> _nodes;
   // makes sure nodes go away when parser goes away
-  VectorDeleter<indri::lang::Node*> _deleter;
+  indri::utility::VectorDeleter<indri::lang::Node*> _deleter;
   // gives us access to named priors
-  PriorFactory* _priorFactory;
+    indri::query::PriorFactory* _priorFactory;
   
 public:
-  void init( PriorFactory* factory, QueryLexer* lexer ) {
+  void init( indri::query::PriorFactory* factory, QueryLexer* lexer ) {
     _priorFactory = factory;
     _deleter.setVector( _nodes );
   }
@@ -73,10 +73,10 @@ public:
 	public:  indri::lang::PriorNode*  priorNode();
 	public:  indri::lang::FilRejNode*  filrejNode();
 	public:  indri::lang::FilReqNode*  filreqNode();
-	public:  ScoredExtentNode*  scoredRaw();
+	public:  indri::lang::ScoredExtentNode*  scoredRaw();
 	public:  RawExtentNode*  qualifiedTerm();
 	public:  ExtentOr*  context_list();
-	public:  RawExtentNode*  unqualifiedTerm();
+	public:  indri::lang::RawExtentNode*  unqualifiedTerm();
 	public:  indri::lang::ScoredExtentNode*  weightedList(
 		 indri::lang::WeightedCombinationNode* wn 
 	);
@@ -97,19 +97,19 @@ public:
 	public:  indri::lang::UWNode*  uwNode();
 	public:  indri::lang::BAndNode*  bandNode();
 	public:  indri::lang::Field*  anyField();
-	public:  ExtentAnd*  field_list();
-	public:  FieldLessNode*  dateBefore();
-	public:  FieldGreaterNode*  dateAfter();
-	public:  FieldBetweenNode*  dateBetween();
+	public:  indri::lang::ExtentAnd*  field_list();
+	public:  indri::lang::FieldLessNode*  dateBefore();
+	public:  indri::lang::FieldGreaterNode*  dateAfter();
+	public:  indri::lang::FieldBetweenNode*  dateBetween();
 	public:  indri::lang::ExtentOr*  synonym_list();
 	public:  indri::lang::ExtentOr*  synonym_list_brace();
 	public:  indri::lang::ExtentOr*  synonym_list_alt();
-	public:  FieldLessNode*  lessNode();
-	public:  FieldGreaterNode*  greaterNode();
-	public:  FieldBetweenNode*  betweenNode();
-	public:  FieldEqualsNode*  equalsNode();
-	public:  IndexTerm*  rawText();
-	public:  Field*  field_restriction();
+	public:  indri::lang::FieldLessNode*  lessNode();
+	public:  indri::lang::FieldGreaterNode*  greaterNode();
+	public:  indri::lang::FieldBetweenNode*  betweenNode();
+	public:  indri::lang::FieldEqualsNode*  equalsNode();
+	public:  indri::lang::IndexTerm*  rawText();
+	public:  indri::lang::Field*  field_restriction();
 	public:  UINT64  date();
 	public:  UINT64  slashDate();
 	public:  UINT64  spaceDate();

@@ -446,9 +446,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return fq ;
 }
 
- ScoredExtentNode*  QueryParser::scoredRaw() {
+ indri::lang::ScoredExtentNode*  QueryParser::scoredRaw() {
 #line 208 "indrilang.g"
-	 ScoredExtentNode* sn ;
+	 indri::lang::ScoredExtentNode* sn ;
 #line 451 "QueryParser.cpp"
 #line 208 "indrilang.g"
 	
@@ -646,9 +646,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return contexts ;
 }
 
- RawExtentNode*  QueryParser::unqualifiedTerm() {
+ indri::lang::RawExtentNode*  QueryParser::unqualifiedTerm() {
 #line 490 "indrilang.g"
-	 RawExtentNode* re ;
+	 indri::lang::RawExtentNode* re ;
 #line 651 "QueryParser.cpp"
 	
 	switch ( LA(1)) {
@@ -1383,9 +1383,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return f ;
 }
 
- ExtentAnd*  QueryParser::field_list() {
+ indri::lang::ExtentAnd*  QueryParser::field_list() {
 #line 563 "indrilang.g"
-	 ExtentAnd* fields ;
+	 indri::lang::ExtentAnd* fields ;
 #line 1388 "QueryParser.cpp"
 	ANTLR_USE_NAMESPACE(antlr)RefToken  first = ANTLR_USE_NAMESPACE(antlr)nullToken;
 	ANTLR_USE_NAMESPACE(antlr)RefToken  additional = ANTLR_USE_NAMESPACE(antlr)nullToken;
@@ -1433,9 +1433,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return fields ;
 }
 
- FieldLessNode*  QueryParser::dateBefore() {
+ indri::lang::FieldLessNode*  QueryParser::dateBefore() {
 #line 612 "indrilang.g"
-	 FieldLessNode* extent ;
+	 indri::lang::FieldLessNode* extent ;
 #line 1438 "QueryParser.cpp"
 #line 612 "indrilang.g"
 	
@@ -1462,9 +1462,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return extent ;
 }
 
- FieldGreaterNode*  QueryParser::dateAfter() {
+ indri::lang::FieldGreaterNode*  QueryParser::dateAfter() {
 #line 624 "indrilang.g"
-	 FieldGreaterNode* extent ;
+	 indri::lang::FieldGreaterNode* extent ;
 #line 1467 "QueryParser.cpp"
 #line 624 "indrilang.g"
 	
@@ -1491,9 +1491,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return extent ;
 }
 
- FieldBetweenNode*  QueryParser::dateBetween() {
+ indri::lang::FieldBetweenNode*  QueryParser::dateBetween() {
 #line 636 "indrilang.g"
-	 FieldBetweenNode* extent ;
+	 indri::lang::FieldBetweenNode* extent ;
 #line 1496 "QueryParser.cpp"
 #line 636 "indrilang.g"
 	
@@ -1633,9 +1633,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return s ;
 }
 
- FieldLessNode*  QueryParser::lessNode() {
+ indri::lang::FieldLessNode*  QueryParser::lessNode() {
 #line 765 "indrilang.g"
-	 FieldLessNode* ln ;
+	 indri::lang::FieldLessNode* ln ;
 #line 1638 "QueryParser.cpp"
 	ANTLR_USE_NAMESPACE(antlr)RefToken  field = ANTLR_USE_NAMESPACE(antlr)nullToken;
 #line 765 "indrilang.g"
@@ -1665,9 +1665,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return ln ;
 }
 
- FieldGreaterNode*  QueryParser::greaterNode() {
+ indri::lang::FieldGreaterNode*  QueryParser::greaterNode() {
 #line 753 "indrilang.g"
-	 FieldGreaterNode* gn ;
+	 indri::lang::FieldGreaterNode* gn ;
 #line 1670 "QueryParser.cpp"
 	ANTLR_USE_NAMESPACE(antlr)RefToken  field = ANTLR_USE_NAMESPACE(antlr)nullToken;
 #line 753 "indrilang.g"
@@ -1697,9 +1697,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return gn ;
 }
 
- FieldBetweenNode*  QueryParser::betweenNode() {
+ indri::lang::FieldBetweenNode*  QueryParser::betweenNode() {
 #line 777 "indrilang.g"
-	 FieldBetweenNode* bn ;
+	 indri::lang::FieldBetweenNode* bn ;
 #line 1702 "QueryParser.cpp"
 	ANTLR_USE_NAMESPACE(antlr)RefToken  field = ANTLR_USE_NAMESPACE(antlr)nullToken;
 #line 777 "indrilang.g"
@@ -1731,9 +1731,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return bn ;
 }
 
- FieldEqualsNode*  QueryParser::equalsNode() {
+ indri::lang::FieldEqualsNode*  QueryParser::equalsNode() {
 #line 790 "indrilang.g"
-	 FieldEqualsNode* en ;
+	 indri::lang::FieldEqualsNode* en ;
 #line 1736 "QueryParser.cpp"
 	ANTLR_USE_NAMESPACE(antlr)RefToken  field = ANTLR_USE_NAMESPACE(antlr)nullToken;
 #line 790 "indrilang.g"
@@ -1763,9 +1763,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return en ;
 }
 
- IndexTerm*  QueryParser::rawText() {
+ indri::lang::IndexTerm*  QueryParser::rawText() {
 #line 698 "indrilang.g"
-	 IndexTerm* t ;
+	 indri::lang::IndexTerm* t ;
 #line 1768 "QueryParser.cpp"
 	ANTLR_USE_NAMESPACE(antlr)RefToken  id = ANTLR_USE_NAMESPACE(antlr)nullToken;
 	ANTLR_USE_NAMESPACE(antlr)RefToken  n = ANTLR_USE_NAMESPACE(antlr)nullToken;
@@ -1877,9 +1877,9 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	return t ;
 }
 
- Field*  QueryParser::field_restriction() {
+ indri::lang::Field*  QueryParser::field_restriction() {
 #line 604 "indrilang.g"
-	 Field* extent ;
+	 indri::lang::Field* extent ;
 #line 1882 "QueryParser.cpp"
 	ANTLR_USE_NAMESPACE(antlr)RefToken  fieldName = ANTLR_USE_NAMESPACE(antlr)nullToken;
 	
@@ -1977,7 +1977,7 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	if ( inputState->guessing==0 ) {
 #line 686 "indrilang.g"
 		
-		d = DateParse::convertDate( year->getText(), month->getText(), day->getText() ); 
+		d = indri::parse::DateParse::convertDate( year->getText(), month->getText(), day->getText() ); 
 		
 #line 1981 "QueryParser.cpp"
 	}
@@ -2006,7 +2006,7 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 	if ( inputState->guessing==0 ) {
 #line 693 "indrilang.g"
 		
-		d = DateParse::convertDate( year->getText(), month->getText(), day->getText() );
+		d = indri::parse::DateParse::convertDate( year->getText(), month->getText(), day->getText() );
 		
 #line 2010 "QueryParser.cpp"
 	}
@@ -2036,7 +2036,7 @@ QueryParser::QueryParser(const ANTLR_USE_NAMESPACE(antlr)ParserSharedInputState&
 		std::string month = text.substr( firstDash+1, secondDash-firstDash-1 );
 		std::string year = text.substr( secondDash );
 		
-		d = DateParse::convertDate( year, month, day ); 
+		d = indri::parse::DateParse::convertDate( year, month, day ); 
 		
 #line 2040 "QueryParser.cpp"
 	}

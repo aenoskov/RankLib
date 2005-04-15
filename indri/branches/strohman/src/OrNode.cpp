@@ -21,22 +21,22 @@
 #include "indri/ScoredExtentResult.hpp"
 #include "indri/Annotator.hpp"
 
-OrNode::OrNode( const std::string& name ) :
+indri::infnet::OrNode::OrNode( const std::string& name ) :
   _name(name)
 {
 }
 
-OrNode::OrNode( const std::string& name, const std::vector<BeliefNode*>& children ) :
+indri::infnet::OrNode::OrNode( const std::string& name, const std::vector<BeliefNode*>& children ) :
   _children( children ),
   _name( name )
 {
 }
 
-const greedy_vector<ScoredExtentResult>& OrNode::score( int documentID, int begin, int end, int documentLength ) {
+const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::OrNode::score( int documentID, int begin, int end, int documentLength ) {
   double notScore = 1;
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
-    const greedy_vector<ScoredExtentResult>& childResults = _children[i]->score( documentID, begin, end, documentLength );
+    const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& childResults = _children[i]->score( documentID, begin, end, documentLength );
 
     for( unsigned int j=0; j<childResults.size(); j++ ) {
       notScore *= 1. - exp( childResults[j].score );
@@ -45,12 +45,12 @@ const greedy_vector<ScoredExtentResult>& OrNode::score( int documentID, int begi
   
   double score = log( 1. - notScore );
   _scores.clear();
-  _scores.push_back( ScoredExtentResult( score, documentID, begin, end ) );
+  _scores.push_back( indri::api::ScoredExtentResult( score, documentID, begin, end ) );
 
   return _scores;
 }
 
-void OrNode::annotate( class Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::OrNode::annotate( class indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
   annotator.add(this, documentID, begin, end);
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
@@ -58,7 +58,7 @@ void OrNode::annotate( class Annotator& annotator, int documentID, int begin, in
   }
 }
 
-double OrNode::maximumScore() {
+double indri::infnet::OrNode::maximumScore() {
   double notScore = 1;
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
@@ -68,7 +68,7 @@ double OrNode::maximumScore() {
   return log( 1. - notScore );
 }
 
-double OrNode::maximumBackgroundScore() {
+double indri::infnet::OrNode::maximumBackgroundScore() {
   double notScore = 1;
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
@@ -78,7 +78,7 @@ double OrNode::maximumBackgroundScore() {
   return log( 1. - notScore );
 }
 
-bool OrNode::hasMatch( int documentID ) {
+bool indri::infnet::OrNode::hasMatch( int documentID ) {
   for( unsigned int i=0; i<_children.size(); i++ ) {
     if( _children[i]->hasMatch( documentID ) )
       return true;
@@ -87,12 +87,12 @@ bool OrNode::hasMatch( int documentID ) {
   return false;
 }
 
-const greedy_vector<bool>& OrNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+const indri::utility::greedy_vector<bool>& indri::infnet::OrNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
   _matches.clear();
   _matches.resize( extents.size(), false );
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
-    const greedy_vector<bool>& kidMatches = _children[i]->hasMatch( documentID, extents );
+    const indri::utility::greedy_vector<bool>& kidMatches = _children[i]->hasMatch( documentID, extents );
 
     for( unsigned int j=0; j<kidMatches.size(); j++ ) {
       if( kidMatches[j] ) {
@@ -104,7 +104,7 @@ const greedy_vector<bool>& OrNode::hasMatch( int documentID, const greedy_vector
   return _matches;
 }
 
-int OrNode::nextCandidateDocument() {
+int indri::infnet::OrNode::nextCandidateDocument() {
   int nextCandidate = MAX_INT32;
   
   for( unsigned int i=0; i<_children.size(); i++ ) {
@@ -114,11 +114,11 @@ int OrNode::nextCandidateDocument() {
   return nextCandidate;
 }
 
-void OrNode::indexChanged( indri::index::Index& index ) {
+void indri::infnet::OrNode::indexChanged( indri::index::Index& index ) {
   // do nothing
 }
 
-const std::string& OrNode::getName() const {
+const std::string& indri::infnet::OrNode::getName() const {
   return _name;
 }
 
