@@ -21,10 +21,10 @@
 #include "indri/ScopedLock.hpp"
 #include <iostream>
 
-int count_term_in_documents( Repository& r, int termID, std::vector<int>& documents );
+int count_term_in_documents( indri::collection::Repository& r, int termID, std::vector<int>& documents );
 
-void print_invfile( Repository& r ) {
-  Repository::index_state state = r.indexes();
+void print_invfile( indri::collection::Repository& r ) {
+  indri::collection::Repository::index_state state = r.indexes();
 
   indri::index::Index* index = (*state)[0];
   indri::index::DocListFileIterator* iter = index->docListFileIterator();
@@ -45,18 +45,18 @@ void print_invfile( Repository& r ) {
   delete iter;
 }
 
-void print_field_positions( Repository& r, const std::string& fieldString ) {
-  LocalQueryServer local(r);
+void print_field_positions( indri::collection::Repository& r, const std::string& fieldString ) {
+  indri::server::LocalQueryServer local(r);
 
   UINT64 totalCount = local.termCount();
 
   std::cout << fieldString << std::endl;
 
-  Repository::index_state state = r.indexes();
+  indri::collection::Repository::index_state state = r.indexes();
 
   for( size_t i=0; i<state->size(); i++ ) {
     indri::index::Index* index = (*state)[i];
-    ScopedLock( index->iteratorLock() );
+    indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocExtentListIterator* iter = index->fieldListIterator( fieldString );
     iter->startIteration();
@@ -88,9 +88,9 @@ void print_field_positions( Repository& r, const std::string& fieldString ) {
   }
 }
 
-void print_term_positions( Repository& r, const std::string& termString ) {
+void print_term_positions( indri::collection::Repository& r, const std::string& termString ) {
   std::string stem = r.processTerm( termString );
-  LocalQueryServer local(r);
+  indri::server::LocalQueryServer local(r);
 
   UINT64 totalCount = local.termCount();
   UINT64 termCount = local.termCount( termString );
@@ -100,11 +100,11 @@ void print_term_positions( Repository& r, const std::string& termString ) {
             << termCount << " " 
             << totalCount << " " << std::endl;
 
-  Repository::index_state state = r.indexes();
+  indri::collection::Repository::index_state state = r.indexes();
 
   for( size_t i=0; i<state->size(); i++ ) {
     indri::index::Index* index = (*state)[i];
-    ScopedLock( index->iteratorLock() );
+    indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocListIterator* iter = index->docListIterator( stem );
     iter->startIteration();
@@ -132,9 +132,9 @@ void print_term_positions( Repository& r, const std::string& termString ) {
   }
 }
 
-void print_term_counts( Repository& r, const std::string& termString ) {
+void print_term_counts( indri::collection::Repository& r, const std::string& termString ) {
   std::string stem = r.processTerm( termString );
-  LocalQueryServer local(r);
+  indri::server::LocalQueryServer local(r);
 
   UINT64 totalCount = local.termCount();
   UINT64 termCount = local.termCount( termString );
@@ -144,11 +144,11 @@ void print_term_counts( Repository& r, const std::string& termString ) {
             << termCount << " " 
             << totalCount << " " << std::endl;
 
-  Repository::index_state state = r.indexes();
+  indri::collection::Repository::index_state state = r.indexes();
 
   for( size_t i=0; i<state->size(); i++ ) {
     indri::index::Index* index = (*state)[i];
-    ScopedLock( index->iteratorLock() );
+    indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocListIterator* iter = index->docListIterator( stem );
     iter->startIteration();
@@ -168,25 +168,25 @@ void print_term_counts( Repository& r, const std::string& termString ) {
   }
 }
 
-void print_document_name( Repository& r, const char* number ) {
-  CompressedCollection* collection = r.collection();
+void print_document_name( indri::collection::Repository& r, const char* number ) {
+  indri::collection::CompressedCollection* collection = r.collection();
   std::string documentName = collection->retrieveMetadatum( atoi( number ), "docid" );
   std::cout << documentName << std::endl;
 }
 
-void print_document_text( Repository& r, const char* number ) {
+void print_document_text( indri::collection::Repository& r, const char* number ) {
   int documentID = atoi( number );
-  CompressedCollection* collection = r.collection();
-  ParsedDocument* document = collection->retrieve( documentID );
+  indri::collection::CompressedCollection* collection = r.collection();
+  indri::api::ParsedDocument* document = collection->retrieve( documentID );
 
   std::cout << document->text << std::endl;
   delete document;
 }
 
-void print_document_data( Repository& r, const char* number ) {
+void print_document_data( indri::collection::Repository& r, const char* number ) {
   int documentID = atoi( number );
-  CompressedCollection* collection = r.collection();
-  ParsedDocument* document = collection->retrieve( documentID );
+  indri::collection::CompressedCollection* collection = r.collection();
+  indri::api::ParsedDocument* document = collection->retrieve( documentID );
 
   std::cout << std::endl << "--- Metadata ---" << std::endl << std::endl;
 
@@ -223,22 +223,22 @@ void print_document_data( Repository& r, const char* number ) {
   delete document;
 }
 
-void print_document_vector( Repository& r, const char* number ) {
-  LocalQueryServer local(r);
+void print_document_vector( indri::collection::Repository& r, const char* number ) {
+  indri::server::LocalQueryServer local(r);
   DOCID_T documentID = atoi( number );
 
   std::vector<DOCID_T> documentIDs;
   documentIDs.push_back(documentID);
 
-  QueryServerVectorsResponse* response = local.documentVectors( documentIDs );
+  indri::server::QueryServerVectorsResponse* response = local.documentVectors( documentIDs );
   
   if( response->getResults().size() ) {
-    DocumentVector* docVector = response->getResults()[0];
+    indri::api::DocumentVector* docVector = response->getResults()[0];
   
     std::cout << "--- Fields ---" << std::endl;
 
     for( int i=0; i<docVector->fields().size(); i++ ) {
-      const DocumentVector::Field& field = docVector->fields()[i];
+      const indri::api::DocumentVector::Field& field = docVector->fields()[i];
       std::cout << field.name << " " << field.begin << " " << field.end << " " << field.number << std::endl;
     }
 
@@ -257,8 +257,8 @@ void print_document_vector( Repository& r, const char* number ) {
   delete response;
 }
 
-void print_document_id( Repository& r, const char* an, const char* av ) {
-  CompressedCollection* collection = r.collection();
+void print_document_id( indri::collection::Repository& r, const char* an, const char* av ) {
+  indri::collection::CompressedCollection* collection = r.collection();
   std::string attributeName = an;
   std::string attributeValue = av;
   std::vector<DOCID_T> documentIDs;
@@ -291,7 +291,7 @@ int main( int argc, char** argv ) {
   try {
     REQUIRE_ARGS(3);
 
-    Repository r;
+    indri::collection::Repository r;
     char* repName = argv[1];
     r.openRead( repName );
 

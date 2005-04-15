@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 //
 // WeightedExtentOrNode
@@ -22,25 +22,31 @@
 #include <string>
 #include "indri/greedy_vector"
 #include "indri/ListIteratorNode.hpp"
+namespace indri
+{
+  namespace infnet
+  {
+    
+    class WeightedExtentOrNode : public ListIteratorNode {
+    private:
+      std::vector<ListIteratorNode*> _children;
+      std::vector<double> _weights;
+      indri::utility::greedy_vector<indri::index::Extent> _extents;
+      std::string _name;
 
-class WeightedExtentOrNode : public ListIteratorNode {
-private:
-  std::vector<ListIteratorNode*> _children;
-  std::vector<double> _weights;
-  greedy_vector<Extent> _extents;
-  std::string _name;
-
-public:
-  WeightedExtentOrNode( const std::string& name, std::vector<ListIteratorNode*>& children, const std::vector<double>& weights );
-  void prepare( int documentID );
-  const greedy_vector<Extent>& extents();
+    public:
+      WeightedExtentOrNode( const std::string& name, std::vector<ListIteratorNode*>& children, const std::vector<double>& weights );
+      void prepare( int documentID );
+      const indri::utility::greedy_vector<indri::index::Extent>& extents();
   
-  void indexChanged( indri::index::Index& index );
-  int nextCandidateDocument();
+      void indexChanged( indri::index::Index& index );
+      int nextCandidateDocument();
 
-  const std::string& getName() const;
-  void annotate( class Annotator& annotator, int documentID, int begin, int end );
-};
+      const std::string& getName() const;
+      void annotate( class Annotator& annotator, int documentID, int begin, int end );
+    };
+  }
+}
 
 #endif // INDRI_WEIGHTEDEXTENTORNODE_HPP
 

@@ -154,12 +154,12 @@ private:
   // storage for allocated nodes
   std::vector<indri::lang::Node*> _nodes;
   // makes sure nodes go away when parser goes away
-  VectorDeleter<indri::lang::Node*> _deleter;
+  indri::utility::VectorDeleter<indri::lang::Node*> _deleter;
   // gives us access to named priors
-  PriorFactory* _priorFactory;
+    indri::query::PriorFactory* _priorFactory;
   
 public:
-  void init( PriorFactory* factory, QueryLexer* lexer ) {
+  void init( indri::query::PriorFactory* factory, QueryLexer* lexer ) {
     _priorFactory = factory;
     _deleter.setVector( _nodes );
   }
@@ -205,7 +205,7 @@ scoredExtentNode returns [ indri::lang::ScoredExtentNode* s ] :
 // but for some reason I can't make the "( DOT context_list )?" work right.
 //
 
-scoredRaw returns [ ScoredExtentNode* sn ]
+scoredRaw returns [ indri::lang::ScoredExtentNode* sn ]
   {
     RawExtentNode* raw = 0;
     RawExtentNode* contexts = 0;
@@ -383,6 +383,19 @@ wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
        ( options { greedy=true; } : w=floating n=unscoredTerm { ws->addChild( w, n ); } )+
        C_PAREN;
   
+// wsynNode : WSYN O_PAREN ( weight unscoredTerm )+ C_PAREN
+wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
+  {
+    ws = new indri::lang::WeightedExtentOr;
+    _nodes.push_back(ws);
+
+    double w = 0;
+    RawExtentNode* n = 0;
+  } :
+  WSYN O_PAREN
+       ( options { greedy=true; } : w=floating n=unscoredTerm { ws->addChild( w, n ); } )+
+       C_PAREN;
+  
 // odNode : OD DECIMAL O_PAREN ( qualifiedTerm )+ C_PAREN
 odNode returns [ indri::lang::ODNode* od ] 
   {
@@ -487,7 +500,7 @@ qualifiedTerm returns [ RawExtentNode* t ]
     }
   };
 
-unqualifiedTerm returns [ RawExtentNode* re ] :
+unqualifiedTerm returns [ indri::lang::RawExtentNode* re ] :
     ( OD ) => re=odNode
   | ( UW ) => re=uwNode
   | ( BAND ) => re=bandNode
@@ -560,7 +573,7 @@ synonym_list_alt returns [ indri::lang::ExtentOr* s ] {
     ( options { greedy=true; }: term=unscoredTerm { s->addChild(term); } )+
   C_PAREN;
 
-field_list returns [ ExtentAnd* fields ]
+field_list returns [ indri::lang::ExtentAnd* fields ]
   { 
     fields = new ExtentAnd;
     _nodes.push_back( fields );
@@ -601,7 +614,7 @@ context_list returns [ ExtentOr* contexts ] {
   )*
   C_PAREN;
 
-field_restriction returns [ Field* extent ] :
+field_restriction returns [ indri::lang::Field* extent ] :
   O_SQUARE
   fieldName:TERM {
     extent = new Field( fieldName->getText() );
@@ -609,7 +622,7 @@ field_restriction returns [ Field* extent ] :
   }
   C_SQUARE;
 
-dateBefore returns [ FieldLessNode* extent ] {
+dateBefore returns [ indri::lang::FieldLessNode* extent ] {
     UINT64 d = 0;
     Field* dateField = 0;
     extent = 0;
@@ -621,7 +634,7 @@ dateBefore returns [ FieldLessNode* extent ] {
     _nodes.push_back( extent );
   };
   
-dateAfter returns [ FieldGreaterNode* extent ] {
+dateAfter returns [ indri::lang::FieldGreaterNode* extent ] {
     UINT64 d = 0;
     Field* dateField = 0;
     extent = 0;
@@ -633,7 +646,7 @@ dateAfter returns [ FieldGreaterNode* extent ] {
     _nodes.push_back( extent );
   };
   
-dateBetween returns [ FieldBetweenNode* extent ] {
+dateBetween returns [ indri::lang::FieldBetweenNode* extent ] {
     UINT64 low = 0;
     UINT64 high = 0;
     Field* dateField = 0;
@@ -677,25 +690,25 @@ dashDate returns [ UINT64 d ] {
     std::string month = text.substr( firstDash+1, secondDash-firstDash-1 );
     std::string year = text.substr( secondDash );
 
-    d = DateParse::convertDate( year, month, day ); 
+    d = indri::parse::DateParse::convertDate( year, month, day ); 
   };
   
 slashDate returns [ UINT64 d ] {
     d = 0;
   } :
   month:NUMBER SLASH day:TERM SLASH year:NUMBER {
-    d = DateParse::convertDate( year->getText(), month->getText(), day->getText() ); 
+    d = indri::parse::DateParse::convertDate( year->getText(), month->getText(), day->getText() ); 
   };
   
 spaceDate returns [ UINT64 d ] {
     d = 0;
   } :
   day:NUMBER month:TERM year:NUMBER {
-    d = DateParse::convertDate( year->getText(), month->getText(), day->getText() );
+    d = indri::parse::DateParse::convertDate( year->getText(), month->getText(), day->getText() );
   };
 
 // rawText is something that can be considered a query term
-rawText returns [ IndexTerm* t ] {
+rawText returns [ indri::lang::IndexTerm* t ] {
     t = 0;
   } :
   id:TERM {
@@ -750,7 +763,7 @@ number returns [ INT64 v ] {
     v = string_to_i64(nn->getText());
   };
 
-greaterNode returns [ FieldGreaterNode* gn ] {
+greaterNode returns [ indri::lang::FieldGreaterNode* gn ] {
     gn = 0;
     Field* compareField = 0;
     INT64 low = 0;
@@ -762,7 +775,7 @@ greaterNode returns [ FieldGreaterNode* gn ] {
     _nodes.push_back( gn );
   };
   
-lessNode returns [ FieldLessNode* ln ] {
+lessNode returns [ indri::lang::FieldLessNode* ln ] {
     ln = 0;
     Field* compareField = 0;
     INT64 high = 0;
@@ -774,7 +787,7 @@ lessNode returns [ FieldLessNode* ln ] {
     _nodes.push_back( ln );
   };
 
-betweenNode returns [ FieldBetweenNode* bn ] {
+betweenNode returns [ indri::lang::FieldBetweenNode* bn ] {
     bn = 0;
     Field* compareField = 0;
     INT64 low = 0;
@@ -787,7 +800,7 @@ betweenNode returns [ FieldBetweenNode* bn ] {
     _nodes.push_back( bn );
   };
 
-equalsNode returns [ FieldEqualsNode* en ] {
+equalsNode returns [ indri::lang::FieldEqualsNode* en ] {
     en = 0;
     Field* compareField = 0;
     INT64 eq = 0;
