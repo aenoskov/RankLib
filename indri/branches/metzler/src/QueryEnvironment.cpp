@@ -164,12 +164,12 @@ void QueryEnvironment::_copyStatistics( std::vector<indri::lang::RawScorerNode*>
     std::vector<ScoredExtentResult>& docOccurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "docOccurrences" ];
     std::vector<ScoredExtentResult>& docCountList = statisticsResults[ scorerNodes[i]->nodeName() ][ "docCount" ];
     
-    UINT64 occurrences = UINT64(occurrencesList[0].score);
-    UINT64 contextSize = UINT64(contextSizeList[0].score);
+    double occurrences = UINT64(occurrencesList[0].score);
+    double contextSize = UINT64(contextSizeList[0].score);
 
-	UINT64 docOccurrences = UINT64(docOccurrencesList[0].score);
-	
-	int docCount = int(docCountList[0].score);
+    UINT64 docOccurrences = UINT64(docOccurrencesList[0].score);
+    
+    int docCount = int(docCountList[0].score);
 
     scorerNodes[i]->setStatistics( occurrences, contextSize,
                                    docOccurrences,

@@ -277,6 +277,10 @@ int IndexEnvironment::addString( const std::string& documentString, const std::s
 
   _getParsingContext( &parser, &iterator, fileClass );
 
+  if( parser == 0 ) {
+    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "File class '" + fileClass + "' wasn't recognized." );
+  }
+
   ParsedDocument* parsed = parser->parse( &document );
   int documentID = _repository.addDocument( parsed );
 

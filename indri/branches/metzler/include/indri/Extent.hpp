@@ -20,11 +20,13 @@
 #define INDRI_EXTENT_HPP
 
 struct Extent {
-  int begin; // used unitialized
+  double weight;
+  int begin;
   int end;
 
-  Extent() : begin(-1), end(-1) {}
-  Extent( int b, int e ) : begin(b), end(e) {}
+  Extent() : weight(1), begin(-1), end(-1) {}
+  Extent( int b, int e ) : weight(1), begin(b), end(e) {}
+  Extent( double w, int b, int e ) : weight(w), begin(b), end(e) {}
     
   bool contains( const Extent& other ) const {
     return begin <= other.begin && end >= other.end;
@@ -35,7 +37,6 @@ struct Extent {
   }
 
   bool beginsBefore( const Extent& other ) const {
-    //    return begin <= other.begin;
     return begin < other.begin;
   }
 

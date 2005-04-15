@@ -73,6 +73,10 @@ public:
     }
   }
 
+  void before( indri::lang::WeightedExtentOr* wExOr ) {
+    _disqualifiedTree = true;
+  }
+
   void before( indri::lang::ODNode* odNode ) {
     _disqualifiedTree = true;
   }
@@ -107,14 +111,11 @@ public:
       scorerNode->setNodeName( oldNode->nodeName() );
       scorerNode->setSmoothing( oldNode->getSmoothing() );
       scorerNode->setStatistics( oldNode->getOccurrences(), oldNode->getContextSize(),
-                                 oldNode->getMaxOccurrences(), oldNode->getMinContextLength(),
-                                 oldNode->getMaxContextLength(),
-                                 oldNode->getMaxContextFraction(),
                                  oldNode->getDocOccurrences(),
                                  oldNode->getQF(),
                                  oldNode->getDocCount(),
                                  oldNode->getQueryLength() );
-                                
+
       delete newNode;
       result = defaultAfter( oldNode, scorerNode );
     } else if( !_disqualifiers.size() ) {

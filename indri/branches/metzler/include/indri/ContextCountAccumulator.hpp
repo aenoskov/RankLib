@@ -40,8 +40,8 @@ private:
   ListIteratorNode* _matches; 
 
   std::string _name;
-  UINT64 _occurrences;
-  UINT64 _contextSize;
+  double _occurrences;
+  double _contextSize;
 
   // document frequency
   UINT64 _docOccurrences;
@@ -57,8 +57,8 @@ public:
   ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context );
   ~ContextCountAccumulator();
 
-  UINT64 getOccurrences() const;
-  UINT64 getContextSize() const;
+  double getOccurrences() const;
+  double getContextSize() const;
 
   UINT64 getDocOccurrences() const;
 

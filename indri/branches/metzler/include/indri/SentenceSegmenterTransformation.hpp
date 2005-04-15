@@ -28,6 +28,7 @@ private:
 
 protected:
   void addSentenceTag( ParsedDocument* document, int begin, int end );
+  size_t getStartPos( ParsedDocument* document );
   int numSentences;
 
 public:

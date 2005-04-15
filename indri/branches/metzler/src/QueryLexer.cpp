@@ -33,28 +33,29 @@ QueryLexer::QueryLexer(const ANTLR_USE_NAMESPACE(antlr)LexerSharedInputState& st
 void QueryLexer::initLiterals()
 {
 	literals["#any"] = 17;
-	literals["#equals"] = 27;
+	literals["#equals"] = 28;
 	literals["#not"] = 10;
-	literals["#between"] = 26;
-	literals["#prior"] = 20;
-	literals["#date:before"] = 22;
+	literals["#between"] = 27;
+	literals["#wsyn"] = 19;
+	literals["#prior"] = 21;
+	literals["#date:before"] = 23;
 	literals["#sum"] = 4;
-	literals["#less"] = 24;
+	literals["#less"] = 25;
 	literals["#or"] = 8;
 	literals["#uw"] = 11;
 	literals["#filreq"] = 15;
 	literals["#weight"] = 13;
-	literals["#date:after"] = 21;
+	literals["#date:after"] = 22;
 	literals["#wsum"] = 5;
 	literals["#filrej"] = 16;
 	literals["#od"] = 7;
 	literals["#band"] = 18;
 	literals["#wand"] = 6;
-	literals["#greater"] = 25;
+	literals["#greater"] = 26;
 	literals["#max"] = 14;
 	literals["#identsim"] = 9;
-	literals["#syn"] = 19;
-	literals["#date:between"] = 23;
+	literals["#syn"] = 20;
+	literals["#date:between"] = 24;
 	literals["#combine"] = 12;
 }
 
@@ -1028,9 +1029,9 @@ void QueryLexer::mTERM(bool _createToken) {
 	if ( synPredMatched51 ) {
 		mFLOAT(false);
 		if ( inputState->guessing==0 ) {
-#line 130 "indrilang.g"
+#line 131 "indrilang.g"
 			_ttype = FLOAT;
-#line 1032 "QueryLexer.cpp"
+#line 1033 "QueryLexer.cpp"
 		}
 	}
 	else {
@@ -1055,9 +1056,9 @@ void QueryLexer::mTERM(bool _createToken) {
 		if ( synPredMatched53 ) {
 			mNEGATIVE_NUMBER(false);
 			if ( inputState->guessing==0 ) {
-#line 131 "indrilang.g"
+#line 132 "indrilang.g"
 				_ttype = NEGATIVE_NUMBER;
-#line 1059 "QueryLexer.cpp"
+#line 1060 "QueryLexer.cpp"
 			}
 		}
 		else {
@@ -1114,9 +1115,9 @@ void QueryLexer::mTERM(bool _createToken) {
 				if ( synPredMatched55 ) {
 					mNUMBER(false);
 					if ( inputState->guessing==0 ) {
-#line 132 "indrilang.g"
+#line 133 "indrilang.g"
 						_ttype = NUMBER;
-#line 1118 "QueryLexer.cpp"
+#line 1119 "QueryLexer.cpp"
 					}
 				}
 				else if ((_tokenSet_0.member(LA(1))) && (true)) {
@@ -1330,9 +1331,9 @@ void QueryLexer::mOPERATOR(bool _createToken) {
 	if ( synPredMatched72 ) {
 		mENCODED_QUOTED_TERM(false);
 		if ( inputState->guessing==0 ) {
-#line 140 "indrilang.g"
+#line 141 "indrilang.g"
 			_ttype = ENCODED_QUOTED_TERM;
-#line 1334 "QueryLexer.cpp"
+#line 1335 "QueryLexer.cpp"
 		}
 	}
 	else {
@@ -1355,9 +1356,9 @@ void QueryLexer::mOPERATOR(bool _createToken) {
 		if ( synPredMatched74 ) {
 			mENCODED_TERM(false);
 			if ( inputState->guessing==0 ) {
-#line 141 "indrilang.g"
+#line 142 "indrilang.g"
 				_ttype = ENCODED_TERM;
-#line 1359 "QueryLexer.cpp"
+#line 1360 "QueryLexer.cpp"
 			}
 		}
 		else if ((LA(1) == 0x23 /* '#' */ ) && (true)) {
@@ -1422,9 +1423,9 @@ void QueryLexer::mJUNK(bool _createToken) {
 	}
 	}
 	if ( inputState->guessing==0 ) {
-#line 145 "indrilang.g"
+#line 146 "indrilang.g"
 		_ttype = antlr::Token::SKIP;
-#line 1426 "QueryLexer.cpp"
+#line 1427 "QueryLexer.cpp"
 	}
 	if ( _createToken && _token==ANTLR_USE_NAMESPACE(antlr)nullToken && _ttype!=ANTLR_USE_NAMESPACE(antlr)Token::SKIP ) {
 	   _token = makeToken(_ttype);

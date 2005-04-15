@@ -42,8 +42,8 @@ private:
 private:
   // computes the length of the scored context
   inline int _contextLength( int begin, int end );
-  inline int _contextOccurrences( int begin, int end );
-  inline int _documentOccurrences();
+  inline double _contextOccurrences( int begin, int end );
+  inline double _documentOccurrences();
 
 public:
   ListBeliefNode( const std::string& name,
@@ -66,8 +66,8 @@ public:
 
   const std::string& getName() const;
 
-  int matches( int begin, int end );
-  int contextSize( int begin, int end );
+  double matches( int begin, int end );
+  double contextSize( int begin, int end );
 };
 
 #endif // INDRI_TERMNODE_HPP

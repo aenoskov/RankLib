@@ -59,8 +59,8 @@ public:
   const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents );
   const std::string& getName() const;
   
-  int matches( int begin, int end );
-  int contextSize( int begin, int end );
+  double matches( int begin, int end );
+  double contextSize( int begin, int end );
 };
 
 #endif // INDRI_TERMFREQUENCYBELIEFNODE_HPP
