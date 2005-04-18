@@ -1,13 +1,22 @@
 /*
- * Created on Mar 13, 2005
+ * Created on Apr 17, 2005
  *
  */
 package edu.umass.cs.rankmax;
 
 /**
- * @author metzler
+ * @author Don Metzler
  *
  */
-public class Instance {
-
+public abstract class Instance {
+	
+	protected String classLabel = null;
+	public String getLabel() { return classLabel; }
+	
+	public Instance( String classLabel ) {
+		this.classLabel = classLabel;
+	}
+	
+	public abstract double dotProd( Parameters p, int offset );
+	
 }

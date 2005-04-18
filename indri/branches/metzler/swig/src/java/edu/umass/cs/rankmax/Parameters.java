@@ -5,13 +5,22 @@
 package edu.umass.cs.rankmax;
 
 /**
- * @author metzler
+ * @author Don Metzler
  *
  */
 public class Parameters {
 
 	protected double [] params = null;
+
+	// new parameters ( with given size, all values set to fixed value )
+	public Parameters( int size, double val ) {
+		params = new double[size];
+		
+		for(int i = 0; i < size; i++ )
+			params[i] = val;
+	}
 	
+	// new parameters based on array of doubles
 	public Parameters( double [] p ) {
 		params = p;
 	}
@@ -36,8 +45,33 @@ public class Parameters {
 		return new Parameters( newParams );		
 	}
 	
+	// normalizes the parameters such that their sum is 1
+	public void simplexNormalize() {
+		double sum = 0.0;
+		for( int i = 0; i < params.length; i++ )
+			sum += params[i];
+		// TODO: what if sum == 0.0 ?
+		for( int i = 0; i < params.length; i++ )
+			params[i] /= sum;
+	}
+	
+	// returns parameter at coordinate i
 	public double getParam( int i ) {
+		if( i < 0 || i >= params.length ) // TODO: throw Exception?
+			return Double.NaN;
 		return params[i];
+	}
+
+	// sets parameter at corordinate i
+	public void setParam( int i, double val ) {
+		if( i < 0 || i >= params.length ) // TODO: throw Exception?
+			return;
+		params[i] = val;
+	}
+	
+	// returns the size of the parameter vector
+	public int size() {
+		return params.length;
 	}
 	
 	public String toString() {
