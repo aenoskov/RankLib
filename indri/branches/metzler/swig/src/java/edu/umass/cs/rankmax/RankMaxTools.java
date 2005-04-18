@@ -49,27 +49,36 @@ public class RankMaxTools {
 		
 		try {
 			String str = null;
+			String instanceID = null;
 			String classLabel = null;
 			ArrayList indices = new ArrayList();
 			ArrayList values = new ArrayList();
 			while( ( str = in.readLine() ) != null ) {
 				StringTokenizer tok = new StringTokenizer( str, " :" );
+				instanceID = tok.nextToken();
 				classLabel = tok.nextToken().toLowerCase();
 				indices.clear();
 				values.clear();
 				while( tok.hasMoreTokens() ) {
-					indices.add( tok.nextToken() );
-					values.add( tok.nextToken() );					
+					int idx = Integer.parseInt( tok.nextToken() );
+					double val = Double.parseDouble( tok.nextToken() );
+					if( idx > 20 )
+						break;
+					indices.add( idx+"" );
+					values.add( val+"" );
+					/*indices.add( tok.nextToken() );
+					values.add( tok.nextToken() );*/					
 				}
-				data.addInstance( classLabel, indices, values );
+				data.addInstance( instanceID, classLabel, indices, values );
 			}
 		}
 		catch( Exception e ) {
-			System.err.println( "Error reading query file!" );
+			e.printStackTrace();
+			System.err.println( "Error reading instance file!" );
 			return null;
 		}
 		
-		return null;
+		return data;
 	}
 		
 }

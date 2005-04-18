@@ -35,7 +35,7 @@ public class IndriSmoothingSearch implements Ranker {
 		for( int i = 0; i < queries.size(); i++ ) {
 			String query = (String)queries.get( i );
 			ScoredExtentResult [] r = indri.runQuery( query, 1000 );
-			results[i] = new IndriRanking( i+1, r, getDocumentIDs( r ) );
+			results[i] = new IndriRanking( (i+1)+"", r, getDocumentIDs( r ) );
 		}
 		
 		return results;

@@ -28,13 +28,13 @@ public class AveragePrecisionEvaluator implements Evaluator {
 			int numRelevant = 0;
 			double avgp = 0.0;
 			for( int rank = 1; rank <= ranking.size(); rank++ ) {
-				Ranking.RankedItem item = (Ranking.RankedItem)ranking.get( i-1 );				
-				if( trecJudgments.isRelevant( ranking.instanceID+"", item.classID ) ) {
+				Ranking.RankedItem item = (Ranking.RankedItem)ranking.get( rank - 1 );
+				if( trecJudgments.isRelevant( ranking.instanceID, item.classID ) ) {
 					numRelevant++; 
 					avgp += numRelevant / (1.0*rank);
 				}
 			}
-			Integer count = (Integer)trecJudgments.totalRelevant.get( ""+ranking.instanceID );
+			Integer count = (Integer)trecJudgments.totalRelevant.get( ranking.instanceID );
 			if( count != null ) {
 				avgp /= ( 1.0*count.intValue() );
 				map += avgp;

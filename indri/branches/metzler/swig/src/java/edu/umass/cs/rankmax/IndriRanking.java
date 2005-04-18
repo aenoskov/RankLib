@@ -12,7 +12,7 @@ import edu.umass.cs.indri.ScoredExtentResult;
  */
 public class IndriRanking extends Ranking {
 
-	public IndriRanking( int queryID, ScoredExtentResult [] results, String [] docNames ) {
+	public IndriRanking( String queryID, ScoredExtentResult [] results, String [] docNames ) {
 		super( queryID );
 		for( int i = 0; i < results.length; i++ )
 			add( new Ranking.RankedItem( docNames[i], results[i].score ) );

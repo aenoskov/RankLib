@@ -16,8 +16,8 @@ public class SparseInstance extends Instance {
 	protected int [] indices = null;
 	protected double [] values = null;
 	
-	public SparseInstance( String classLabel, ArrayList indices, ArrayList values ) {
-		super( classLabel );
+	public SparseInstance( String instanceID, String classLabel, ArrayList indices, ArrayList values ) {
+		super( instanceID, classLabel );
 		
 		this.indices = new int[ indices.size() ];
 		this.values = new double[ values.size() ];
