@@ -18,8 +18,15 @@ public class ClassificationData {
 	protected HashMap classes = null;
 	protected int numFeatures = 0;
 	
-	public void addInstance( String classLabel, ArrayList indices, ArrayList values ) {
-		SparseInstance inst = new SparseInstance( classLabel, indices, values );
+	public ClassificationData() {
+		this.instances = new ArrayList();
+		this.classNames = new ArrayList();
+		this.classes = new HashMap();
+		this.numFeatures = 0;
+	}
+	
+	public void addInstance( String instanceID, String classLabel, ArrayList indices, ArrayList values ) {
+		SparseInstance inst = new SparseInstance( instanceID, classLabel, indices, values );
 		instances.add( inst );
 		
 		int numClasses = classes.size();

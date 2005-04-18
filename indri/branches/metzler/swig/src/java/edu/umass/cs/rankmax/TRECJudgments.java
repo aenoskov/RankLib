@@ -51,7 +51,7 @@ public class TRECJudgments {
 				String docID = tok.nextToken();
 				int judgment = Integer.parseInt( tok.nextToken() );
 				if( judgment != 0 ) {
-					judgments.put( TRECJudgments.getKey( queryID, docID ), null );
+					results.judgments.put( getKey( queryID, docID ), null );
 					Integer count = (Integer)results.totalRelevant.get( queryID );
 					if( count == null )
 						results.totalRelevant.put( queryID, new Integer( 1 ) );
@@ -64,7 +64,7 @@ public class TRECJudgments {
 			System.err.println( "Error reading relevance file!" );
 			return results;
 		}
-		
+				
 		return results;
 	}
 

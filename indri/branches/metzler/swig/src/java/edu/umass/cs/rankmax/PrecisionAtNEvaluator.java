@@ -33,11 +33,11 @@ public class PrecisionAtNEvaluator implements Evaluator {
 			double avgp = 0.0;
 			for( int rank = 1; rank <= N; rank++ ) {
 				if( rank > ranking.size() ) { break; }
-				Ranking.RankedItem item = (Ranking.RankedItem)ranking.get( i-1 );
-				if( trecJudgments.isRelevant( ranking.instanceID+"", item.classID ) ) 
+				Ranking.RankedItem item = (Ranking.RankedItem)ranking.get( rank - 1 );
+				if( trecJudgments.isRelevant( ranking.instanceID, item.classID ) ) 
 					numRelevant++;
 			}
-			Integer count = (Integer)trecJudgments.totalRelevant.get( ""+ranking.instanceID );
+			Integer count = (Integer)trecJudgments.totalRelevant.get( ranking.instanceID );
 			if( count != null ) {
 				precAtN += numRelevant / N;
 				total++;

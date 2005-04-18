@@ -14,9 +14,9 @@ import java.util.Collections;
  */
 public class Ranking extends ArrayList {
 
-	public int instanceID = 0;
+	public String instanceID = null;
 	
-	public Ranking( int instanceID ) {
+	public Ranking( String instanceID ) {
 		super();
 		this.instanceID = instanceID;
 	}
@@ -50,6 +50,16 @@ public class Ranking extends ArrayList {
 				return classID.compareTo( item.classID );			
 			return 0;
 		}
+		
+		public String toString() {
+			return "class id: " + classID + ", score: " + score + "\n"; 
+		}
 	}
 	
+	public String toString() {
+		String ret = "instance id: " + instanceID + "\n";		
+		for( int i = 0; i < this.size(); i++ )
+			ret += "rank " + (i+1) + ": " + (RankedItem)this.get( i ); 
+		return ret;
+	}
 }

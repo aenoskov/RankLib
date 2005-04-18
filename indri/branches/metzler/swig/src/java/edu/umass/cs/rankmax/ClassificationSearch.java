@@ -43,12 +43,12 @@ public class ClassificationSearch implements Ranker {
 		Ranking [] results = new Ranking[ instances.size() ];
 		
 		for( int i = 0; i < instances.size(); i++ ) {
-			results[ i ] = new Ranking( i );
+			Instance inst = (Instance)instances.get( i );
+			results[ i ] = new Ranking( inst.getInstanceID() );
 			for( int classID = 0; classID < numClasses; classID++ ) {
-				Instance inst = (Instance)instances.get( i );
 				double score = inst.dotProd( p, classID*numFeatures );
 				results[ i ].add( new Ranking.RankedItem( classNames[ classID ], score ) );
-			}			
+			}
 		}
 		
 		return results;
@@ -56,9 +56,11 @@ public class ClassificationSearch implements Ranker {
 
 	public static void main( String [] args ) {
 		ClassificationSearch fxn = new ClassificationSearch( args[0] );
-		Evaluator eval = new AveragePrecisionEvaluator( args[1] );
+		//Evaluator eval = new AveragePrecisionEvaluator( args[1] );
+		Evaluator eval = new PrecisionAtNEvaluator( args[1], 1 );
 		Parameters p0 = fxn.getRandomStartPoint();		
 		Maximizer m = new SteepestAscentMaximizer( fxn, eval, p0, true );
+		m.setVerbose( true );
 		m.maximize();
 	}
 
