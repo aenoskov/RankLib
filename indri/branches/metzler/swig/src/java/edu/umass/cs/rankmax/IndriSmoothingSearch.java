@@ -4,51 +4,27 @@
  */
 package edu.umass.cs.rankmax;
 
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
 import edu.umass.cs.indri.QueryEnvironment;
 import edu.umass.cs.indri.ScoredExtentResult;
 
 /**
- * @author metzler
+ * @author Don Metzler
  *
  */
-public class IndriDirichletSmoothingMaximizer implements Ranker {
+public class IndriSmoothingSearch implements Ranker {
 
 	protected QueryEnvironment indri = null;
 	protected ArrayList queries = null;
 	
-	public IndriDirichletSmoothingMaximizer( String index, String queryFile ) {
-		queries = getQueries( queryFile );
+	public IndriSmoothingSearch( String index, String queryFile ) {
+		queries = RankMaxTools.getQueries( queryFile );
 		
 		indri = new QueryEnvironment();
 		indri.addIndex( index );				
 	}
 	
-	protected ArrayList getQueries(String queryFile) {
-		RandomAccessFile in = null;
-		ArrayList queries = new ArrayList();
-		
-		try { in = new RandomAccessFile( queryFile, "r" );	}
-		catch( Exception e ) {
-			System.err.println( "Error opening query file!" );
-			return queries;
-		}
-		
-		try {
-			String str = null;
-			while( ( str = in.readLine() ) != null )
-				queries.add( str );
-		}
-		catch( Exception e ) {
-			System.err.println( "Error reading query file!" );
-			return queries;
-		}
-		
-		return queries;
-	}
-
 	public Ranking [] getRankings( Parameters p ) {
 		double mu = p.getParam( 0 );
 		String [] rules = new String [] { "method:dirichlet,mu:" + mu }; 
@@ -78,13 +54,14 @@ public class IndriDirichletSmoothingMaximizer implements Ranker {
 	}
 
 	public static void main( String [] args ) {
-		IndriDirichletSmoothingMaximizer fxn = new IndriDirichletSmoothingMaximizer( args[0], args[1] );
+		IndriSmoothingSearch fxn = new IndriSmoothingSearch( args[0], args[1] );
 		Evaluator eval = new AveragePrecisionEvaluator( args[2] );
 		
 		Parameters lower = new Parameters( new double [] { 0 } );
 		Parameters upper = new Parameters( new double [] { 4000 } );
 		Parameters [] params = new Parameters [] { lower, upper };
-		NelderMeadMaximizer nm = new NelderMeadMaximizer( fxn, eval, params );
-		nm.maximize();
+		//Maximizer m = new NelderMeadMaximizer( fxn, eval, params );
+		Maximizer m = new SteepestAscentMaximizer( fxn, eval, lower, true );
+		m.maximize();
 	}
 }

@@ -32,6 +32,9 @@ public class QueryFormulator {
 	
 	protected double narrativeFieldWeight = 0.0;
 	protected Weighting narrativeWeights = null;
+
+	// type of formulation
+	protected int type = FULL_INDEPENDENCE;
 	
 	public QueryFormulator( String titleText ) {
 		this( titleText, null, null );
@@ -63,9 +66,11 @@ public class QueryFormulator {
 		this.narrativeText = narrativeText;
 		this.narrativeFieldWeight = narrativeFieldWeight;
 		this.narrativeWeights = new Weighting( narrativeTermWeight, narrativeContigOrderedWeight, narrativeNoncontigOrderedWeight, narrativeUnorderedWeight );
+		
+		this.type = FULL_INDEPENDENCE;
 	}
 
-	public String formulateQuery( int type ) {
+	public String formulateQuery() {
 		String titleQuery = null;
 		String descriptionQuery = null;
 		String narrativeQuery = null;
@@ -108,6 +113,16 @@ public class QueryFormulator {
 		return null;
 	}
 	
+	public void setQuery( String titleText, String descriptionText, String narrativeText ) {
+		this.titleText = titleText;
+		this.descriptionText = descriptionText;
+		this.narrativeText = narrativeText;
+	}
+
+	public void setType( int type ) {
+		this.type = type;
+	}
+	
 	private String getFullIndependenceQuery( String text ) {
 		if( text == null )
 			return null;
@@ -134,7 +149,7 @@ public class QueryFormulator {
 			String curTerm = tokens[i];
 			termQuery += " " + curTerm;
 			orderedQuery += "#1( " + lastTerm + " " + curTerm + " ) ";
-			unorderedQuery += "#8( " + lastTerm + " " + curTerm + " ) ";
+			unorderedQuery += "#uw8( " + lastTerm + " " + curTerm + " ) ";
 			lastTerm = curTerm;
 		}		
 
@@ -163,7 +178,83 @@ public class QueryFormulator {
 	private String getFullDependenceQuery( String text, Weighting w ) {
 		if( text == null )
 			return null;
+
+		String [] tokens = text.split(" ");
 		
+		if( tokens.length == 0 )
+			return null;
+		else if( tokens.length == 1 )
+			return "#combine( " + tokens[0] + " )";
+		
+		String termQuery = "";
+		String orderedQuery = "";
+		String unorderedQuery = "";		
+		
+		for( int i = 1; i <  Math.pow(2, tokens.length); i++ ) {
+			String binary = Integer.toBinaryString( i );
+			int padding = tokens.length - binary.length();
+			for( int j = 0; j < padding; j++ )
+				binary = "0" + binary;
+						
+			boolean singleTerm = false;
+			boolean contiguous = true;
+			
+			int firstOne = binary.indexOf( '1' );
+			int lastOne = binary.lastIndexOf( '1' );			
+			if( lastOne == firstOne )
+				singleTerm = true;
+			
+			for( int j = binary.indexOf( '1' ) + 1; j <= binary.lastIndexOf( '1' ) - 1; j++ ) {
+				if( binary.charAt( j ) == '0' ) {
+					contiguous = false;
+					break;
+				}
+			}
+			
+			if( singleTerm )
+				termQuery += tokens[ firstOne ] + " ";
+			else if( !singleTerm && contiguous ) {
+				orderedQuery += "#1( ";
+				unorderedQuery += "#uw" + ( lastOne - firstOne + 1 )*4 + "( ";
+				for( int j = firstOne; j <= lastOne; j++ ) {
+					orderedQuery += tokens[ j ] + " ";
+					unorderedQuery += tokens[ j ] + " ";
+				}
+				orderedQuery += ") ";
+				unorderedQuery += ") ";
+			}
+			else { // !singleTerm && !contiguous
+				String tmp = "";
+				int numTokens = 0;
+				for( int j = 0; j < binary.length(); j++ ) {
+					if( binary.charAt( j ) == '1' ) {
+						numTokens++;
+						tmp += tokens[ j ] + " ";
+					}
+				}
+				unorderedQuery += "#uw" + (numTokens*4) + "( " + tmp + ") "; 
+			}			
+		}
+		
+		termQuery = "#combine( " + termQuery + ")";
+		orderedQuery = "#combine( " + orderedQuery + ")";
+		unorderedQuery = "#combine( " + unorderedQuery + ")";
+				
+		if( w.termWeight != 0.0 && w.contiguousOrderedWeight != 0.0 && w.unorderedWeight != 0.0 )
+			return "#weight( " + w.termWeight + " " + termQuery + " " + w.contiguousOrderedWeight + " " + orderedQuery + " " + w.unorderedWeight + " " + unorderedQuery + " )"; 
+		else if( w.termWeight != 0.0 && w.contiguousOrderedWeight != 0.0 && w.unorderedWeight == 0.0 )
+			return "#weight( " + w.termWeight + " " + termQuery + " " + w.contiguousOrderedWeight + " " + orderedQuery + " )"; 
+		else if( w.termWeight != 0.0 && w.contiguousOrderedWeight == 0.0 && w.unorderedWeight != 0.0 )
+			return "#weight( " + w.termWeight + " " + termQuery + " " + w.unorderedWeight + " " + unorderedQuery + " )"; 
+		else if( w.termWeight == 0.0 && w.contiguousOrderedWeight != 0.0 && w.unorderedWeight != 0.0 )
+			return "#weight( " + w.contiguousOrderedWeight + " " + orderedQuery + " " + w.unorderedWeight + " " + unorderedQuery + " )"; 
+		else if( w.termWeight != 0.0 && w.contiguousOrderedWeight == 0.0 && w.unorderedWeight == 0.0 )
+			return termQuery; 
+		else if( w.termWeight == 0.0 && w.contiguousOrderedWeight != 0.0 && w.unorderedWeight == 0.0 )
+			return orderedQuery; 
+		else if( w.termWeight == 0.0 && w.contiguousOrderedWeight == 0.0 && w.unorderedWeight != 0.0 )
+			return unorderedQuery; 
+				
 		return null;
 	}
 	
@@ -179,11 +270,5 @@ public class QueryFormulator {
 			this.noncontigOrderedWeight = noncontig;
 			this.unorderedWeight = unordered; 
 		}
-	}
-	
-	public static void main( String args[] ) {
-		QueryFormulator qf = new QueryFormulator( "prostate cancer treatment" );
-		System.out.println( qf.formulateQuery( QueryFormulator.FULL_INDEPENDENCE ) );
-		System.out.println( qf.formulateQuery( QueryFormulator.SEQUENTIAL_DEPENDENCE ) );
-	}
+	}	
 }

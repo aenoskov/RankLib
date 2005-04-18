@@ -86,6 +86,8 @@ public class RecapTools {
 		while( iter.hasNext() ) {
 			String name = (String) iter.next();
 			ScoredExtentResult[] resultList = (ScoredExtentResult[]) annotations.get( name );
+			if( resultList == null )
+				continue;
 			
 			for( int i=0; i<resultList.length; i++ ) {
 				if( resultList[i].document == document ) {

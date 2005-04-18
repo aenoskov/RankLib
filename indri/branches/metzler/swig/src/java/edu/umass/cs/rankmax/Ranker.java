@@ -5,7 +5,7 @@
 package edu.umass.cs.rankmax;
 
 /**
- * @author metzler
+ * @author Don Metzler
  *
  */
 public interface Ranker {

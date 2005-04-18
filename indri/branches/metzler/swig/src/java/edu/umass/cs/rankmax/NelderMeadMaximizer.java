@@ -7,7 +7,7 @@ package edu.umass.cs.rankmax;
 import java.util.Arrays;
 
 /**
- * @author metzler
+ * @author Don Metzler
  *
  */
 public class NelderMeadMaximizer extends Maximizer {
@@ -50,9 +50,11 @@ public class NelderMeadMaximizer extends Maximizer {
 			// ORDER
 			sortVertices();
 			
-			System.out.println( "ITERATION = " + iter );
-			System.out.println( "BEST PARAMETER = " + getBestParam() );
-			System.out.println( "BEST SCORE = " + getBestScore() );
+			if( verbose ) {
+				System.out.println( "ITERATION = " + iter );
+				System.out.println( "BEST PARAMETER = " + getBestParam() );
+				System.out.println( "BEST SCORE = " + getBestScore() );
+			}
 
 			Parameters paramMean = getParamMean();
 
@@ -98,14 +100,10 @@ public class NelderMeadMaximizer extends Maximizer {
 			}			
 		}
 		
-		System.out.println("Total function evaluations = " + fxnEvaluations );
+		if( verbose )
+			System.out.println("Total function evaluations = " + fxnEvaluations );
 	}
 	
-	protected double eval( Parameters p ) {
-		fxnEvaluations++;
-		return e.evaluate( r.getRankings( p ) );
-	}
-
 	// computes the mean of the parameter values
 	protected Parameters getParamMean() {
 		Parameters mean = vertices[0].params; 
