@@ -54,26 +54,93 @@ public class SteepestAscentMaximizer extends Maximizer {
 		double newVal = curVal;
 		
 		double originalVal = param.getParam( coordinate );
+		double pointA = 0.0;
+		double pointB = 0.0;
 		
-		param.setParam( coordinate, originalVal - BRACKET_WIDTH );
-		double a = eval( param );
-		param.setParam( coordinate, originalVal + BRACKET_WIDTH );
-		double b = eval( param );
+		// set up bracket
+		// TODO: automatically find bracket
+		if( onSimplex ) {
+			pointA = 0.25*originalVal;
+			pointB = 4.0*originalVal;
+		}
+		else {
+			pointA = originalVal - BRACKET_WIDTH;
+			pointB = originalVal + BRACKET_WIDTH;
+		}
+			
+		param.setParam( coordinate, pointA );
+		double fa = eval( param );
+		param.setParam( coordinate, pointB );
+		double fb = eval( param );
 		param.setParam( coordinate, originalVal );
 
-		if( a > curVal && a > b ) { // non-bracket
-			param.setParam( coordinate, originalVal - BRACKET_WIDTH );
-			newVal = a;
+		if( fa >= curVal && fa > fb ) { // non-bracket
+			param.setParam( coordinate, pointA );
+			newVal = fa;
 		}
-		else if( b > curVal && b > a ) { // non-bracket
-			param.setParam( coordinate, originalVal + BRACKET_WIDTH );
-			newVal = b;
+		else if( fb >= curVal && fb > fa ) { // non-bracket
+			param.setParam( coordinate, pointB );
+			newVal = fb;
 		}
 		else { // bracket [ a, curVal, c ]
-			System.out.println( "coordinate: " + coordinate + ", a: " + a + ", curVal:" + curVal + ", b: " + b );
+			//System.out.println( "originalVal: " + originalVal + ", coordinate: " + coordinate + ", a: " + fa + ", curVal:" + curVal + ", b: " + fb );
+			newVal = goldenSectionSearch( coordinate, pointA, fa, originalVal, curVal, pointB, fb );
 		}
 		
 		return newVal;
 	}
 		
+	// golden section one dimension search
+	protected double goldenSectionSearch( int coordinate,
+										  double a, double fa,
+										  double b, double fb,
+										  double c, double fc ) {
+		double val = 0.0;
+		double d = 0.0;
+		double R = ( 3.0 - Math.sqrt( 5.0 ) ) / 2.0;
+
+		for( int iter = 0; iter < 50; iter++ ) {
+			// get new point to evaluate
+			if( c - b > b - a )
+				d = b + R*( c - b );
+			else
+				d = b - R*( b - a );
+		
+			param.setParam( coordinate, d );
+			double fd = eval( param );
+
+			//System.out.println( "original bracket: [ " + a + "(" + fa + "), " + b + "(" + fb + "), " + c + "(" + fc + ") ]" );
+		
+			// TODO: simplify this logic once i make sure it's correct
+			if( d > b ) {
+				if( fb >= fd ) {
+					c = d;
+					fc = fd;
+				}
+				else {
+					a = b;
+					fa = fb;
+					b = d;
+					fb = fd;
+				}
+			}
+			else {
+				if( fb >= fd ) {
+					a = d;
+					fa = fd;
+				}
+				else {
+					c = b;
+					fc = fb;
+					b = d;
+					fb = fd;
+				}
+			}
+		}			
+		
+		//System.out.println( "new bracket: [ " + a + "(" + fa + "), " + b + "(" + fb + "), " + c + "(" + fc + ") ]" );
+		param.setParam( coordinate, b );
+		
+		return fb;
+	}
 }
