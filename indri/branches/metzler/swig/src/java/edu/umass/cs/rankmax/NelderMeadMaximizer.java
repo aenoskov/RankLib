@@ -21,8 +21,6 @@ public class NelderMeadMaximizer extends Maximizer {
 	protected int MAX_ITERS = 100;
 	protected double STOPPING_THRESHOLD = 0.01;
 	
-	protected int fxnEvaluations = 0;
-	
 	protected Vertex [] vertices = null;
 	
 	// construct a new Nelder-Mead maximizer using initial simplex defined by parameters a, b, c

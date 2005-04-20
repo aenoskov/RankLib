@@ -38,7 +38,7 @@ public class TestFunctionA implements Ranker, Evaluator {
 		m.setVerbose( true );
 		m.maximize();
 		
-		m = new SteepestAscentMaximizer( fxn, fxn, a, false );
+		m = new CoordinateAscentMaximizer( fxn, fxn, a, false );
 		m.setVerbose( true );
 		m.maximize();
 	}
