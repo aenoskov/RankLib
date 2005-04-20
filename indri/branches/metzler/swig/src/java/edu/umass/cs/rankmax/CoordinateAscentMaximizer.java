@@ -1,5 +1,5 @@
 /*
- * Created on Apr 19, 2005
+ * Created on Apr 17, 2005
  *
  */
 package edu.umass.cs.rankmax;
@@ -8,7 +8,7 @@ package edu.umass.cs.rankmax;
  * @author Don Metzler
  *
  */
-public class SteepestAscentMaximizer extends Maximizer {
+public class CoordinateAscentMaximizer extends Maximizer {
 
 	// maximum number of iterations
 	protected int MAX_ITERS = 100;
@@ -22,7 +22,7 @@ public class SteepestAscentMaximizer extends Maximizer {
 	// determines whether or not to keep the optimization constrainted to a simplex
 	protected boolean onSimplex = false;
 	
-	public SteepestAscentMaximizer( Ranker r, Evaluator e, Parameters parameters, boolean onSimplex ) {
+	public CoordinateAscentMaximizer( Ranker r, Evaluator e, Parameters parameters, boolean onSimplex ) {
 		super( r, e );
 		this.param = parameters;
 		this.onSimplex = onSimplex;
@@ -143,5 +143,4 @@ public class SteepestAscentMaximizer extends Maximizer {
 		
 		return fb;
 	}
-
 }

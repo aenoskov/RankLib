@@ -61,7 +61,7 @@ public class ClassificationSearch implements Ranker {
 		//Parameters p0 = fxn.getRandomStartPoint();
 		Parameters p0 = new Parameters( fxn.numFeatures * fxn.numClasses, 1.0 );
 		p0.simplexNormalize();
-		Maximizer m = new SteepestAscentMaximizer( fxn, eval, p0, true );
+		Maximizer m = new CoordinateAscentMaximizer( fxn, eval, p0, true );
 		m.setVerbose( true );
 		m.maximize();
 	}

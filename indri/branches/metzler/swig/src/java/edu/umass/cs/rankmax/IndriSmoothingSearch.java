@@ -61,7 +61,7 @@ public class IndriSmoothingSearch implements Ranker {
 		Parameters upper = new Parameters( new double [] { 4000 } );
 		Parameters [] params = new Parameters [] { lower, upper };
 		//Maximizer m = new NelderMeadMaximizer( fxn, eval, params );
-		Maximizer m = new SteepestAscentMaximizer( fxn, eval, lower, true );
+		Maximizer m = new CoordinateAscentMaximizer( fxn, eval, lower, true );
 		m.maximize();
 	}
 }
