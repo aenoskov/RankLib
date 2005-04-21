@@ -16,9 +16,6 @@ public class CoordinateAscentMaximizer extends Maximizer {
 	// width of line search bracket
 	protected double BRACKET_WIDTH = 1.0;
 	
-	// current parameter setting
-	//protected Parameters param = null;
-	
 	// determines whether or not to keep the optimization constrainted to a simplex
 	protected boolean onSimplex = false;
 	
@@ -30,6 +27,8 @@ public class CoordinateAscentMaximizer extends Maximizer {
 	
 	public void maximize() {
 		double curVal = eval( param );
+		Parameters direction = new Parameters( param.size(), 0.0 );
+		Bracket bracket = null;
 
 		for( int iter = 0; iter < MAX_ITERS; iter++ ) {
 			if( verbose ) {
@@ -40,7 +39,52 @@ public class CoordinateAscentMaximizer extends Maximizer {
 
 			// perform one optimization step
 			for( int i = 0; i < param.size(); i++ ) {
-				curVal = lineSearch( curVal, i );			
+				if( i == 0 )
+					direction.setParam( param.size() - 1, 0.0 );
+				else
+					direction.setParam( i - 1, 0.0 );
+				direction.setParam( i, 1.0 );
+				bracket = bracket( direction, 10E-16, -param.getParam( i ), 10.0 );
+				if( bracket.isBracket() ) {
+					System.out.println( bracket );
+					curVal = lineSearch( direction, bracket );
+					System.out.println( "[BRACKET] curVal: " + curVal );
+				}
+				else { // if we don't have a bracket to search then step in the direction
+					   // that maximizes our objective function as much as possible
+					System.out.println( bracket );
+					if( curVal == bracket.fa && bracket.fc > curVal ) {
+						param = param.add( direction, 1.0, bracket.c );
+						//System.out.println( "[NON-BRACKET-0] non-normalized: " + eval( param ) );
+						//param.simplexNormalize();
+						//System.out.println( "[NON-BRACKET-0] normalized: " + eval( param ) );
+						curVal = bracket.fc;
+					}
+					else if( curVal == bracket.fc && bracket.fa > curVal ) {
+						param = param.add( direction, 1.0, bracket.a );
+						//System.out.println( "[NON-BRACKET-1] non-normalized: " + eval( param ) );
+						//param.simplexNormalize();
+						//System.out.println( "[NON-BRACKET-1] normalized: " + eval( param ) );
+						curVal = bracket.fa;
+					}
+					else {
+						if( bracket.fa > curVal && bracket.fa > bracket.fc ) {
+							param = param.add( direction, 1.0, bracket.a );
+							//System.out.println( "[NON-BRACKET-2] non-normalized: " + eval( param ) );
+							//param.simplexNormalize();
+							//System.out.println( "[NON-BRACKET-2] normalized: " + eval( param ) );
+							curVal = bracket.fa;
+						}
+						else if( bracket.fc > curVal && bracket.fc > bracket.fa ) {
+							param = param.add( direction, 1.0, bracket.c );
+							//System.out.println( "[NON-BRACKET-3] non-normalized: " + eval( param ) );
+							//param.simplexNormalize();
+							//System.out.println( "[NON-BRACKET-3] normalized: " + eval( param ) );
+							curVal = bracket.fc;
+						}
+					}
+					System.out.println( "[NON-BRACKET] curVal: " + curVal );
+				}
 				if( onSimplex )
 					param.simplexNormalize();
 			}
@@ -50,7 +94,7 @@ public class CoordinateAscentMaximizer extends Maximizer {
 			System.out.println( "Total function evaluations = " + fxnEvaluations );
 	}
 	
-	protected double lineSearch( double curVal, int coordinate ) {
+/*	protected double lineSearch( double curVal, int coordinate ) {
 		double newVal = curVal;
 		
 		double originalVal = param.getParam( coordinate );
@@ -142,5 +186,5 @@ public class CoordinateAscentMaximizer extends Maximizer {
 		param.setParam( coordinate, b );
 		
 		return fb;
-	}
+	}*/
 }
