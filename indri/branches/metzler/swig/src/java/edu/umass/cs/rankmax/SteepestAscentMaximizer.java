@@ -40,7 +40,7 @@ public class SteepestAscentMaximizer extends Maximizer {
 
 			// perform one optimization step
 			for( int i = 0; i < param.size(); i++ ) {
-				curVal = lineSearch( curVal, i );			
+				//curVal = lineSearch( curVal, i );			
 				if( onSimplex )
 					param.simplexNormalize();
 			}
@@ -50,7 +50,7 @@ public class SteepestAscentMaximizer extends Maximizer {
 			System.out.println( "Total function evaluations = " + fxnEvaluations );
 	}
 	
-	protected double lineSearch( double curVal, int coordinate ) {
+/*	protected double lineSearch( double curVal, int coordinate ) {
 		double newVal = curVal;
 		
 		double originalVal = param.getParam( coordinate );
@@ -142,6 +142,6 @@ public class SteepestAscentMaximizer extends Maximizer {
 		param.setParam( coordinate, b );
 		
 		return fb;
-	}
+	}*/
 
 }
