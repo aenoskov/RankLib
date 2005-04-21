@@ -489,8 +489,13 @@ void indri::collection::Repository::_addMemoryIndex() {
   indri::thread::ScopedLock slock( _stateLock );
 
   // build a new memory index
-  indri::index::Index* activeIndex = _active->back();
-  int documentBase = activeIndex->documentBase() + activeIndex->documentCount();
+  int documentBase = 1;
+
+  if( _active->size() > 0 ) {
+    indri::index::Index* activeIndex = _active->back();
+    documentBase = activeIndex->documentBase() + activeIndex->documentCount();
+  }
+
   indri::index::MemoryIndex* newMemoryIndex = new indri::index::MemoryIndex( documentBase, _indexFields );
 
   // build a new state vector
@@ -883,8 +888,8 @@ void indri::collection::Repository::_merge( index_state& state ) {
     // release the previous state object
     state = 0;
 
-    _merge( first );
     _merge( second );
+    _merge( first );
 
     std::copy( first->begin(), first->end(), std::back_inserter( *result ) );
     std::copy( second->begin(), second->end(), std::back_inserter( *result ) );
