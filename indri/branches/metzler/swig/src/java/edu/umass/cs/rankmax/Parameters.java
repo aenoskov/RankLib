@@ -45,20 +45,33 @@ public class Parameters {
 		return new Parameters( newParams );		
 	}
 	
-	// normalizes the parameters such that their sum is 1
+	// normalizes the parameters such that: they are all non-negative and they sum to 1
 	public void simplexNormalize() {
 		double sum = 0.0;
-		for( int i = 0; i < params.length; i++ )
+		double min = 0.0;
+		for( int i = 0; i < params.length; i++ ) {
 			sum += params[i];
+			if( params[i] < min )
+				min = params[i];
+		}
+		if( min >= 0 )
+			min = 0;
+		else {
+			System.err.println("min: " + min + ", sum[before]: " + sum + ", sum[after]: " + (sum - min*params.length) );
+			sum += -min*params.length;
+		}
 		// TODO: what if sum == 0.0 ?
 		for( int i = 0; i < params.length; i++ )
-			params[i] /= sum;
+			params[i] = ( params[i] - min ) / sum;
 	}
 	
 	// returns parameter at coordinate i
 	public double getParam( int i ) {
-		if( i < 0 || i >= params.length ) // TODO: throw Exception?
+		if( i < 0 || i >= params.length ) { // TODO: throw Exception?
+			System.out.println( "RETURNING NaN!" );
+			System.exit(0);
 			return Double.NaN;
+		}
 		return params[i];
 	}
 

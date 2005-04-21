@@ -39,12 +39,13 @@ public class CoordinateAscentMaximizer extends Maximizer {
 
 			// perform one optimization step
 			for( int i = 0; i < param.size(); i++ ) {
+				System.out.println( "coordinate: " + i );
 				if( i == 0 )
 					direction.setParam( param.size() - 1, 0.0 );
 				else
 					direction.setParam( i - 1, 0.0 );
 				direction.setParam( i, 1.0 );
-				bracket = bracket( direction, 10E-16, -param.getParam( i ), 10.0 );
+				bracket = bracket( direction, 10E-16, -10.0, 10.0 );
 				if( bracket.isBracket() ) {
 					System.out.println( bracket );
 					curVal = lineSearch( direction, bracket );
@@ -55,31 +56,51 @@ public class CoordinateAscentMaximizer extends Maximizer {
 					System.out.println( bracket );
 					if( curVal == bracket.fa && bracket.fc > curVal ) {
 						param = param.add( direction, 1.0, bracket.c );
-						//System.out.println( "[NON-BRACKET-0] non-normalized: " + eval( param ) );
-						//param.simplexNormalize();
-						//System.out.println( "[NON-BRACKET-0] normalized: " + eval( param ) );
+						double tmp1 = eval( param );
+						param.simplexNormalize();
+						double tmp2 = eval( param );
+						if( tmp1 != tmp2 ) {
+							System.out.println( "[NON-BRACKET-0] non-normalized: " + tmp1 );
+							System.out.println( "[NON-BRACKET-0] normalized: " + tmp2 );
+							//System.exit(-1);
+						}
 						curVal = bracket.fc;
 					}
 					else if( curVal == bracket.fc && bracket.fa > curVal ) {
 						param = param.add( direction, 1.0, bracket.a );
-						//System.out.println( "[NON-BRACKET-1] non-normalized: " + eval( param ) );
-						//param.simplexNormalize();
-						//System.out.println( "[NON-BRACKET-1] normalized: " + eval( param ) );
+						double tmp1 = eval( param );
+						param.simplexNormalize();
+						double tmp2 = eval( param );
+						if( tmp1 != tmp2 ) {
+							System.out.println( "[NON-BRACKET-1] non-normalized: " + tmp1 );
+							System.out.println( "[NON-BRACKET-1] normalized: " + tmp2 );
+							//System.exit(-1);
+						}
 						curVal = bracket.fa;
 					}
 					else {
 						if( bracket.fa > curVal && bracket.fa > bracket.fc ) {
 							param = param.add( direction, 1.0, bracket.a );
-							//System.out.println( "[NON-BRACKET-2] non-normalized: " + eval( param ) );
-							//param.simplexNormalize();
-							//System.out.println( "[NON-BRACKET-2] normalized: " + eval( param ) );
+							double tmp1 = eval( param );
+							param.simplexNormalize();
+							double tmp2 = eval( param );
+							if( tmp1 != tmp2 ) {
+								System.out.println( "[NON-BRACKET-2] non-normalized: " + tmp1 );
+								System.out.println( "[NON-BRACKET-2] normalized: " + tmp2 );
+								//System.exit(-1);
+							}
 							curVal = bracket.fa;
 						}
 						else if( bracket.fc > curVal && bracket.fc > bracket.fa ) {
 							param = param.add( direction, 1.0, bracket.c );
-							//System.out.println( "[NON-BRACKET-3] non-normalized: " + eval( param ) );
-							//param.simplexNormalize();
-							//System.out.println( "[NON-BRACKET-3] normalized: " + eval( param ) );
+							double tmp1 = eval( param );
+							param.simplexNormalize();
+							double tmp2 = eval( param );
+							if( tmp1 != tmp2 ) {
+								System.out.println( "[NON-BRACKET-3] non-normalized: " + tmp1 );
+								System.out.println( "[NON-BRACKET-3] normalized: " + tmp2 );
+								//System.exit(-1);
+							}
 							curVal = bracket.fc;
 						}
 					}
@@ -94,97 +115,4 @@ public class CoordinateAscentMaximizer extends Maximizer {
 			System.out.println( "Total function evaluations = " + fxnEvaluations );
 	}
 	
-/*	protected double lineSearch( double curVal, int coordinate ) {
-		double newVal = curVal;
-		
-		double originalVal = param.getParam( coordinate );
-		double pointA = 0.0;
-		double pointB = 0.0;
-		
-		// set up bracket
-		// TODO: automatically find bracket
-		if( onSimplex ) {
-			pointA = 0.25*originalVal;
-			pointB = 4.0*originalVal;
-		}
-		else {
-			pointA = originalVal - BRACKET_WIDTH;
-			pointB = originalVal + BRACKET_WIDTH;
-		}
-			
-		param.setParam( coordinate, pointA );
-		double fa = eval( param );
-		param.setParam( coordinate, pointB );
-		double fb = eval( param );
-		param.setParam( coordinate, originalVal );
-
-		if( fa >= curVal && fa > fb ) { // non-bracket
-			param.setParam( coordinate, pointA );
-			newVal = fa;
-		}
-		else if( fb >= curVal && fb > fa ) { // non-bracket
-			param.setParam( coordinate, pointB );
-			newVal = fb;
-		}
-		else { // bracket [ a, curVal, c ]
-			//System.out.println( "originalVal: " + originalVal + ", coordinate: " + coordinate + ", a: " + fa + ", curVal:" + curVal + ", b: " + fb );
-			newVal = goldenSectionSearch( coordinate, pointA, fa, originalVal, curVal, pointB, fb );
-		}
-		
-		return newVal;
-	}
-		
-	// golden section one dimension search
-	protected double goldenSectionSearch( int coordinate,
-										  double a, double fa,
-										  double b, double fb,
-										  double c, double fc ) {
-		double val = 0.0;
-		double d = 0.0;
-		double R = ( 3.0 - Math.sqrt( 5.0 ) ) / 2.0;
-
-		for( int iter = 0; iter < 50; iter++ ) {
-			// get new point to evaluate
-			if( c - b > b - a )
-				d = b + R*( c - b );
-			else
-				d = b - R*( b - a );
-		
-			param.setParam( coordinate, d );
-			double fd = eval( param );
-
-			//System.out.println( "original bracket: [ " + a + "(" + fa + "), " + b + "(" + fb + "), " + c + "(" + fc + ") ]" );
-		
-			// TODO: simplify this logic once i make sure it's correct
-			if( d > b ) {
-				if( fb >= fd ) {
-					c = d;
-					fc = fd;
-				}
-				else {
-					a = b;
-					fa = fb;
-					b = d;
-					fb = fd;
-				}
-			}
-			else {
-				if( fb >= fd ) {
-					a = d;
-					fa = fd;
-				}
-				else {
-					c = b;
-					fc = fb;
-					b = d;
-					fb = fd;
-				}
-			}
-		}			
-		
-		//System.out.println( "new bracket: [ " + a + "(" + fa + "), " + b + "(" + fb + "), " + c + "(" + fc + ") ]" );
-		param.setParam( coordinate, b );
-		
-		return fb;
-	}*/
 }

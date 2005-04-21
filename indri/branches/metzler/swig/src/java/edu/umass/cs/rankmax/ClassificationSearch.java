@@ -50,14 +50,17 @@ public class ClassificationSearch implements Ranker {
 				results[ i ].add( new Ranking.RankedItem( classNames[ classID ], score ) );
 			}
 		}
+
+		//System.out.println( p );
+		//System.out.println( results[1] );
 		
 		return results;
 	}
 
 	public static void main( String [] args ) {
 		ClassificationSearch fxn = new ClassificationSearch( args[0] );
-		Evaluator eval = new AveragePrecisionEvaluator( args[1] );
-		//Evaluator eval = new PrecisionAtNEvaluator( args[1], 1 );
+		//Evaluator eval = new AveragePrecisionEvaluator( args[1] );
+		Evaluator eval = new PrecisionAtNEvaluator( args[1], 1 );
 		//Parameters p0 = fxn.getRandomStartPoint();
 		Parameters p0 = new Parameters( fxn.numFeatures * fxn.numClasses, 1.0 );
 		p0.simplexNormalize();

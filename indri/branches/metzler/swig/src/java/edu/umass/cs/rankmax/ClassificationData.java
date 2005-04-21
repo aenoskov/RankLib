@@ -26,7 +26,8 @@ public class ClassificationData {
 	}
 	
 	public void addInstance( String instanceID, String classLabel, ArrayList indices, ArrayList values ) {
-		SparseInstance inst = new SparseInstance( instanceID, classLabel, indices, values );
+		//SparseInstance inst = new SparseInstance( instanceID, classLabel, indices, values );
+		SparseInstance inst = new SparseInstance( instanceID, classLabel, indices, values, 0.0 );
 		instances.add( inst );
 		
 		int numClasses = classes.size();
@@ -35,8 +36,9 @@ public class ClassificationData {
 			classNames.add( classLabel );
 		}
 		
-		if( inst.getMaxIndex() > numFeatures )
-			numFeatures = inst.getMaxIndex();
+		int count = inst.getMaxIndex() + 1;
+		if( count > numFeatures )
+			numFeatures = count;
 	}
 	
 	public ArrayList getInstances() {
@@ -54,4 +56,5 @@ public class ClassificationData {
 	public int getNumFeatures() {
 		return numFeatures;
 	}
+	
 }
