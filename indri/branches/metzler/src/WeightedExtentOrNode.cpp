@@ -21,36 +21,36 @@
 #include "lemur/lemur-compat.hpp"
 #include "indri/Annotator.hpp"
 
-WeightedExtentOrNode::WeightedExtentOrNode( const std::string& name, std::vector<ListIteratorNode*>& children, const std::vector<double>& weights ) :
+indri::infnet::WeightedExtentOrNode::WeightedExtentOrNode( const std::string& name, std::vector<ListIteratorNode*>& children, const std::vector<double>& weights ) :
   _weights(weights),  
   _children(children),
   _name(name)
 {
 }
 
-void WeightedExtentOrNode::prepare( int documentID ) {
+void indri::infnet::WeightedExtentOrNode::prepare( int documentID ) {
   _extents.clear();
-  greedy_vector<Extent> allExtents;
+  indri::utility::greedy_vector<indri::index::Extent> allExtents;
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
     ListIteratorNode* child = _children[i];
     double weight = _weights[i];
     
     for( unsigned int j=0; j<child->extents().size(); j++ ) {
-      const Extent& extent = child->extents()[j];
-      _extents.push_back( Extent( weight * extent.weight, extent.begin, extent.end ) );
+      const indri::index::Extent& extent = child->extents()[j];
+      _extents.push_back( indri::index::Extent( weight * extent.weight, extent.begin, extent.end ) );
     }
   }
 
   // sort all extents in order of beginning
-  std::sort( _extents.begin(), _extents.end(), Extent::begins_before_less() );
+  std::sort( _extents.begin(), _extents.end(), indri::index::Extent::begins_before_less() );
 }
 
-const greedy_vector<Extent>& WeightedExtentOrNode::extents() {
+const indri::utility::greedy_vector<indri::index::Extent>& indri::infnet::WeightedExtentOrNode::extents() {
   return _extents;
 }
 
-int WeightedExtentOrNode::nextCandidateDocument() {
+int indri::infnet::WeightedExtentOrNode::nextCandidateDocument() {
   int candidate = INT_MAX;
   
   for( unsigned int i=0; i<_children.size(); i++ ) {
@@ -60,11 +60,11 @@ int WeightedExtentOrNode::nextCandidateDocument() {
   return candidate;
 }
 
-const std::string& WeightedExtentOrNode::getName() const {
+const std::string& indri::infnet::WeightedExtentOrNode::getName() const {
   return _name;
 }
 
-void WeightedExtentOrNode::annotate( class Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::WeightedExtentOrNode::annotate( class Annotator& annotator, int documentID, int begin, int end ) {
   annotator.addMatches( _extents, this, documentID, begin, end );
 
   for( unsigned int i=0; i<_extents.size(); i++ ) {
@@ -74,7 +74,7 @@ void WeightedExtentOrNode::annotate( class Annotator& annotator, int documentID,
   }
 }
 
-void WeightedExtentOrNode::indexChanged( indri::index::Index& index ) {
+void indri::infnet::WeightedExtentOrNode::indexChanged( indri::index::Index& index ) {
   // do nothing
 }
 

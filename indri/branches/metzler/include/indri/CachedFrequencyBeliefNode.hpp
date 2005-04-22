@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 //
 // CachedFrequencyBeliefNode
@@ -26,40 +26,48 @@
 #include "indri/ListCache.hpp"
 #include "indri/StatisticsBeliefNode.hpp"
 
-class CachedFrequencyBeliefNode : public StatisticsBeliefNode {
-private:
-  TermScoreFunction& _function;
-  greedy_vector<ScoredExtentResult> _extents;
-  greedy_vector<bool> _matches;
-  greedy_vector<DocumentContextCount>::iterator _iter;
-  ListCache::CachedList* _list;
-  double _maximumBackgroundScore;
-  double _maximumScore;
-  std::string _name;
+namespace indri
+{
+  namespace infnet 
+  {
+    
+    class CachedFrequencyBeliefNode : public StatisticsBeliefNode {
+    private:
+      indri::query::TermScoreFunction& _function;
+      indri::utility::greedy_vector<indri::api::ScoredExtentResult> _extents;
+      indri::utility::greedy_vector<indri::index::DocumentContextCount>::iterator _iter;
+      indri::utility::greedy_vector<bool> _matches;
+      indri::lang::ListCache::CachedList* _list;
+      double _maximumBackgroundScore;
+      double _maximumScore;
+      std::string _name;
 
-public:
-  CachedFrequencyBeliefNode( const std::string& name,
-    ListCache::CachedList* list,
-    TermScoreFunction& scoreFunction,
-    double maximumBackgroundScore,
-    double maximumScore );
+    public:
+      CachedFrequencyBeliefNode( const std::string& name,
+                                 indri::lang::ListCache::CachedList* list,
+                                 indri::query::TermScoreFunction& scoreFunction,
+                                 double maximumBackgroundScore,
+                                 double maximumScore );
 
-  int nextCandidateDocument();
-  void indexChanged( indri::index::Index& index );
+      int nextCandidateDocument();
+      void indexChanged( indri::index::Index& index );
 
-  double maximumBackgroundScore();
-  double maximumScore();
-  const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
-  void annotate( class Annotator& annotator, int documentID, int begin, int end );
-  bool hasMatch( int documentID );
-  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents ); 
-  const std::string& getName() const;
+      double maximumBackgroundScore();
+      double maximumScore();
+      const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
+      void annotate( class Annotator& annotator, int documentID, int begin, int end );
+      bool hasMatch( int documentID );
+      const indri::utility::greedy_vector<bool>& hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents );
+      
+      const std::string& getName() const;
+
+      double matches( int begin, int end );
+      double contextSize( int begin, int end );
   
-  double matches( int begin, int end );
-  double contextSize( int begin, int end );
-  
-  void advance();
-};
+      void advance();
+    };
+  }
+}
 
 #endif // INDRI_CACHEDFREQUENCYBELIEFNODE_HPP
 

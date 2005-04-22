@@ -11,7 +11,7 @@
 #ifndef SWIG_indri_WRAP_H_
 #define SWIG_indri_WRAP_H_
 
-struct SwigDirector_IndexStatus : public IndexStatus, public Swig::Director {
+struct SwigDirector_IndexStatus : public indri::api::IndexStatus, public Swig::Director {
 
 public:
   virtual ~SwigDirector_IndexStatus();

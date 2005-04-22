@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 //
 // TermFrequencyBeliefNode
@@ -26,42 +26,49 @@
 #include "indri/DocListIterator.hpp"
 #include "indri/StatisticsBeliefNode.hpp"
 
-class TermFrequencyBeliefNode : public StatisticsBeliefNode {
-private:
-  class InferenceNetwork& _network;
-  TermScoreFunction& _function;
-  greedy_vector<ScoredExtentResult> _extents;
-  greedy_vector<bool> _matches;
-  indri::index::DocListIterator* _list;
-  double _maximumBackgroundScore;
-  double _maximumScore;
-  std::string _name;
-  int _listID;
+namespace indri
+{
+  namespace infnet
+  {
+    
+    class TermFrequencyBeliefNode : public BeliefNode {
+    private:
+      class InferenceNetwork& _network;
+      indri::query::TermScoreFunction& _function;
+      indri::utility::greedy_vector<indri::api::ScoredExtentResult> _extents;
+      indri::utility::greedy_vector<bool> _matches;
+      indri::index::DocListIterator* _list;
+      double _maximumBackgroundScore;
+      double _maximumScore;
+      std::string _name;
+      int _listID;
 
-  greedy_vector<indri::index::DocListIterator::TopDocument> _emptyTopdocs;
+      indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument> _emptyTopdocs;
 
-public:
-  TermFrequencyBeliefNode( const std::string& name,
-    class InferenceNetwork& network,
-    int listID,
-    TermScoreFunction& scoreFunction );
+    public:
+      TermFrequencyBeliefNode( const std::string& name,
+                               class InferenceNetwork& network,
+                               int listID,
+                               indri::query::TermScoreFunction& scoreFunction );
 
-  ~TermFrequencyBeliefNode();
+      ~TermFrequencyBeliefNode();
 
-  const greedy_vector<indri::index::DocListIterator::TopDocument>& topdocs() const;
-  int nextCandidateDocument();
-  void indexChanged( indri::index::Index& index );
-  double maximumBackgroundScore();
-  double maximumScore();
-  const greedy_vector<ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
-  void annotate( class Annotator& annotator, int documentID, int begin, int end );
-  bool hasMatch( int documentID );
-  const greedy_vector<bool>& hasMatch( int documentID, const greedy_vector<Extent>& extents );
-  const std::string& getName() const;
-  
-  double matches( int begin, int end );
-  double contextSize( int begin, int end );
-};
+      const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& topdocs() const;
+      int nextCandidateDocument();
+      void indexChanged( indri::index::Index& index );
+      double maximumBackgroundScore();
+      double maximumScore();
+      const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& score( int documentID, int begin, int end, int documentLength );
+      void annotate( class Annotator& annotator, int documentID, int begin, int end );
+      bool hasMatch( int documentID );
+      const indri::utility::greedy_vector<bool>& hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents );
+      const std::string& getName() const;
+
+      double matches( int begin, int end );
+      double contextSize( int begin, int end );
+    };
+  }
+}
 
 #endif // INDRI_TERMFREQUENCYBELIEFNODE_HPP
 
