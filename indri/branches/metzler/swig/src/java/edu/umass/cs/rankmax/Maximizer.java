@@ -55,6 +55,11 @@ abstract public class Maximizer {
 		double alpha, stepSize, lastVal;
 		boolean increase, decrease;
 		
+		if( initialStepSize == 0.0 ) {
+			System.err.println( "[Maximizer.bracket] initialStepSize set to 0 -- setting to Double.MIN_VALUE!" );
+			initialStepSize = Double.MIN_VALUE;
+		}
+		
 		// value of current parameter setting
 		// in order to find a bracket we need to find two points a and b such that:
 		// a < param < b AND f(a) < f(param) > f(b)
@@ -175,7 +180,7 @@ abstract public class Maximizer {
 
 		//while( Math.abs( x3 - x0 ) > TOL*( Math.abs( x1 ) + Math.abs( x2 ) ) ) {
 		// TODO: implement better stopping criteria
-		for( int iter = 0; iter < 5; iter++ ) {
+		for( int iter = 0; iter < 10; iter++ ) {
 			if( f2 > f1 ) {
 				x0 = x1;
 				x1 = x2;
@@ -200,6 +205,38 @@ abstract public class Maximizer {
 			param = x2;			
 			return f2;
 		}		
+	}
+	
+	// computes a finite difference estimate of the derivative for each coordinate
+	// and constructs an approximate gradient vector
+	public Parameters getFiniteDifferenceGradient( double minAlpha, double maxAlpha ) {
+		Parameters gradient = new Parameters( param.size(), 0.0 );
+		Parameters direction = new Parameters( param.size(), 0.0 );
+		Bracket bracket = null;
+		
+		double curVal = eval( param );
+		
+		// compute estimates of partial derivatives
+		for( int coordinate = 0; coordinate < param.size(); coordinate++ ) {
+			if( coordinate > 0 )
+				direction.setParam( coordinate - 1, 0.0 );
+			direction.setParam( coordinate, 1.0 );
+			
+			// try to find some variation in the coordinate using bracketing
+			bracket = bracket( direction, 10E-32, minAlpha, maxAlpha );
+
+			double partial = 0.0;
+			if( bracket.fa > curVal )
+				partial = ( bracket.fa - curVal ) / ( bracket.a - 0.0 );
+			else if( bracket.fb > curVal )
+				partial = ( bracket.fb - curVal ) / ( bracket.b - 0.0 );
+			else if( bracket.fc > curVal )
+				partial = ( bracket.fc - curVal ) / ( bracket.c - 0.0 );
+			
+			gradient.setParam( coordinate, partial );
+		}
+		
+		return gradient;
 	}
 	
 	public void setVerbose( boolean b ) {
