@@ -36,11 +36,9 @@ public class CoordinateAscentMaximizer extends Maximizer {
 			permutation[ i ] = i;
 		
 		for( int iter = 0; iter < MAX_ITERS; iter++ ) {
-			if( verbose ) {
-				System.out.println( "ITERATION = " + iter );
-				//System.out.println( "CURRENT PARAMETER = " + param );
-				System.out.println( "FXN VALUE = " + curVal );
-			}
+			verbosePrint( "[CoordinateAscentMaximizer.maximize] ITERATION = " + iter );
+			//verbosePrint( "CURRENT PARAMETER = " + param );
+			verbosePrint( "[CoordinateAscentMaximizer.maximize] FXN VALUE = " + curVal );
 
 			// permute the ordering of the coordinates
 			for( int i = 0; i < param.size(); i++ ) {
@@ -52,7 +50,7 @@ public class CoordinateAscentMaximizer extends Maximizer {
 							
 			// perform one optimization step
 			for( int i = 0; i < param.size(); i++ ) {
-				System.out.println( "coordinate: " + i );
+				verbosePrint( "[CoordinateAscentMaximizer.maximize] coordinate: " + permutation[ i ] );
 				
 				// set up direction vector
 				direction.setParam( lastCoordinate, 0.0 );
@@ -65,73 +63,41 @@ public class CoordinateAscentMaximizer extends Maximizer {
 					bracket = bracket( direction, Math.sqrt( curParam ), -curParam, 10.0 );
 				else
 					bracket = bracket( direction, curParam * curParam, -curParam, 10.0 );
+
+				verbosePrint( "bracket: " + bracket );
+				
 				if( bracket.isBracket() ) {
-					System.out.println( bracket );
 					curVal = lineSearch( direction, bracket );
-					System.out.println( "[BRACKET] curVal: " + curVal );
+					verbosePrint( "[CoordinateAscentMaximizer.maximize] [BRACKET] curVal: " + curVal );
 				}
 				else { // if we don't have a bracket to search then step in the direction
 					   // that maximizes our objective function as much as possible
-					System.out.println( bracket );
 					if( curVal == bracket.fa && bracket.fc > curVal ) {
 						param = param.add( direction, 1.0, bracket.c );
-						/*double tmp1 = eval( param );
-						param.simplexNormalize();
-						double tmp2 = eval( param );
-						if( tmp1 != tmp2 ) {
-							System.out.println( "[NON-BRACKET-0] non-normalized: " + tmp1 );
-							System.out.println( "[NON-BRACKET-0] normalized: " + tmp2 );
-							//System.exit(-1);
-						}*/
 						curVal = bracket.fc;
 					}
 					else if( curVal == bracket.fc && bracket.fa > curVal ) {
 						param = param.add( direction, 1.0, bracket.a );
-						/*double tmp1 = eval( param );
-						param.simplexNormalize();
-						double tmp2 = eval( param );
-						if( tmp1 != tmp2 ) {
-							System.out.println( "[NON-BRACKET-1] non-normalized: " + tmp1 );
-							System.out.println( "[NON-BRACKET-1] normalized: " + tmp2 );
-							//System.exit(-1);
-						}*/
 						curVal = bracket.fa;
 					}
 					else {
 						if( bracket.fa > curVal && bracket.fa > bracket.fc ) {
 							param = param.add( direction, 1.0, bracket.a );
-							/*double tmp1 = eval( param );
-							param.simplexNormalize();
-							double tmp2 = eval( param );
-							if( tmp1 != tmp2 ) {
-								System.out.println( "[NON-BRACKET-2] non-normalized: " + tmp1 );
-								System.out.println( "[NON-BRACKET-2] normalized: " + tmp2 );
-								//System.exit(-1);
-							}*/
 							curVal = bracket.fa;
 						}
 						else if( bracket.fc > curVal && bracket.fc > bracket.fa ) {
 							param = param.add( direction, 1.0, bracket.c );
-							/*double tmp1 = eval( param );
-							param.simplexNormalize();
-							double tmp2 = eval( param );
-							if( tmp1 != tmp2 ) {
-								System.out.println( "[NON-BRACKET-3] non-normalized: " + tmp1 );
-								System.out.println( "[NON-BRACKET-3] normalized: " + tmp2 );
-								//System.exit(-1);
-							}*/
 							curVal = bracket.fc;
 						}
 					}
-					System.out.println( "[NON-BRACKET] curVal: " + curVal );
+					verbosePrint( "[CoordinateAscentMaximizer.maximize] [NON-BRACKET] curVal: " + curVal );
 				}
 				if( onSimplex )
 					param.simplexNormalize();
 			}
 		}
 		
-		if( verbose )
-			System.out.println( "Total function evaluations = " + fxnEvaluations );
+		verbosePrint( "[CoordinateAscentMaximizer.maximize] Total function evaluations = " + fxnEvaluations );
 	}
 	
 }
