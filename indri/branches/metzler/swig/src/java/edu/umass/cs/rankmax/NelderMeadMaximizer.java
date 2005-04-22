@@ -48,11 +48,9 @@ public class NelderMeadMaximizer extends Maximizer {
 			// ORDER
 			sortVertices();
 			
-			if( verbose ) {
-				System.out.println( "ITERATION = " + iter );
-				System.out.println( "BEST PARAMETER = " + getBestParam() );
-				System.out.println( "BEST SCORE = " + getBestScore() );
-			}
+			verbosePrint( "[NelderMeadMaximizer.maximize] ITERATION = " + iter );
+			verbosePrint( "[NelderMeadMaximizer.maximize] BEST PARAMETER = " + getBestParam() );
+			verbosePrint( "[NelderMeadMaximizer.maximize] BEST SCORE = " + getBestScore() );
 
 			Parameters paramMean = getParamMean();
 
@@ -98,8 +96,7 @@ public class NelderMeadMaximizer extends Maximizer {
 			}			
 		}
 		
-		if( verbose )
-			System.out.println("Total function evaluations = " + fxnEvaluations );
+		verbosePrint("[NelderMeadMaximizer.maximize] Total function evaluations = " + fxnEvaluations );
 	}
 	
 	// computes the mean of the parameter values

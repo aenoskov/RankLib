@@ -233,6 +233,8 @@ abstract public class Maximizer {
 			else if( bracket.fc > curVal )
 				partial = ( bracket.fc - curVal ) / ( bracket.c - 0.0 );
 			
+			verbosePrint( "[Maximizer.getFiniteDifferenceGradient] coordinate: " + coordinate + ", partial: " + partial );
+			
 			gradient.setParam( coordinate, partial );
 		}
 		
@@ -241,6 +243,12 @@ abstract public class Maximizer {
 	
 	public void setVerbose( boolean b ) {
 		verbose = b;
+	}
+	
+	// TODO: allow this to write to a file, sterr, etc...
+	public void verbosePrint( String s ) {
+		if( verbose )
+			System.out.println( s );
 	}
 	
 	public class Bracket {
