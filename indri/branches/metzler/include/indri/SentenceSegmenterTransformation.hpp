@@ -20,22 +20,29 @@
 
 #define MIN_SENTENCE_TOKENS  ( 3 )
 #define MAX_SENTENCE_TOKENS  ( 100 )
+namespace indri
+{
+  namespace parse
+  {
 
-class SentenceSegmenterTransformation : public Transformation {
-private:
-  Buffer buffer;
-  ObjectHandler<ParsedDocument>* _handler;
-
-protected:
-  void addSentenceTag( ParsedDocument* document, int begin, int end );
-  size_t getStartPos( ParsedDocument* document );
-  int numSentences;
-
-public:
-  ParsedDocument* transform( ParsedDocument* document );
-
-  void setHandler( ObjectHandler<ParsedDocument>& handler );
-  void handle( ParsedDocument* document );
-};
-
+    class SentenceSegmenterTransformation : public Transformation {
+    private:
+      indri::utility::Buffer buffer;
+      ObjectHandler<indri::api::ParsedDocument>* _handler;
+      
+    protected:
+      void addSentenceTag( indri::api::ParsedDocument* document, int begin, int end );
+      size_t getStartPos( indri::api::ParsedDocument* document );
+      int numSentences;
+      
+    public:
+      indri::api::ParsedDocument* transform( indri::api::ParsedDocument* document );
+      
+      void setHandler( ObjectHandler<indri::api::ParsedDocument>& handler );
+      void handle( indri::api::ParsedDocument* document );
+    };
+  }
+}
+    
 #endif // INDRI_SENTENCESEGMENTERTRANSFORMATION_HPP
+    

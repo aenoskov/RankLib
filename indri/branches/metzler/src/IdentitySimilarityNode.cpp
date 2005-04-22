@@ -23,20 +23,20 @@
 #include "indri/Annotator.hpp"
 #include "indri/CachedFrequencyBeliefNode.hpp"
 
-IdentitySimilarityNode::IdentitySimilarityNode( const std::string& name, int variation ) :
+indri::infnet::IdentitySimilarityNode::IdentitySimilarityNode( const std::string& name, int variation ) :
   _name( name ),
   _variation( variation )
 {
 }
 
-IdentitySimilarityNode::IdentitySimilarityNode( const std::string& name, const std::vector<StatisticsBeliefNode*>& children, int variation ) :
+indri::infnet::IdentitySimilarityNode::IdentitySimilarityNode( const std::string& name, const std::vector<StatisticsBeliefNode*>& children, int variation ) :
   _children( children ),
   _name( name ),
   _variation( variation )
 {
 }
 
-const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int documentID, int begin, int end, int documentLength ) {
+const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::IdentitySimilarityNode::score( int documentID, int begin, int end, int documentLength ) {
   double score = 0.0;
   double variance = sqrt((double)10); // TODO: set this elsewhere
   
@@ -183,12 +183,12 @@ const greedy_vector<ScoredExtentResult>& IdentitySimilarityNode::score( int docu
   }
   
   _scores.clear();
-  _scores.push_back( ScoredExtentResult( score, documentID, begin, end ) );
+  _scores.push_back( indri::api::ScoredExtentResult( score, documentID, begin, end ) );
 
   return _scores;
 }
 
-void IdentitySimilarityNode::annotate( class Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::IdentitySimilarityNode::annotate( class Annotator& annotator, int documentID, int begin, int end ) {
   annotator.add(this, documentID, begin, end);
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
@@ -196,7 +196,7 @@ void IdentitySimilarityNode::annotate( class Annotator& annotator, int documentI
   }
 }
 
-bool IdentitySimilarityNode::hasMatch( int documentID ) {
+bool indri::infnet::IdentitySimilarityNode::hasMatch( int documentID ) {
   for( unsigned int i=0; i<_children.size(); i++ ) {
     if( _children[i]->hasMatch( documentID ) )
       return true;
@@ -205,7 +205,7 @@ bool IdentitySimilarityNode::hasMatch( int documentID ) {
   return false;
 }
 
-int IdentitySimilarityNode::nextCandidateDocument() {
+int indri::infnet::IdentitySimilarityNode::nextCandidateDocument() {
   int nextCandidate = MAX_INT32;
   
   for( unsigned int i=0; i<_children.size(); i++ ) {
@@ -215,20 +215,20 @@ int IdentitySimilarityNode::nextCandidateDocument() {
   return nextCandidate;
 }
 
-const std::string& IdentitySimilarityNode::getName() const {
+const std::string& indri::infnet::IdentitySimilarityNode::getName() const {
   return _name;
 }
 
 
 // created this to alleviate annoying compiler issues w.r.t to abs/fabs
-int IdentitySimilarityNode::my_abs( int a ) {
+int indri::infnet::IdentitySimilarityNode::my_abs( int a ) {
 	if( a >= 0 )
 		return a;
 	return -a;
 }
 
 // created this to alleviate annoying compiler issues w.r.t to abs/fabs
-double IdentitySimilarityNode::my_abs( double a ) {
+double indri::infnet::IdentitySimilarityNode::my_abs( double a ) {
 	if( a >= 0 )
 		return a;
 	return -a;
@@ -238,12 +238,12 @@ double IdentitySimilarityNode::my_abs( double a ) {
 // hasMatch
 //
 
-const greedy_vector<bool>& IdentitySimilarityNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+const indri::utility::greedy_vector<bool>& indri::infnet::IdentitySimilarityNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
   _matches.clear();
   _matches.resize( extents.size(), false );
 
   for( unsigned int i=0; i<_children.size(); i++ ) {
-    const greedy_vector<bool>& kidMatches = _children[i]->hasMatch( documentID, extents );
+    const indri::utility::greedy_vector<bool>& kidMatches = _children[i]->hasMatch( documentID, extents );
 
     for( unsigned int j=0; j<kidMatches.size(); j++ ) {
       if( kidMatches[j] ) {

@@ -11,9 +11,9 @@
 
 #include "indri/CachedFrequencyBeliefNode.hpp"
 
-CachedFrequencyBeliefNode::CachedFrequencyBeliefNode( const std::string& name,
-                                                      ListCache::CachedList* list,
-                                                      TermScoreFunction& scoreFunction,
+indri::infnet::CachedFrequencyBeliefNode::CachedFrequencyBeliefNode( const std::string& name,
+                                                                     indri::lang::ListCache::CachedList* list,
+                                                      indri::query::TermScoreFunction& scoreFunction,
                                                       double maximumBackgroundScore,
                                                       double maximumScore )
   :
@@ -26,23 +26,23 @@ CachedFrequencyBeliefNode::CachedFrequencyBeliefNode( const std::string& name,
   _iter = _list->entries.begin();
 }
 
-int CachedFrequencyBeliefNode::nextCandidateDocument() {
+int indri::infnet::CachedFrequencyBeliefNode::nextCandidateDocument() {
   return _iter < _list->entries.end() ? _iter->document : MAX_INT32;
 }
 
-double CachedFrequencyBeliefNode::maximumBackgroundScore() {
+double indri::infnet::CachedFrequencyBeliefNode::maximumBackgroundScore() {
   return _maximumBackgroundScore;
 }
 
-double CachedFrequencyBeliefNode::maximumScore() {
+double indri::infnet::CachedFrequencyBeliefNode::maximumScore() {
   return _maximumScore;
 }
 
-void CachedFrequencyBeliefNode::advance() { _iter++; }
+void indri::infnet::CachedFrequencyBeliefNode::advance() { _iter++; }
 
-const greedy_vector<ScoredExtentResult>& CachedFrequencyBeliefNode::score( int documentID, int begin, int end, int documentLength ) {
+const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::CachedFrequencyBeliefNode::score( int documentID, int begin, int end, int documentLength ) {
   assert( begin == 0 && end == documentLength ); // FrequencyListCopier ensures this condition
-  const DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
+  const indri::index::DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
   _extents.clear();
 
   int count = 0;
@@ -62,13 +62,13 @@ const greedy_vector<ScoredExtentResult>& CachedFrequencyBeliefNode::score( int d
   double score = _function.scoreOccurrence( count, contextSize );
 
   assert( score <= _maximumScore );
-  _extents.push_back( ScoredExtentResult( score, documentID, begin, end ) );
+  _extents.push_back( indri::api::ScoredExtentResult( score, documentID, begin, end ) );
 
   return _extents;
 }
 
-double CachedFrequencyBeliefNode::matches( int begin, int end ) {
-  const DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
+double indri::infnet::CachedFrequencyBeliefNode::matches( int begin, int end ) {
+  const indri::index::DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
 
   int count = 0;
   if( entry )
@@ -79,8 +79,8 @@ double CachedFrequencyBeliefNode::matches( int begin, int end ) {
   return count;
 }
 
-double CachedFrequencyBeliefNode::contextSize( int begin, int end ) {
-  const DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
+double indri::infnet::CachedFrequencyBeliefNode::contextSize( int begin, int end ) {
+  const indri::index::DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
 
   int contextSize = 0;
   if( entry )
@@ -91,25 +91,25 @@ double CachedFrequencyBeliefNode::contextSize( int begin, int end ) {
   return contextSize;
 }
 
-bool CachedFrequencyBeliefNode::hasMatch( int documentID ) {
+bool indri::infnet::CachedFrequencyBeliefNode::hasMatch( int documentID ) {
   return ( _iter < _list->entries.end() && _iter->document == documentID );
 }
 
-const greedy_vector<bool>& CachedFrequencyBeliefNode::hasMatch( int documentID, const greedy_vector<Extent>& extents ) {
+const indri::utility::greedy_vector<bool>& indri::infnet::CachedFrequencyBeliefNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
   // bogus result
   _matches.resize( extents.size(), false );
   return _matches;
 }
 
-const std::string& CachedFrequencyBeliefNode::getName() const {
+const std::string& indri::infnet::CachedFrequencyBeliefNode::getName() const {
   return _name;
 }
 
-void CachedFrequencyBeliefNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
+void indri::infnet::CachedFrequencyBeliefNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
   // can't annotate -- don't have position info
 }
 
-void CachedFrequencyBeliefNode::indexChanged( indri::index::Index& index ) {
+void indri::infnet::CachedFrequencyBeliefNode::indexChanged( indri::index::Index& index ) {
   // do nothing
 }
 

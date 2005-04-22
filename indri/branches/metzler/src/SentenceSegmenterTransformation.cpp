@@ -7,7 +7,7 @@
 #include "indri/Buffer.hpp"
 #include "indri/SentenceSegmenterTransformation.hpp"
 
-ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* document ) {
+indri::api::ParsedDocument* indri::parse::SentenceSegmenterTransformation::transform( indri::api::ParsedDocument* document ) {
   numSentences = 0;
   buffer.clear();
 
@@ -112,7 +112,7 @@ ParsedDocument* SentenceSegmenterTransformation::transform( ParsedDocument* docu
   return document;
 }
 
-void SentenceSegmenterTransformation::addSentenceTag( ParsedDocument* document, int begin, int end ) {
+void indri::parse::SentenceSegmenterTransformation::addSentenceTag( indri::api::ParsedDocument* document, int begin, int end ) {
   TagExtent tag;
   tag.name = "sentence";
   tag.begin = begin;
@@ -129,7 +129,7 @@ void SentenceSegmenterTransformation::addSentenceTag( ParsedDocument* document, 
   }
 }
 
-size_t SentenceSegmenterTransformation::getStartPos( ParsedDocument* document ) {
+size_t indri::parse::SentenceSegmenterTransformation::getStartPos( indri::api::ParsedDocument* document ) {
   int numTags = document->tags.size();
 
   for( int i = 0; i < numTags; i++ ) {
@@ -142,10 +142,10 @@ size_t SentenceSegmenterTransformation::getStartPos( ParsedDocument* document ) 
   return 0;
 }
 
-void SentenceSegmenterTransformation::setHandler( ObjectHandler<ParsedDocument>& handler ) {
+void indri::parse::SentenceSegmenterTransformation::setHandler( ObjectHandler<indri::api::ParsedDocument>& handler ) {
   _handler = &handler;
 }
 
-void SentenceSegmenterTransformation::handle( ParsedDocument* document ) {
+void indri::parse::SentenceSegmenterTransformation::handle( indri::api::ParsedDocument* document ) {
   _handler->handle( transform( document ) );
 }
