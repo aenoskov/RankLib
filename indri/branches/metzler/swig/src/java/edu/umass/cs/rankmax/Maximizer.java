@@ -52,7 +52,7 @@ abstract public class Maximizer {
 		Bracket bracket = new Bracket( Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY,
 									   0.0, 0.0,
 									   Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY );
-		double alpha, stepSize, lastVal;
+		double alpha, stepSize, lastVal, startPos;
 		boolean increase, decrease;
 		
 		if( initialStepSize == 0.0 ) {
@@ -72,12 +72,15 @@ abstract public class Maximizer {
 		increase = false;
 		decrease = false;
 		lastVal = val;
+		startPos = initialStepSize;
 		while( alpha <= maxAlpha ) {
 			double newVal = eval( param.add( direction, 1.0, alpha ) );
 			
 			if( newVal > lastVal ) { increase = true; }
 			if( newVal < lastVal ) { decrease = true; }
-			
+			if( newVal != lastVal )
+				startPos = alpha;
+
 			//System.out.println( "[RIGHT] alpha: " + alpha + ", lastVal: " + lastVal + ", newVal: " + newVal );
 			
 			if( !increase && decrease ) { // right end of bracket
@@ -102,7 +105,8 @@ abstract public class Maximizer {
 			lastVal = newVal;
 		}
 		if( !decrease ) {
-			bracket.c = maxAlpha;
+			//bracket.c = maxAlpha;
+			bracket.c = startPos;
 			bracket.fc = lastVal;
 		}
 		
@@ -112,11 +116,14 @@ abstract public class Maximizer {
 		increase = false;
 		decrease = false;
 		lastVal = val;
+		startPos = -initialStepSize;
 		while( alpha >= minAlpha ) {
 			double newVal = eval( param.add( direction, 1.0, alpha ) );
 			
 			if( newVal > lastVal ) { increase = true; }
 			if( newVal < lastVal ) { decrease = true; }
+			if( newVal != lastVal )
+				startPos = alpha;
 
 			//System.out.println( "[LEFT] alpha: " + alpha + ", lastVal: " + lastVal + ", newVal: " + newVal );
 			
@@ -142,7 +149,8 @@ abstract public class Maximizer {
 			lastVal = newVal;
 		}
 		if( !decrease ) {
-			bracket.a = minAlpha;
+			//bracket.a = minAlpha;
+			bracket.a = startPos;
 			bracket.fa = lastVal;
 		}
 		
@@ -163,16 +171,16 @@ abstract public class Maximizer {
 		double f1 = 0.0;
 		double f2 = 0.0;
 		
-		x0 = param.add( direction, 1.0, bracket.a ); // param + minAlpha
+		x0 = param.add( direction, 1.0, bracket.a ); // param + minAlpha		
 		x3 = param.add( direction, 1.0, bracket.c); // param + maxAlpha
 		
 		if( Math.abs( bracket.c - bracket.b ) > Math.abs( bracket.b - bracket.a ) ) {
-			x1 = param;
+			x1 = param.add( direction, 1.0, bracket.b );
 			x2 = param.add( direction, 1.0, C*( bracket.c - bracket.b ) );
 		}
 		else {
-			x2 = param;
-			x1 = param.add( direction, 1.0, -C*( bracket.a - bracket.a ) );
+			x2 = param.add( direction, 1.0, bracket.b );
+			x1 = param.add( direction, 1.0, -C*( bracket.b - bracket.a ) );
 		}
 		
 		f1 = eval( x1 );
@@ -180,7 +188,7 @@ abstract public class Maximizer {
 
 		//while( Math.abs( x3 - x0 ) > TOL*( Math.abs( x1 ) + Math.abs( x2 ) ) ) {
 		// TODO: implement better stopping criteria
-		for( int iter = 0; iter < 10; iter++ ) {
+		for( int iter = 0; iter < 25; iter++ ) {
 			if( f2 > f1 ) {
 				x0 = x1;
 				x1 = x2;

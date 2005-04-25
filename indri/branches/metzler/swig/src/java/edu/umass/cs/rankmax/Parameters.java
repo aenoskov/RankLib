@@ -60,9 +60,10 @@ public class Parameters {
 			System.err.println("min: " + min + ", sum[before]: " + sum + ", sum[after]: " + (sum - min*params.length) );
 			sum += -min*params.length;
 		}
-		// TODO: what if sum == 0.0 ?
+		if( sum == 0.0 )
+			return;
 		for( int i = 0; i < params.length; i++ )
-			params[i] = ( params[i] - min ) / sum;
+			params[i] = params.length * ( params[i] - min ) / sum;
 	}
 	
 	// returns parameter at coordinate i
