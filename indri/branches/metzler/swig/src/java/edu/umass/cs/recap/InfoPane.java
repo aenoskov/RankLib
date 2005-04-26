@@ -49,8 +49,8 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 	// default settings
 	private String simMeasure = "#identsim1";
 	private String queryExtent = "sentence";
-	private int numExploreResults = 5;
-	private int numAnalyzeResults = 5;
+	private int numExploreResults = 25;
+	private int numAnalyzeResults = 25;
 
 	// timeline mouse handling
 	private boolean tlMouseWasDragged = false;
@@ -299,6 +299,12 @@ public class InfoPane extends JSplitPane implements ActionListener, ChangeListen
 		if( src instanceof JButton ) {			
 			buttonText = ((JButton)src).getLabel();
 			buttonName = ((JButton)src).getName();
+		}
+		else if( src instanceof DemoMenuBar.QueryMenuItem ) {
+			String query = ( ( DemoMenuBar.QueryMenuItem )src ).query;
+			queryPanel.setQueryText( query );
+			//runExploreQuery( query );
+			//queryPanel.setSliderEnabled( false );
 		}
 		else if( src instanceof JMenuItem ) {
 			buttonText = ((JMenuItem)src).getLabel();

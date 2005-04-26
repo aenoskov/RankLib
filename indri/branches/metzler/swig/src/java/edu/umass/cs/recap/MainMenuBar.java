@@ -94,10 +94,10 @@ public class MainMenuBar extends JMenuBar {
 		numExploreResultsGroup.add( fiftyExploreResultsItem );
 		numExploreResultsGroup.add( onehundredExploreResultsItem );
 
-		numExploreResultsSubmenu.add( fiveExploreResultsItem );
-		fiveExploreResultsItem.setSelected( true );
+		numExploreResultsSubmenu.add( fiveExploreResultsItem );		
 		numExploreResultsSubmenu.add( tenExploreResultsItem );
 		numExploreResultsSubmenu.add( twentyfiveExploreResultsItem );
+		twentyfiveExploreResultsItem.setSelected( true );
 		numExploreResultsSubmenu.add( fiftyExploreResultsItem );
 		numExploreResultsSubmenu.add( onehundredExploreResultsItem );
 
@@ -141,9 +141,9 @@ public class MainMenuBar extends JMenuBar {
 		numAnalyzeResultsGroup.add( onehundredAnalyzeResultsItem );
 		
 		numAnalyzeResultsSubmenu.add( fiveAnalyzeResultsItem );
-		fiveAnalyzeResultsItem.setSelected( true );
 		numAnalyzeResultsSubmenu.add( tenAnalyzeResultsItem );
 		numAnalyzeResultsSubmenu.add( twentyfiveAnalyzeResultsItem );
+		twentyfiveAnalyzeResultsItem.setSelected( true );
 		numAnalyzeResultsSubmenu.add( fiftyAnalyzeResultsItem );
 		numAnalyzeResultsSubmenu.add( onehundredAnalyzeResultsItem );
 		
