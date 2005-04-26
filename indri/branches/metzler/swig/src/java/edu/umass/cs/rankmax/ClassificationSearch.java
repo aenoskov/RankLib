@@ -50,9 +50,6 @@ public class ClassificationSearch implements Ranker {
 				results[ i ].add( new Ranking.RankedItem( classNames[ classID ], score ) );
 			}
 		}
-
-		//System.out.println( p );
-		//System.out.println( results[1] );
 		
 		return results;
 	}

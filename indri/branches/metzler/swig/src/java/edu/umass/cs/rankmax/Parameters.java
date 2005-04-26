@@ -4,6 +4,11 @@
  */
 package edu.umass.cs.rankmax;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+
 /**
  * @author Don Metzler
  *
@@ -23,6 +28,31 @@ public class Parameters {
 	// new parameters based on array of doubles
 	public Parameters( double [] p ) {
 		params = p;
+	}
+
+	// new parameters read from saved parameter file
+	public Parameters( String file ) {
+		BufferedReader in = null;
+		
+		try { in = new BufferedReader( new FileReader( file ) ); }
+		catch( Exception e ) { // TODO: throw Exception?
+			System.err.println( "Unable to open file " + file + " for reading!" );
+			return;
+		}
+			
+		String param = null;
+		try { param = in.readLine(); }
+		catch( Exception e ) {
+			System.err.println( "Error while writing parameter to file " + file );
+		}
+		
+		String [] data = param.split( " |\\:");
+		params = new double[ (int)( data.length / 2 ) ];
+		for( int i = 0; i < params.length; i++ )
+			params[ i ] =  Double.parseDouble( data[ 2*i + 1 ] );
+		
+		try { in.close(); }
+		catch( Exception e ) {}
 	}
 	
 	// returns k1*this + k2*b
@@ -45,7 +75,7 @@ public class Parameters {
 		return new Parameters( newParams );		
 	}
 	
-	// normalizes the parameters such that: they are all non-negative and they sum to 1
+	// normalizes the parameters such that: they are all non-negative and sum to params.length
 	public void simplexNormalize() {
 		double sum = 0.0;
 		double min = 0.0;
@@ -88,12 +118,31 @@ public class Parameters {
 		return params.length;
 	}
 	
+	// writes parameter to file
+	public void writeToFile( String file ) {
+		BufferedWriter out = null;
+		
+		try { out = new BufferedWriter(new FileWriter( file )); }
+		catch( Exception e ) { // TODO: throw Exception?
+			System.err.println( "Unable to open file " + file + " for writing!" );
+			return;
+		}
+			
+		try { out.write( this.toString() + "\n" ); }
+		catch( Exception e ) {
+			System.err.println( "Error while writing parameter to file " + file );
+		}
+		
+		try { out.close(); }
+		catch( Exception e ) {}
+	}
+	
 	public String toString() {
-		String ret = "[ ";
+		String ret = "";
 		
 		for( int i = 0; i < params.length; i++ )
-			ret += "" + i + ": " + params[i] + " ";
+			ret += "" + i + ":" + params[i] + " ";
 		
-		return ret + "]";
+		return ret; // + "]";
 	}
 }
