@@ -34,12 +34,15 @@ public class Recap extends JFrame {
 		
 		// create the retrieval engine
 		RetrievalEngine retEngine = new RetrievalEngine( indri );
-		
-		// parse the command line arguments
-		boolean interactive = true;
+
+		// different modes of operation
+		boolean interactive = true;		
+		boolean demo = false;
+		String demoParamFile = null;
 
 		// get the screen dimension
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		// parse the command line arguments
 		
 		for( int i = 0; i < args.length; i++ ) {
 			String curArg = args[i].toLowerCase();
@@ -66,6 +69,10 @@ public class Recap extends JFrame {
 					int height = Integer.parseInt( nextArg );
 					screenSize = new Dimension( width, height );
 				}
+				else if( curArg.equals( "-demo") ) {
+					demo = true;
+					demoParamFile = args[++i];					
+				}
 				else {
 					System.err.println( "Unrecognized argument: " + curArg );
 				}
@@ -78,7 +85,11 @@ public class Recap extends JFrame {
 		
 		if( interactive ) { // interactive mode
 			// add menu bar
-			MainMenuBar mainMenuBar = new MainMenuBar();
+			MainMenuBar mainMenuBar = null; //new MainMenuBar();
+			if( demo )
+				mainMenuBar = new DemoMenuBar( demoParamFile );
+			else
+				mainMenuBar = new MainMenuBar();
 			setJMenuBar( mainMenuBar );
 			
 			// setup and display the application window
