@@ -7,7 +7,7 @@ package edu.umass.cs.rankmax;
 import java.util.ArrayList;
 
 /**
- * @author metzler
+ * @author Don Metzler
  *
  */
 public class ClassificationSearch implements Ranker {
