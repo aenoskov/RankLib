@@ -56,14 +56,14 @@ public class RankMaxTools {
 			while( ( str = in.readLine() ) != null ) {
 				StringTokenizer tok = new StringTokenizer( str, " :" );
 				instanceID = tok.nextToken();
-				classLabel = tok.nextToken().toLowerCase();
+				classLabel = tok.nextToken();
 				indices.clear();
 				values.clear();
 				while( tok.hasMoreTokens() ) {
 					int idx = Integer.parseInt( tok.nextToken() );
 					double val = Double.parseDouble( tok.nextToken() );
-					if( idx > 20 )
-						break;
+					//if( idx > 100 )
+					//	break;
 					indices.add( idx+"" );
 					values.add( val+"" );
 					/*indices.add( tok.nextToken() );

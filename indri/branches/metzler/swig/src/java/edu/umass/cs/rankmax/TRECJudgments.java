@@ -55,8 +55,10 @@ public class TRECJudgments {
 					Integer count = (Integer)results.totalRelevant.get( queryID );
 					if( count == null )
 						results.totalRelevant.put( queryID, new Integer( 1 ) );
-					else
+					else {
 						count = new Integer( count.intValue() + 1 );
+						results.totalRelevant.put( queryID, count );
+					}
 				}
 			}
 		}
