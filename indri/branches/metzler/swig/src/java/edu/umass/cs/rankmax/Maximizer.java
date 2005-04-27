@@ -47,7 +47,7 @@ abstract public class Maximizer {
 	}	
 	
 	// maximizes output from ranker using evaluator
-	abstract public void maximize();
+	abstract public double maximize();
 	
 	// evaluates the Evaluator at the given parameter setting
 	protected double eval( Parameters p ) {

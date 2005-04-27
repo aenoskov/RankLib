@@ -15,8 +15,9 @@ public class CoordinateAscentMaximizer extends Maximizer {
 		this.param = parameters;
 	}
 	
-	public void maximize() {
+	public double maximize() {
 		double curVal = eval( param );
+		Parameters oldParam = null;
 		Parameters direction = new Parameters( param.size(), 0.0 );
 		Bracket bracket = null;
 		int lastCoordinate = 0;
@@ -26,6 +27,12 @@ public class CoordinateAscentMaximizer extends Maximizer {
 			permutation[ i ] = i;
 		
 		for( int iter = 0; iter < maxNumIters; iter++ ) {
+			if( iter > 0 && param.add( oldParam, 1.0, -1.0 ).length() < TOL ) {
+				verbosePrint( "CoordinateAscentMaximizer.maximize] STOPPING (TOLERANCE = " + param.add( oldParam, 1.0, -1.0 ).length() + ")" );
+				break;
+			}
+			oldParam = param;
+
 			verbosePrint( "[CoordinateAscentMaximizer.maximize] ITERATION = " + iter );
 			//verbosePrint( "CURRENT PARAMETER = " + param );
 			verbosePrint( "[CoordinateAscentMaximizer.maximize] FXN VALUE = " + curVal );
@@ -88,6 +95,7 @@ public class CoordinateAscentMaximizer extends Maximizer {
 		}
 		
 		verbosePrint( "[CoordinateAscentMaximizer.maximize] Total function evaluations = " + fxnEvaluations );
+		return curVal;
 	}
 	
 }

@@ -4,6 +4,8 @@
  */
 package edu.umass.cs.rankmax;
 
+import java.util.Collections;
+
 /**
  * @author Don Metzler
  *
@@ -23,6 +25,7 @@ public class AveragePrecisionEvaluator implements Evaluator {
 		
 		for( int i = 0; i < results.length; i++ ) {
 			Ranking ranking = results[i];
+			Collections.sort( results[i] );
 			
 			// compute average precision for this ranking
 			int numRelevant = 0;
