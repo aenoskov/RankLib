@@ -17,22 +17,22 @@ public class NelderMeadMaximizer extends Maximizer {
 	protected double GAMMA = 0.5;
 	protected double ETA = 0.5;
 	
-	protected int MIN_ITERS = 5;
-	protected int MAX_ITERS = 100;
 	protected double STOPPING_THRESHOLD = 0.01;
 	
 	protected Vertex [] vertices = null;
 	
 	// construct a new Nelder-Mead maximizer using initial simplex defined by parameters a, b, c
 	// this function works by minimizing the negative of the evaluation function (equivalent to maximizing)
-	public NelderMeadMaximizer( Ranker r, Evaluator e, Parameters [] parameters ) {
-		super( r, e );		
+	public NelderMeadMaximizer( Ranker r, Evaluator e, Parameters parameters ) {
+		super( r, e, parameters );		
 		
-		vertices = new Vertex[ parameters.length ];
+		vertices = new Vertex[ parameters.size() + 1 ];
 		
 		// evaluate the function at each vertex of the simplex
-		for( int i = 0; i < parameters.length; i++ ) {
-			Parameters params = (Parameters)parameters[i]; 
+		for( int i = 0; i < vertices.length; i++ ) {
+			Parameters params = new Parameters( parameters.size(), 0.0 );
+			if( i < vertices.length - 1 )
+				params.setParam( i, parameters.getParam( i ) );
 			double val = eval( params );
 			vertices[i] = new Vertex( params, val );
 		}
@@ -42,8 +42,8 @@ public class NelderMeadMaximizer extends Maximizer {
 	public void maximize() {
 		
 		//while( Math.abs( oldScoreB - scoreB ) > 0.1 ) {
-		for( int iter = 0; iter < MAX_ITERS; iter++ ) {
-			if( iter >= MIN_ITERS && stop() ) { break; }
+		for( int iter = 0; iter < maxNumIters; iter++ ) {
+			if( iter >= minNumIters && stop() ) { break; }
 
 			// ORDER
 			sortVertices();

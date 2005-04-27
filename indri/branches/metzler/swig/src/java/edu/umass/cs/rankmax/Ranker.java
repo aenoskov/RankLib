@@ -13,4 +13,7 @@ public interface Ranker {
 	// returns a ranking for a given setting of parameters
 	public Ranking [] getRankings( Parameters p );
 
+	// default and random start parameter values
+	public Parameters getDefaultStartParam();
+	public Parameters getRandomStartParam();
 }

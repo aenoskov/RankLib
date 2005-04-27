@@ -37,15 +37,19 @@ public class OneClassSearch implements Ranker {
 		
 		this.numInstanceIDs = idLookup.size();
 	}
-	
-	public Parameters getRandomStartPoint() {
+
+	public Parameters getDefaultStartParam() {
+		int num = numFeatures;
+		Parameters p = new Parameters( num, 1.0 );
+		return p;
+	}
+
+	public Parameters getRandomStartParam() {
 		int num = numFeatures;
 		Parameters p = new Parameters( num, 0.0 );
 		
 		for( int i = 0; i < num; i++ )
 			p.setParam( i, Math.random() );
-		
-		p.simplexNormalize();
 		
 		return p;
 	}
@@ -65,23 +69,7 @@ public class OneClassSearch implements Ranker {
 			double score = inst.dotProd( p, 0 );
 			results[ offset ].add( new Ranking.RankedItem( inst.getLabel(), score ) );
 		}
-		
-		//System.out.println( p );
-		//System.out.println( results[ 0 ] );
-		
+				
 		return results;
 	}
-
-	public static void main( String [] args ) {
-		OneClassSearch fxn = new OneClassSearch( args[0] );
-		Evaluator eval = new AveragePrecisionEvaluator( args[1] );
-		//Evaluator eval = new PrecisionAtNEvaluator( args[1], 1 );
-		Parameters p0 = fxn.getRandomStartPoint();
-		//Parameters p0 = new Parameters( fxn.numFeatures, 1.0 );
-		p0.simplexNormalize();
-		Maximizer m = new CoordinateAscentMaximizer( fxn, eval, p0, true );
-		m.setVerbose( true );
-		m.maximize();
-	}
-
 }
