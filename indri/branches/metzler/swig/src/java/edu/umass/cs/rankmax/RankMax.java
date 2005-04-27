@@ -5,6 +5,7 @@
 package edu.umass.cs.rankmax;
 
 import java.lang.reflect.Constructor;
+import java.util.Collections;
 
 /**
  * @author Don Metzler
@@ -24,19 +25,32 @@ public class RankMax {
 	
 	private static void printUsage() {
 		System.out.println( "---------------------------------");
-		System.out.println( "Required arguments:"              );
+		System.out.println( "Two main modes of operation:"     );
+		System.out.println( "   -train"                        );
+		System.out.println( "   -test"                         );
+		System.out.println( "---------------------------------");
+		System.out.println( "Train mode required arguments:"   );
 		System.out.println( "   -maximizer name"               );
 		System.out.println( "   -ranker name input_file"       );
 		System.out.println( "   -evaluator name input_file"    );
 		System.out.println( "---------------------------------");
-		System.out.println( "Optional arguments:"              );
+		System.out.println( "Train mode optional arguments:"   );
 		System.out.println( "   -maxiters num"                 );
 		System.out.println( "   -onsimplex"                    );
 		System.out.println( "   -saveparam param_file"         );
 		System.out.println( "   -loadparam param_file"         );
 		System.out.println( "   -randomstart"                  );
-		System.out.println( "   -printrankings"                );
+		System.out.println( "   -randomrestart num"            );
 		System.out.println( "   -verbose"                      );
+		System.out.println( "---------------------------------");
+		System.out.println( "Test mode required arguments:"    );
+		System.out.println( "   -ranker name input_file"       );
+		System.out.println( "   -evaluator name input_file"    );
+		System.out.println( "   -loadparam param_file"         );
+		System.out.println( "---------------------------------");
+		System.out.println( "Test mode optional arguments:"    );
+		System.out.println( "   -printrankings"                );
+		System.out.println( "   -printevaluation"              );
 		System.out.println( "---------------------------------");
 		System.out.println( "Maximizer types:"                 );
 		printNames( maximizerNames );
@@ -61,22 +75,38 @@ public class RankMax {
 			System.exit( 0 );
 		}
 
+		// two main modes of operation
+		boolean training = false;
+		boolean testing = false;
+		
 		Maximizer maximizer = null;
 		Constructor maximizerConstructor = null;
 		Ranker ranker = null;
 		Evaluator evaluator = null;
 		Parameters p0 = null;
 		String saveParamFile = null;
+		String loadParamFile = null;
 		int maxIters = -1;
+		int numRandomRestarts = 1;
 		boolean randomStart = false;
 		boolean onSimplex = false;
+		boolean printRankings = false;
+		boolean printEvaluation = true;
 		boolean verbose = false;
+		
+		double bestVal = Double.MIN_VALUE;
 		
 		// parse the command line options
 		for( int i = 0; i < args.length; i++ ) {
 			String curArg = args[ i ];
 			try {
-				if( curArg.toLowerCase().equals( "-maximizer" ) ) {
+				if( curArg.toLowerCase().equals( "-train" ) ) {
+					training = true;					
+				}
+				else if( curArg.toLowerCase().equals( "-test" ) ) {
+					testing = true;
+				}
+				else if( curArg.toLowerCase().equals( "-maximizer" ) ) {
 					String name = args[ ++i ].toLowerCase();					
 					int idx = lookup( name, maximizerNames );
 					if( idx == -1 ) {
@@ -121,16 +151,25 @@ public class RankMax {
 					saveParamFile = args[ ++i ];
 				}
 				else if( curArg.toLowerCase().equals( "-loadparam" ) ) {
-					
+					loadParamFile = args[ ++i ];
 				}
 				else if( curArg.toLowerCase().equals( "-randomstart" ) ) {
 					randomStart = true;
 				}
+				else if( curArg.toLowerCase().equals( "-randomrestart" ) ) {
+					numRandomRestarts = Integer.parseInt( args[ ++i ] );
+				}
 				else if( curArg.toLowerCase().equals( "-printrankings" ) ) {
-					
+					printRankings = true;
+				}
+				else if( curArg.toLowerCase().equals( "-printevaluation" ) ) {
+					printEvaluation = true;
 				}
 				else if( curArg.toLowerCase().equals( "-verbose" ) ) {
 					verbose = true;					
+				}
+				else {
+					System.err.println( "Unrecognized command: " + curArg );
 				}
 			}
 			catch( Exception e ) {
@@ -140,26 +179,56 @@ public class RankMax {
 			}
 		}
 		
+		if( !training && !testing ) {
+			System.err.println( "No mode selected! Must specify -train and/or -test");
+			System.exit( -1 );
+		}
+		
 		// perform the optimization
 		try {
-			if( !randomStart )
-				p0 = ranker.getDefaultStartParam();
-			else
-				p0 = ranker.getRandomStartParam();
-			if( onSimplex )
-				p0.simplexNormalize();
-			maximizer = (Maximizer)maximizerConstructor.newInstance( new Object [] { ranker, evaluator, p0 } );
-			maximizer.setOnSimplex( onSimplex );
-			maximizer.setVerbose( verbose );
-			if( maxIters != -1 )
-				maximizer.setMaxNumIters( maxIters );
-			maximizer.maximize();
-			if( saveParamFile != null )
-				maximizer.writeParamToFile( saveParamFile );
+			if( training ) {
+				if( loadParamFile != null )
+					p0 = new Parameters( loadParamFile );
+				else if( !randomStart )
+					p0 = ranker.getDefaultStartParam();
+				else
+					p0 = ranker.getRandomStartParam();
+				if( onSimplex )
+					p0.simplexNormalize();
+				for( int runNum = 0; runNum < numRandomRestarts; runNum++ ) {
+					maximizer = (Maximizer)maximizerConstructor.newInstance( new Object [] { ranker, evaluator, p0 } );
+					maximizer.setOnSimplex( onSimplex );
+					maximizer.setVerbose( verbose );
+					if( maxIters != -1 )
+						maximizer.setMaxNumIters( maxIters );
+					double val = maximizer.maximize();
+					if( val > bestVal ) {
+						if( saveParamFile != null )
+							maximizer.writeParamToFile( saveParamFile );
+						bestVal = val;
+					}
+					p0 = ranker.getRandomStartParam();
+				}
+				System.out.println("Final evaluation value: " + bestVal );
+			}
+			
+			if( testing ) {
+				p0 = new Parameters( loadParamFile );
+				Ranking [] rankings = ranker.getRankings( p0 );
+				if( printRankings ) {
+					for( int i = 0; i < rankings.length; i++ ) {
+						Collections.sort( rankings[i] );
+						System.out.println( rankings[i] );
+					}
+				}
+				if( printEvaluation ) {
+					System.out.println( "Evaluation value: " + evaluator.evaluate( rankings ) );
+				}
+			}
 		}
 		catch( Exception e ) {
 			e.printStackTrace();
-			System.err.println( "Caught an exception during optimization!" );
+			System.err.println( "Caught an exception -- make sure proper command line arguments were specified!" );
 		}
 	}
 	

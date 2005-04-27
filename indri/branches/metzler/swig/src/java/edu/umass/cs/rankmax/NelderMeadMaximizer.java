@@ -39,7 +39,7 @@ public class NelderMeadMaximizer extends Maximizer {
 	}
 	
 	// maximize function 
-	public void maximize() {
+	public double maximize() {
 		
 		//while( Math.abs( oldScoreB - scoreB ) > 0.1 ) {
 		for( int iter = 0; iter < maxNumIters; iter++ ) {
@@ -97,6 +97,7 @@ public class NelderMeadMaximizer extends Maximizer {
 		}
 		
 		verbosePrint("[NelderMeadMaximizer.maximize] Total function evaluations = " + fxnEvaluations );
+		return getBestScore();
 	}
 	
 	// computes the mean of the parameter values

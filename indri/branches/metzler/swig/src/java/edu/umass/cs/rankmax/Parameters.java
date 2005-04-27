@@ -113,6 +113,14 @@ public class Parameters {
 		params[i] = val;
 	}
 	
+	// length (L2 norm) of vector
+	public double length() {
+		double length = 0.0;
+		for( int i = 0; i < params.length; i++ )
+			length += params[i]*params[i];
+		return Math.sqrt( length );
+	}
+	
 	// returns the size of the parameter vector
 	public int size() {
 		return params.length;

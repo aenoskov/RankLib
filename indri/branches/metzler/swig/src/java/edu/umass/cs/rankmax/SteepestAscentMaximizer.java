@@ -15,12 +15,19 @@ public class SteepestAscentMaximizer extends Maximizer {
 		this.param = parameters;
 	}
 	
-	public void maximize() {
+	public double maximize() {
 		double curVal = eval( param );
+		Parameters oldParam = null;
 		Parameters gradient = null;
 		Bracket bracket = null;
 
 		for( int iter = 0; iter < maxNumIters; iter++ ) {
+			if( iter > 0 && param.add( oldParam, 1.0, -1.0 ).length() < TOL ) {
+				verbosePrint( "CoordinateAscentMaximizer.maximize] STOPPING (TOLERANCE = " + param.add( oldParam, 1.0, -1.0 ).length() + ")" );
+				break;
+			}
+			oldParam = param;
+
 			verbosePrint( "[SteepestAscentMaximizer.maximize] ITERATION = " + iter );
 			//verbosePrint( "[SteepestAscentMaximizer.maximize] CURRENT PARAMETER = " + param );
 			verbosePrint( "[SteepestAscentMaximizer.maximize] FXN VALUE = " + curVal );
@@ -55,5 +62,6 @@ public class SteepestAscentMaximizer extends Maximizer {
 		}
 		
 		verbosePrint( "[SteepestAscentMaximizer.maximize] Total function evaluations = " + fxnEvaluations );
+		return curVal;
 	}	
 }

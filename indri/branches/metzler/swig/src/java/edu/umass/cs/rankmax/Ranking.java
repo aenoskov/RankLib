@@ -5,7 +5,6 @@
 package edu.umass.cs.rankmax;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
 /**
  * @author Don Metzler
@@ -23,11 +22,8 @@ public class Ranking extends ArrayList {
 	
 	public boolean add( Object o ) {
 		if( !( o instanceof RankedItem ) )
-			return false;
-		
+			return false;		
 		super.add( o );
-		Collections.sort( this );
-		
 		return true;
 	}
 	
