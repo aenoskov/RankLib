@@ -10,22 +10,9 @@ package edu.umass.cs.rankmax;
  */
 public class SteepestAscentMaximizer extends Maximizer {
 
-	// maximum number of iterations
-	protected int MAX_ITERS = 100;
-
-	// width of line search bracket
-	protected double BRACKET_WIDTH = 1.0;
-	
-	// current parameter setting
-	//protected Parameters param = null;
-	
-	// determines whether or not to keep the optimization constrainted to a simplex
-	protected boolean onSimplex = false;
-	
-	public SteepestAscentMaximizer( Ranker r, Evaluator e, Parameters parameters, boolean onSimplex ) {
-		super( r, e );
+	public SteepestAscentMaximizer( Ranker r, Evaluator e, Parameters parameters ) {
+		super( r, e, parameters );
 		this.param = parameters;
-		this.onSimplex = onSimplex;
 	}
 	
 	public void maximize() {
@@ -33,7 +20,7 @@ public class SteepestAscentMaximizer extends Maximizer {
 		Parameters gradient = null;
 		Bracket bracket = null;
 
-		for( int iter = 0; iter < MAX_ITERS; iter++ ) {
+		for( int iter = 0; iter < maxNumIters; iter++ ) {
 			verbosePrint( "[SteepestAscentMaximizer.maximize] ITERATION = " + iter );
 			//verbosePrint( "[SteepestAscentMaximizer.maximize] CURRENT PARAMETER = " + param );
 			verbosePrint( "[SteepestAscentMaximizer.maximize] FXN VALUE = " + curVal );

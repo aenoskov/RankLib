@@ -25,6 +25,14 @@ public class IndriSmoothingSearch implements Ranker {
 		indri.addIndex( index );				
 	}
 	
+	public Parameters getDefaultStartParam() {
+		return new Parameters( new double [] { 2500.0 } );
+	}
+	
+	public Parameters getRandomStartParam() {
+		return new Parameters( new double [] { Math.random() * 5000.0 } );
+	}
+	
 	public Ranking [] getRankings( Parameters p ) {
 		double mu = p.getParam( 0 );
 		String [] rules = new String [] { "method:dirichlet,mu:" + mu }; 
@@ -51,17 +59,5 @@ public class IndriSmoothingSearch implements Ranker {
 		docNames = indri.documentMetadata( ids, "docno" );
 		
 		return docNames;
-	}
-
-	public static void main( String [] args ) {
-		IndriSmoothingSearch fxn = new IndriSmoothingSearch( args[0], args[1] );
-		Evaluator eval = new AveragePrecisionEvaluator( args[2] );
-		
-		Parameters lower = new Parameters( new double [] { 0 } );
-		Parameters upper = new Parameters( new double [] { 4000 } );
-		Parameters [] params = new Parameters [] { lower, upper };
-		//Maximizer m = new NelderMeadMaximizer( fxn, eval, params );
-		Maximizer m = new CoordinateAscentMaximizer( fxn, eval, lower, true );
-		m.maximize();
 	}
 }

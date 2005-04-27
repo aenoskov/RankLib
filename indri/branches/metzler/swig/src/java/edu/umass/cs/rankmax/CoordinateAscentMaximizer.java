@@ -10,19 +10,9 @@ package edu.umass.cs.rankmax;
  */
 public class CoordinateAscentMaximizer extends Maximizer {
 
-	// maximum number of iterations
-	protected int MAX_ITERS = 100;
-
-	// width of line search bracket
-	protected double BRACKET_WIDTH = 1.0;
-	
-	// determines whether or not to keep the optimization constrainted to a simplex
-	protected boolean onSimplex = false;
-	
-	public CoordinateAscentMaximizer( Ranker r, Evaluator e, Parameters parameters, boolean onSimplex ) {
-		super( r, e );
+	public CoordinateAscentMaximizer( Ranker r, Evaluator e, Parameters parameters ) {
+		super( r, e, parameters );
 		this.param = parameters;
-		this.onSimplex = onSimplex;
 	}
 	
 	public void maximize() {
@@ -35,7 +25,7 @@ public class CoordinateAscentMaximizer extends Maximizer {
 		for( int i = 0; i < permutation.length; i++ )
 			permutation[ i ] = i;
 		
-		for( int iter = 0; iter < MAX_ITERS; iter++ ) {
+		for( int iter = 0; iter < maxNumIters; iter++ ) {
 			verbosePrint( "[CoordinateAscentMaximizer.maximize] ITERATION = " + iter );
 			//verbosePrint( "CURRENT PARAMETER = " + param );
 			verbosePrint( "[CoordinateAscentMaximizer.maximize] FXN VALUE = " + curVal );

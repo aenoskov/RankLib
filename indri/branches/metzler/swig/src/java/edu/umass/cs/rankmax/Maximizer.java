@@ -25,15 +25,25 @@ abstract public class Maximizer {
 	// number of function evaluations
 	protected int fxnEvaluations = 0;
 	
+	// whether or not we want to restrict our search to a simplex
+	protected boolean onSimplex = false;
+	
 	// verbose output
 	protected boolean verbose = false;
+
+	// minimum and maximum number of iterations
+	protected int minNumIters = 0;
+	protected int maxNumIters = 10;
 	
 	// default constructor
-	public Maximizer( Ranker r, Evaluator e ) {
+	public Maximizer( Ranker r, Evaluator e, Parameters param ) {
 		this.r = r;
 		this.e = e;		
-		this.fxnEvaluations = 0;
+		this.param = param;
+		this.onSimplex = false;
 		this.verbose = false;
+		
+		this.fxnEvaluations = 0;
 	}	
 	
 	// maximizes output from ranker using evaluator
@@ -249,14 +259,39 @@ abstract public class Maximizer {
 		return gradient;
 	}
 	
+	public boolean getVerbose() {
+		return verbose;
+	}
+	
 	public void setVerbose( boolean b ) {
 		verbose = b;
+	}
+
+	public boolean getOnSimplex() {
+		return onSimplex;
+	}
+	
+	public void setOnSimplex( boolean b ) {
+		onSimplex = b;
+	}
+
+	public void setMinNumIters( int num ) {
+		minNumIters = num;
+	}
+	
+	public void setMaxNumIters( int num ) {
+		maxNumIters = num;
 	}
 	
 	// TODO: allow this to write to a file, sterr, etc...
 	public void verbosePrint( String s ) {
 		if( verbose )
 			System.out.println( s );
+	}
+	
+	// writes the current parameter setting to a file
+	public void writeParamToFile( String file ) {
+		param.writeToFile( file );
 	}
 	
 	public class Bracket {
