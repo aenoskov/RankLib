@@ -49,7 +49,7 @@ public class RankMax {
 		System.out.println( "   -loadparam param_file"         );
 		System.out.println( "---------------------------------");
 		System.out.println( "Test mode optional arguments:"    );
-		System.out.println( "   -printrankings"                );
+		System.out.println( "   -printrankings num run_id"     );
 		System.out.println( "   -printevaluation"              );
 		System.out.println( "---------------------------------");
 		System.out.println( "Maximizer types:"                 );
@@ -91,7 +91,9 @@ public class RankMax {
 		boolean randomStart = false;
 		boolean onSimplex = false;
 		boolean printRankings = false;
-		boolean printEvaluation = true;
+		int rankingNum = 0;
+		String rankingID = null;
+		boolean printEvaluation = false;
 		boolean verbose = false;
 		
 		double bestVal = Double.MIN_VALUE;
@@ -161,6 +163,8 @@ public class RankMax {
 				}
 				else if( curArg.toLowerCase().equals( "-printrankings" ) ) {
 					printRankings = true;
+					rankingNum = Integer.parseInt( args[ ++i ] );
+					rankingID = args[ ++i ];
 				}
 				else if( curArg.toLowerCase().equals( "-printevaluation" ) ) {
 					printEvaluation = true;
@@ -169,7 +173,7 @@ public class RankMax {
 					verbose = true;					
 				}
 				else {
-					System.err.println( "Unrecognized command: " + curArg );
+					System.err.println( "Unrecognized command: " + curArg + " -- ignoring" );
 				}
 			}
 			catch( Exception e ) {
@@ -218,11 +222,13 @@ public class RankMax {
 				if( printRankings ) {
 					for( int i = 0; i < rankings.length; i++ ) {
 						Collections.sort( rankings[i] );
-						System.out.println( rankings[i] );
+						rankings[i].print( rankingNum, rankingID );
 					}
 				}
 				if( printEvaluation ) {
 					System.out.println( "Evaluation value: " + evaluator.evaluate( rankings ) );
+					if( rankingNum > 0 )
+						System.out.println( "NOTE: evaluation value is based on ENTIRE ranking, not just top " + rankingNum + "!" );
 				}
 			}
 		}

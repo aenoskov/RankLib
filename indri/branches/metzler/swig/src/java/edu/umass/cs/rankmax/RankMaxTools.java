@@ -60,14 +60,8 @@ public class RankMaxTools {
 				indices.clear();
 				values.clear();
 				while( tok.hasMoreTokens() ) {
-					int idx = Integer.parseInt( tok.nextToken() );
-					double val = Double.parseDouble( tok.nextToken() );
-					//if( idx > 100 )
-					//	break;
-					indices.add( idx+"" );
-					values.add( val+"" );
-					/*indices.add( tok.nextToken() );
-					values.add( tok.nextToken() );*/					
+					indices.add( tok.nextToken() );
+					values.add( tok.nextToken() );					
 				}
 				data.addInstance( instanceID, classLabel, indices, values );
 			}

@@ -52,10 +52,22 @@ public class Ranking extends ArrayList {
 		}
 	}
 	
+	// prints the results in TREC format:
+	// instanceID Q0 classID rank score run_identifier
+	public void print( int num, String runID ) {
+		int max = size();
+		if( num != 0 && num < size() )
+			max = num;
+		for( int i = 0; i < max; i++ ) {
+			RankedItem item = (RankedItem)get( i );
+			System.out.println( instanceID + " Q0 " + item.classID + " " + (i+1) + " " + item.score + " " + runID ); 
+		}
+	}
+	
 	public String toString() {
 		String ret = "instance id: " + instanceID + "\n";		
-		for( int i = 0; i < this.size(); i++ )
-			ret += "rank " + (i+1) + ": " + (RankedItem)this.get( i ); 
+		for( int i = 0; i < size(); i++ )
+			ret += "rank " + (i+1) + ": " + (RankedItem)get( i ); 
 		return ret;
 	}
 }
