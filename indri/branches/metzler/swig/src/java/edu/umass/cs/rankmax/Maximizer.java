@@ -91,8 +91,6 @@ abstract public class Maximizer {
 			if( newVal != lastVal )
 				startPos = alpha;
 
-			//System.out.println( "[RIGHT] alpha: " + alpha + ", lastVal: " + lastVal + ", newVal: " + newVal );
-			
 			if( !increase && decrease ) { // right end of bracket
 				bracket.c = alpha;
 				bracket.fc = newVal;
@@ -115,7 +113,6 @@ abstract public class Maximizer {
 			lastVal = newVal;
 		}
 		if( !decrease ) {
-			//bracket.c = maxAlpha;
 			bracket.c = startPos;
 			bracket.fc = lastVal;
 		}
@@ -134,8 +131,6 @@ abstract public class Maximizer {
 			if( newVal < lastVal ) { decrease = true; }
 			if( newVal != lastVal )
 				startPos = alpha;
-
-			//System.out.println( "[LEFT] alpha: " + alpha + ", lastVal: " + lastVal + ", newVal: " + newVal );
 			
 			if( !increase && decrease ) { // left end of bracket
 				bracket.a = alpha;
@@ -159,7 +154,6 @@ abstract public class Maximizer {
 			lastVal = newVal;
 		}
 		if( !decrease ) {
-			//bracket.a = minAlpha;
 			bracket.a = startPos;
 			bracket.fa = lastVal;
 		}
@@ -244,12 +238,13 @@ abstract public class Maximizer {
 			bracket = bracket( direction, 10E-32, minAlpha, maxAlpha );
 
 			double partial = 0.0;
-			if( bracket.fa > curVal )
-				partial = ( bracket.fa - curVal ) / ( bracket.a - 0.0 );
-			else if( bracket.fb > curVal )
-				partial = ( bracket.fb - curVal ) / ( bracket.b - 0.0 );
-			else if( bracket.fc > curVal )
-				partial = ( bracket.fc - curVal ) / ( bracket.c - 0.0 );
+			if( bracket.b == 0.0 ) {
+				partial = ( bracket.fc - bracket.fa ) / ( bracket.c - bracket.a );
+			}
+			else {
+				double tmpf = eval( param.add( direction, 1.0, -bracket.b ) );
+				partial = ( bracket.fb - tmpf ) / ( 2*bracket.b ); 
+			}
 			
 			verbosePrint( "[Maximizer.getFiniteDifferenceGradient] coordinate: " + coordinate + ", partial: " + partial );
 			
@@ -283,7 +278,7 @@ abstract public class Maximizer {
 		maxNumIters = num;
 	}
 	
-	// TODO: allow this to write to a file, sterr, etc...
+	// TODO: allow this to write to a file, stderr, etc...
 	public void verbosePrint( String s ) {
 		if( verbose )
 			System.out.println( s );
