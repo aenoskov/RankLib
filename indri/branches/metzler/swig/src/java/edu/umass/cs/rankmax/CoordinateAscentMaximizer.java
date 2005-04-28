@@ -54,9 +54,10 @@ public class CoordinateAscentMaximizer extends Maximizer {
 				direction.setParam( permutation[ i ], 1.0 );
 				lastCoordinate = permutation[ i ];
 
-				//bracket = bracket( direction, 10E-16, -10.0, 10.0 );
 				double curParam = param.getParam( permutation[ i ] );
-				if( curParam >= 1 )
+				if( curParam == 0.0 )
+					bracket = bracket( direction, 10E-16, 0.0, 10.0 );
+				else if( curParam >= 1.0 )
 					bracket = bracket( direction, Math.sqrt( curParam ), -curParam, 10.0 );
 				else
 					bracket = bracket( direction, curParam * curParam, -curParam, 10.0 );

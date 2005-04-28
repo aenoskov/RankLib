@@ -93,7 +93,9 @@ public class NelderMeadMaximizer extends Maximizer {
 				Parameters paramTmp = getBestParam().add( vertices[i].params, 1.0 - ETA, ETA );
 				double scoreTmp = eval( paramTmp );
 				vertices[ i ] = new Vertex( paramTmp, scoreTmp ) ;
-			}			
+			}
+			
+			param = getBestParam();
 		}
 		
 		verbosePrint("[NelderMeadMaximizer.maximize] Total function evaluations = " + fxnEvaluations );
@@ -139,14 +141,6 @@ public class NelderMeadMaximizer extends Maximizer {
 	// sorts the vertices of the simplex based on their function value
 	protected void sortVertices() {
 		Arrays.sort( vertices );
-
-		/*System.out.println( "[NelderMeadMaximizer][sortParams()]" );
-		System.out.println( "BEST PARAMETER = " + paramB );
-		System.out.println( "BEST SCORE = " + scoreB );
-		System.out.println( "GOOD PARAMETER = " + paramG );
-		System.out.println( "GOOD SCORE = " + scoreG );
-		System.out.println( "WORST PARAMETER = " + paramW );
-		System.out.println( "WORST SCORE = " + scoreW );*/
 	}
 
 	protected boolean stop() {
