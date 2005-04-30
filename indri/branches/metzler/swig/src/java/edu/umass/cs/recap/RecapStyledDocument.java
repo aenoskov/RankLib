@@ -214,16 +214,17 @@ public class RecapStyledDocument extends DefaultStyledDocument {
 			pos1 = pos1 + tok0.length();
 		}
 
+		StringBuffer buffer = new StringBuffer();
 		String newText = "";
+
 		for( int i = 0; i < text.length(); i++ ) {
-			//System.out.print("["+positionLookup[i]+"]"+"("+text.charAt(i)+")");
 			if( i == 0 && positionLookup[ i ] != -1 )
-				newText += text.charAt( i );
+				buffer.append( text.charAt(i) );
 			else if( i > 0 && positionLookup[ i ] != positionLookup[ i - 1 ] )
-				newText += text.charAt( i );
+				buffer.append( text.charAt(i) );
 		}
-		//System.out.println();
-		
+		newText = buffer.toString();
+                
 		try { replace( 0, this.getLength(), newText, null ); }
 		catch( Exception e ) { /* do nothing */ }
 	}
