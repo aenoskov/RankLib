@@ -30,7 +30,8 @@ namespace indri {
     private:
       DiskTermData* _diskTermData;
       int _baseID;
-      indri::file::BulkTreeReader& _keyfile;
+      indri::file::BulkTreeReader& _bulkTree;
+      indri::file::BulkTreeIterator* _bulkIterator;
       char _data[16*1024];
       int _fieldCount;
 
@@ -39,13 +40,13 @@ namespace indri {
 
       indri::thread::Mutex& _mutex;
       bool _holdingLock;
-      bool _finished;
 
       void _acquire();
       void _release();
 
     public:
-      DiskKeyfileVocabularyIterator( int baseID, indri::file::BulkTreeReader& keyfile, indri::thread::Mutex& mutex, int fieldCount );
+      DiskKeyfileVocabularyIterator( int baseID, indri::file::BulkTreeReader& bulkTree, indri::thread::Mutex& mutex, int fieldCount );
+      ~DiskKeyfileVocabularyIterator();
       
       void startIteration();
       bool nextEntry();
