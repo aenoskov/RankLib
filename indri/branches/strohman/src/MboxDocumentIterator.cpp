@@ -19,7 +19,7 @@
 #include "lemur/Exception.hpp"
 
 #define MBOX_MAX_LINE_LENGTH (1024*1024)
-#define MBOX_MAX_HEADER_LINE_LENGTH (16*1024)
+#define MBOX_MAX_HEADER_LINE_LENGTH (32*1024)
 
 #define MBOX_FROM       ("From:")
 #define MBOX_TO         ("To:")
@@ -27,6 +27,12 @@
 #define MBOX_DATE       ("Date:")
 #define MBOX_CC         ("Cc:")
 #define MBOX_EMPTY_LINE ("")
+
+struct field_t {
+  const char* field;
+  const char* tag;
+  const int length;
+};
 
 //
 // open
@@ -53,15 +59,18 @@ void indri::parse::MboxDocumentIterator::_copyMetadata( const char* headerLine, 
   // copy the data into the document buffer
   int lineLength = strlen( headerLine );
   char* spot = _buffer.write( lineLength - ignoreBytes ); 
-  strcpy( spot, headerLine + ignoreBytes );
+  strcpy( spot, headerLine + ignoreBytes + 1 );
   
   // replace the trailing '\0' with a space
-  spot[ lineLength - ignoreBytes - 1 ] = ' ';
+  spot[ lineLength - ignoreBytes - 1 ] = '\n';
+
+  spot = _metaBuffer.write( lineLength - ignoreBytes );
+  strcpy( spot, headerLine + ignoreBytes + 1 );
 
   indri::parse::MetadataPair pair;
   // just store an offset for now, get better data later
-  pair.value = (void*) (spot - _buffer.front());
-  pair.valueLength = lineLength - ignoreBytes - 1;
+  pair.value = (void*) (spot - _metaBuffer.front());
+  pair.valueLength = lineLength - ignoreBytes;
   pair.key = tagName;
 
   _document.metadata.push_back( pair );
@@ -95,26 +104,67 @@ indri::parse::UnparsedDocument* indri::parse::MboxDocumentIterator::nextDocument
   //    date
   // all of these need to be metadata and indexed content
 
-  while( !_in.eof() ) {
-    int lineLength = MBOX_MAX_HEADER_LINE_LENGTH;
-    _in.getline( headerLine, lineLength );
+  static const field_t fields[] = {
+    { "From:", "author", 5 },
+    { "To:", "recipient", 3 },
+    { "Subject:", "subject", 8 },
+    { "Cc:", "copied", 3 },
+    { "Date:", "date", 5 }
+  };
 
-    if( !strncmp( headerLine, MBOX_FROM, sizeof MBOX_FROM - 1 ) ) {
-      _copyMetadata( headerLine, sizeof MBOX_FROM - 1, "author" );
-    } else if( !strncmp( headerLine, MBOX_TO, sizeof MBOX_TO - 1 ) ) {
-      _copyMetadata( headerLine, sizeof MBOX_TO - 1, "recipient" );
-    } else if( !strncmp( headerLine, MBOX_CC, sizeof MBOX_CC - 1 ) ) {
-      _copyMetadata( headerLine, sizeof MBOX_CC - 1, "copied" );
-    } else if( !strncmp( headerLine, MBOX_SUBJECT, sizeof MBOX_SUBJECT - 1 ) ) {
-      _copyMetadata( headerLine, sizeof MBOX_SUBJECT - 1, "subject" );
-    } else if( !strncmp( headerLine, MBOX_DATE, sizeof MBOX_DATE - 1 ) ) {
-      _copyMetadata( headerLine, sizeof MBOX_DATE - 1, "date" );
-    } else if( !strcmp( headerLine, MBOX_EMPTY_LINE ) ) {
-      break;
-    }
+  int field = -1;
+
+  if( !_in.eof() ) {
+    _in.getline( headerLine, MBOX_MAX_HEADER_LINE_LENGTH );
   }
 
-  //std::cout << "found empty line, moving on" << std::endl;
+  while( !_in.eof() ) {
+    // if the line is empty, we're done with this header
+    if( !strcmp( headerLine, MBOX_EMPTY_LINE ) )
+      break;
+
+    // record the number of bytes read
+    int lineLength = _in.gcount();
+    int extraLength = 0;
+
+    // is this an interesting line?
+    for( int i=0; i<(sizeof fields/sizeof fields[0]); i++ ) {
+      if( !strncmp( fields[i].field, headerLine, fields[i].length ) ) {
+        field = i;
+        break;
+      }
+    }
+
+    // if this is an interesting line, do some special processing
+    if( field >= 0 ) {
+      // some fields are multi-line; these fields start with a tab character.
+      // therefore, we'll try to fetch more lines now
+      while( !_in.eof() ) {
+        _in.getline( headerLine + lineLength, MBOX_MAX_HEADER_LINE_LENGTH - lineLength );
+        extraLength = _in.gcount();
+        
+        if( headerLine[lineLength] != '\t' ) {
+          break;
+        } else {
+          // add a newline where the '\0' was
+          headerLine[lineLength-1] = '\n';
+          lineLength += extraLength;
+          extraLength = 0;
+        }
+      }
+
+      // now, copy to metadata
+      _copyMetadata( headerLine, fields[field].length, fields[field].tag );
+
+      // move next line data to beginning of buffer
+      memmove( headerLine, headerLine + lineLength, extraLength );
+
+      // clear field
+      field = -1;
+    } else {
+      _in.getline( headerLine, MBOX_MAX_HEADER_LINE_LENGTH );
+    }
+  }
 
   // now, we're catching message text
   // we will stop (and throw out content) as soon as we see a "From" line
@@ -122,11 +172,14 @@ indri::parse::UnparsedDocument* indri::parse::MboxDocumentIterator::nextDocument
     int readChunk = 1024*1024;
     char* textSpot = _buffer.write(readChunk);
     _in.getline( textSpot, readChunk );
-    _buffer.unwrite( readChunk - _in.gcount() );
+
+    // add in the newline that was replaced by a '\0'
+    int actual = _in.gcount();
+    _buffer.unwrite( readChunk - actual );
+    textSpot[actual-1] = '\n';
 
     // done reading at a "From" line
     if( !strncmp( textSpot, "From", 4 ) ) {
-      //std::cout << "found next message (from line)" << std::endl;
       _buffer.unwrite( _in.gcount() );
       break;
     }
@@ -138,7 +191,7 @@ indri::parse::UnparsedDocument* indri::parse::MboxDocumentIterator::nextDocument
   // fix up existing metadata
   for( int i=0; i<_document.metadata.size(); i++ ) {
     size_t offset = (size_t) _document.metadata[i].value;
-    _document.metadata[i].value = _buffer.front() + offset;
+    _document.metadata[i].value = _metaBuffer.front() + offset;
   }
 
   // add type metadata

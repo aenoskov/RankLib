@@ -31,6 +31,7 @@ namespace indri
       std::string _filename;
       UnparsedDocument _document;
       indri::utility::Buffer _buffer;
+      indri::utility::Buffer _metaBuffer;
       std::ifstream _in;
 
       void _copyMetadata( const char* headerLine, int ignoreBytes, const char* tagName );
