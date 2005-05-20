@@ -26,7 +26,7 @@
 #define MBOX_SUBJECT    ("Subject:")
 #define MBOX_DATE       ("Date:")
 #define MBOX_CC         ("Cc:")
-#define MBOX_EMPTY_LINE ("\n")
+#define MBOX_EMPTY_LINE ("")
 
 //
 // open
@@ -114,16 +114,19 @@ indri::parse::UnparsedDocument* indri::parse::MboxDocumentIterator::nextDocument
     }
   }
 
+  //std::cout << "found empty line, moving on" << std::endl;
+
   // now, we're catching message text
   // we will stop (and throw out content) as soon as we see a "From" line
   while( !_in.eof() ) {
     int readChunk = 1024*1024;
     char* textSpot = _buffer.write(readChunk);
-    _in.read( textSpot, readChunk );
+    _in.getline( textSpot, readChunk );
     _buffer.unwrite( readChunk - _in.gcount() );
 
     // done reading at a "From" line
     if( !strncmp( textSpot, "From", 4 ) ) {
+      //std::cout << "found next message (from line)" << std::endl;
       _buffer.unwrite( _in.gcount() );
       break;
     }
@@ -144,6 +147,17 @@ indri::parse::UnparsedDocument* indri::parse::MboxDocumentIterator::nextDocument
   pair.value = (void*) "MBOX";
   pair.valueLength = sizeof "MBOX";
   _document.metadata.push_back( pair );
+
+  // copy subject into docno
+  for( int i=0; i<_document.metadata.size(); i++ ) {
+    if( !strcmp( "subject", _document.metadata[i].key ) ) {
+      pair.key = "docno";
+      pair.value = _document.metadata[i].value;
+      pair.valueLength = _document.metadata[i].valueLength;
+      _document.metadata.push_back( pair );
+      break;
+    }
+  }
 
   _document.text = _buffer.front();
   _document.textLength = _buffer.position();
