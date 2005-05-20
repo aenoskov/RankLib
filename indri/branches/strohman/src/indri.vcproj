@@ -260,6 +260,9 @@
 				RelativePath=".\LocalQueryServer.cpp">
 			</File>
 			<File
+				RelativePath=".\MboxDocumentIterator.cpp">
+			</File>
+			<File
 				RelativePath=".\MemoryDocumentDataIterator.cpp">
 			</File>
 			<File
@@ -728,6 +731,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\MaxNode.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\MboxDocumentIterator.hpp">
 			</File>
 			<File
 				RelativePath=".\indri\MemoryDocumentDataIterator.hpp">

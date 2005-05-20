@@ -112,13 +112,27 @@ static file_class_environment_spec environments[] = {
     "xml",                // parser
     "tagged",             // iterator
     "<DOC>",              // startDocTag
-    "</DOC>\n",             // endDocTag
+    "</DOC>\n",           // endDocTag
     NULL,                 // endMetadataTag
     trec_include_tags,    // includeTags
     NULL,                 // excludeTags
     trec_index_tags,      // indexTags
     trec_metadata_tags,   // metadataTags
     trec_conflations      // conflations
+  },
+
+  {
+    "mbox",               // name
+    "text",               // parser
+    "mbox",               // iterator
+    NULL,                 // startDocTag
+    NULL,                 // endDocTag
+    NULL,                 // endMetadataTag
+    NULL,                 // includeTags
+    NULL,                 // excludeTags
+    NULL,                 // indexTags
+    NULL,                 // metadataTags
+    NULL                  // conflations
   },
 
 #ifdef WIN32
