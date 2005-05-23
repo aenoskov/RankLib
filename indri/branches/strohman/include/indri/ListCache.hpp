@@ -31,10 +31,13 @@ namespace indri
 {
   namespace lang
   {
-    
     class ListCache {
     public:
       struct CachedList {
+        // hash codes
+        UINT64 rawHash;
+        UINT64 contextHash;
+
         // query structure
         indri::lang::SimpleCopier raw;
         indri::lang::SimpleCopier context;
@@ -53,13 +56,16 @@ namespace indri
 
     private:
       std::vector<struct CachedList*> _lists;
-
+      Mutex& _mutex;
+  
     public:
       ~ListCache() {
         indri::utility::delete_vector_contents( _lists );
       }
 
       void add( CachedList* list ) {
+        ScopedLock sl( _mutex );
+
         if( _lists.size() > 100 ) {
           delete _lists[0];
           _lists.erase( _lists.begin() );
@@ -69,11 +75,19 @@ namespace indri
       }
 
       CachedList* find( indri::lang::Node* raw, indri::lang::Node* context ) {
+        ScopedLock sl( _mutex );
+
         ListCache::CachedList* list = 0;
         size_t i = 0;
 
-        // TODO: use a hash function to make this faster
+        UINT64 rawHash = raw->hashCode();
+        UINT64 contextHash = context ? context->hashCode() : 0;
+
         for( i=0; i<_lists.size(); i++ ) {
+          if( rawHash != _lists[i]->rawHash ||
+              contextHash != _lists[i]->contextHash )
+            continue;
+          
           indri::lang::Node* cachedRaw = _lists[i]->raw.root();
           indri::lang::Node* cachedContext = _lists[i]->context.root();
 
