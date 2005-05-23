@@ -27,6 +27,9 @@
 #include "indri/QuerySpec.hpp"
 #include "indri/TreePrinterWalker.hpp"
 #include "indri/Parameters.hpp"
+#include "indri/ScopedLock.hpp"
+#include "indri/Mutex.hpp"
+
 namespace indri
 {
   namespace lang
@@ -56,7 +59,7 @@ namespace indri
 
     private:
       std::vector<struct CachedList*> _lists;
-      Mutex& _mutex;
+      indri::thread::Mutex& _mutex;
   
     public:
       ~ListCache() {
@@ -64,7 +67,7 @@ namespace indri
       }
 
       void add( CachedList* list ) {
-        ScopedLock sl( _mutex );
+        indri::thread::ScopedLock sl( _mutex );
 
         if( _lists.size() > 100 ) {
           delete _lists[0];
@@ -75,7 +78,7 @@ namespace indri
       }
 
       CachedList* find( indri::lang::Node* raw, indri::lang::Node* context ) {
-        ScopedLock sl( _mutex );
+        indri::thread::ScopedLock sl( _mutex );
 
         ListCache::CachedList* list = 0;
         size_t i = 0;
