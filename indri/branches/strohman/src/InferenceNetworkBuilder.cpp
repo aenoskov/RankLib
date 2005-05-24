@@ -579,7 +579,8 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ContextCounterN
 
     contextCount = new ContextCountAccumulator( contextCounterNode->nodeName(),
                                                 dynamic_cast<ListIteratorNode*>(untypedRawExtent),
-                                                dynamic_cast<ListIteratorNode*>(untypedContext) );
+                                                dynamic_cast<ListIteratorNode*>(untypedContext),
+                                                &_cache );
 
     _network->addEvaluatorNode( contextCount );
     _network->addComplexEvaluatorNode( contextCount );

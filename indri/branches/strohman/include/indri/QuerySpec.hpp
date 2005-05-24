@@ -27,6 +27,7 @@
 
 #include "lemur/Exception.hpp"
 #include "indri/HashTable.hpp"
+#include "indri/ref_ptr.hpp"
 
 template<class T>
 bool equal( const std::vector<T>& one, const std::vector<T>& two ) {

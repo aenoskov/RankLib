@@ -114,22 +114,22 @@ namespace indri
 
           scorerNode->setNodeName( oldNode->nodeName() );
           scorerNode->setSmoothing( oldNode->getSmoothing() );
-      scorerNode->setStatistics( oldNode->getOccurrences(), oldNode->getContextSize() );
+          scorerNode->setStatistics( oldNode->getOccurrences(), oldNode->getContextSize() );
 
           delete newNode;
           result = defaultAfter( oldNode, scorerNode );
         } else if( !_disqualifiers.size() ) {
-          ListCache::CachedList* list = 0; 
+          indri::atomic::ref_ptr<ListCache::CachedList> list; 
 
           if( _listCache )
             list = _listCache->find( newNode->getRawExtent(), newNode->getContext() );
       
-          if( list ) {
+          if( list.get() ) {
             indri::lang::CachedFrequencyScorerNode* cachedNode;
             cachedNode = new indri::lang::CachedFrequencyScorerNode( newNode->getRawExtent(), newNode->getContext() );
             cachedNode->setNodeName( newNode->nodeName() );
             cachedNode->setSmoothing( newNode->getSmoothing() );
-            cachedNode->setList( list );
+            cachedNode->setList( list.get() ); // warning: by doing this, we open up the possibility that the list will get deleted during a retrieval
 
             delete newNode;
             result = defaultAfter( oldNode, cachedNode );
