@@ -26,11 +26,12 @@
 #include "indri/EvaluatorNode.hpp"
 #include "indri/QuerySpec.hpp"
 #include "indri/DocumentCount.hpp"
+#include "indri/ListCache.hpp"
+
 namespace indri
 {
   namespace infnet
   {
-    
     class ContextCountAccumulator : public EvaluatorNode {
     private:
       // this is a ListIteratorNode that contains extents
@@ -44,17 +45,20 @@ namespace indri
       ListIteratorNode* _matches; 
 
       std::string _name;
-  double _occurrences;
-  double _contextSize;
+      double _occurrences;
+      double _contextSize;
 
       EvaluatorNode::MResults _results;
 
-public:
-      ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context );
+      indri::lang::ListCache* _cache;
+      indri::lang::ListCache::CachedList* _list;
+
+    public:
+      ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context, indri::lang::ListCache* cache );
       ~ContextCountAccumulator();
 
-  double getOccurrences() const;
-  double getContextSize() const;
+      double getOccurrences() const;
+      double getContextSize() const;
 
       const ListIteratorNode* getContextNode() const;
       const ListIteratorNode* getMatchesNode() const;

@@ -29,6 +29,7 @@
 #include "indri/Parameters.hpp"
 #include "indri/ScopedLock.hpp"
 #include "indri/Mutex.hpp"
+#include "indri/ref_ptr.hpp"
 
 namespace indri
 {
@@ -58,26 +59,22 @@ namespace indri
       };
 
     private:
-      std::vector<struct CachedList*> _lists;
-      indri::thread::Mutex& _mutex;
+      std::vector< indri::atomic::ref_ptr<struct CachedList> > _lists;
+      indri::thread::Mutex _mutex;
   
     public:
-      ~ListCache() {
-        indri::utility::delete_vector_contents( _lists );
-      }
-
-      void add( CachedList* list ) {
+      void insert( CachedList* list ) {
         indri::thread::ScopedLock sl( _mutex );
 
         if( _lists.size() > 100 ) {
-          delete _lists[0];
           _lists.erase( _lists.begin() );
         }
 
-        _lists.push_back( list );
+        indri::atomic::ref_ptr<CachedList> p = list;
+        _lists.push_back( p );
       }
 
-      CachedList* find( indri::lang::Node* raw, indri::lang::Node* context ) {
+      indri::atomic::ref_ptr<CachedList> find( indri::lang::Node* raw, indri::lang::Node* context ) {
         indri::thread::ScopedLock sl( _mutex );
 
         ListCache::CachedList* list = 0;
@@ -97,13 +94,12 @@ namespace indri
           if( *cachedRaw == *raw ) {
             if( ( !cachedContext && !context ) ||
                 ( cachedContext && context && (*context == *cachedContext)) ) {
-              list = _lists[i];
-              break;
+              return _lists[i];
             } 
           }
         }
 
-        return list;
+        return indri::atomic::ref_ptr<CachedList>();
       }
     };
   }
