@@ -35,14 +35,14 @@ namespace indri
     };
 
     struct DocumentContextCount {
-      DocumentContextCount( int document, int count, int contextSize ) {
+      DocumentContextCount( int document, double count, int contextSize ) {
         this->document = document;
         this->count = count;
         this->contextSize = contextSize;
       }
 
       int document;
-      int count;
+      double count;
       int contextSize;
     };
   }

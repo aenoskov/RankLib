@@ -576,11 +576,27 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ContextCounterN
     InferenceNetworkNode* untypedRawExtent = _nodeMap[ contextCounterNode->getRawExtent() ];
     InferenceNetworkNode* untypedContext = _nodeMap[ contextCounterNode->getContext() ];
     ContextCountAccumulator* contextCount = 0;
+    indri::lang::ListCache::CachedList* list = new indri::lang::ListCache::CachedList;
+
+    indri::lang::Node* raw = contextCounterNode->getRawExtent();
+    indri::lang::Node* context = contextCounterNode->getContext();
+
+    list->rawHash = raw->hashCode();
+    list->contextHash = context ? context->hashCode() : 0;
+
+    list->maximumContextFraction = 0;
+    list->maximumContextSize = 0;
+
+    raw->copy(list->raw);
+    if( context ) {
+      context->copy(list->context);
+    }
 
     contextCount = new ContextCountAccumulator( contextCounterNode->nodeName(),
                                                 dynamic_cast<ListIteratorNode*>(untypedRawExtent),
                                                 dynamic_cast<ListIteratorNode*>(untypedContext),
-                                                &_cache );
+                                                &_cache, 
+                                                list );
 
     _network->addEvaluatorNode( contextCount );
     _network->addComplexEvaluatorNode( contextCount );
@@ -627,8 +643,31 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::AnnotatorNode* 
 }
 
 void indri::infnet::InferenceNetworkBuilder::after( indri::lang::CachedFrequencyScorerNode* cachedScorerNode ) {
-  // TODO: either remove this or fix it
-  LEMUR_THROW( LEMUR_RUNTIME_ERROR, "For the time being, InferenceNetworkBuilder does not support CachedFrequencyScorerNodes" );
+  if( _nodeMap.find( cachedScorerNode ) == _nodeMap.end() ) {
+    indri::lang::ListCache::CachedList* list = (indri::lang::ListCache::CachedList*) cachedScorerNode->getList();
+    indri::query::TermScoreFunction* function = 0;
+
+    function = _buildTermScoreFunction( cachedScorerNode->getSmoothing(),
+                                        list->occurrences,
+                                        list->contextSize );
+
+    double maxOccurrences = ceil( double(list->maximumContextSize) * list->maximumContextFraction );
+
+    double maximumScore = function->scoreOccurrence( maxOccurrences, list->maximumContextSize );
+    double maximumBackgroundScore = function->scoreOccurrence( 1, 1 );
+
+    std::cout << "storing ms: " << maximumScore << " mbs: " << maximumBackgroundScore << std::endl;
+
+    CachedFrequencyBeliefNode* beliefNode = new CachedFrequencyBeliefNode( cachedScorerNode->nodeName(),
+                                                                           list,
+                                                                           *function, 
+                                                                           maximumBackgroundScore,
+                                                                           maximumScore );
+
+    _network->addScoreFunction( function );
+    _network->addBeliefNode( beliefNode );
+    _nodeMap[cachedScorerNode] = beliefNode;
+  }
 }
 
 void indri::infnet::InferenceNetworkBuilder::after( indri::lang::TermFrequencyScorerNode* termScorerNode ) {

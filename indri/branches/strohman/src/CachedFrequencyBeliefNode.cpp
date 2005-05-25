@@ -23,6 +23,7 @@ indri::infnet::CachedFrequencyBeliefNode::CachedFrequencyBeliefNode( const std::
   _maximumBackgroundScore(maximumBackgroundScore),
   _maximumScore(maximumScore)
 {
+  std::cout << "max bkgnd: " << _maximumBackgroundScore << " max score: " << _maximumScore << std::endl;
   _iter = _list->entries.begin();
 }
 
@@ -43,7 +44,7 @@ const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infn
   const indri::index::DocumentContextCount* entry = _iter < _list->entries.end() ? _iter : 0;
   _extents.clear();
 
-  int count = 0;
+  double count = 0;
   int contextSize = 0;
 
   if( entry && entry->document == documentID ) {

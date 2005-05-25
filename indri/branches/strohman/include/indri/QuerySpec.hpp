@@ -373,7 +373,7 @@ namespace indri {
         UINT64 hash = 11;
 
         for( size_t i=0; i<_children.size(); i++ ) {
-          hash += (_weights[i] * 1000) + _children[i]->hashCode();
+          hash += (UINT64) (_weights[i] * 1000) + _children[i]->hashCode();
         }
         
         return hash;
@@ -1912,7 +1912,7 @@ namespace indri {
         UINT64 accumulator = 0;
 
         for( size_t i=0; i<_children.size(); i++ ) {
-          accumulator += (_children[i].first * 1000) + _children[i].second->hashCode();
+          accumulator += (UINT64) (_children[i].first * 1000) + _children[i].second->hashCode();
         }
 
         return accumulator;

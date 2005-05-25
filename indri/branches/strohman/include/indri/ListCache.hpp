@@ -50,12 +50,10 @@ namespace indri
         indri::utility::greedy_vector<indri::index::DocumentContextCount> entries;
 
         // statistics about the entries
-        INT64 occurrences;
-        INT64 contextSize;
-        INT64 minimumContextSize;
-        INT64 maximumContextSize;
-        INT64 maximumOccurrences;
-        float maximumContextFraction;
+        double occurrences;
+        int contextSize;
+        int maximumContextSize;
+        double maximumContextFraction;
       };
 
     private:
@@ -66,7 +64,7 @@ namespace indri
       void insert( CachedList* list ) {
         indri::thread::ScopedLock sl( _mutex );
 
-        if( _lists.size() > 100 ) {
+        while( _lists.size() > 100 ) {
           _lists.erase( _lists.begin() );
         }
 

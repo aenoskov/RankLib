@@ -102,8 +102,13 @@ void indri::infnet::TermFrequencyBeliefNode::indexChanged( indri::index::Index& 
     double maximumFraction = 1;
     
     if( _list->topDocuments().size() ) {
-      const indri::index::DocListIterator::TopDocument& document = _list->topDocuments().back();
-      maximumFraction = double(document.count) / double(document.length);
+      if( indri::api::Parameters::instance().get( "maxscore", false ) ) {
+        const indri::index::DocListIterator::TopDocument& document = _list->topDocuments().front();
+        maximumFraction = double(document.count) / double(document.length);
+      } else {
+        const indri::index::DocListIterator::TopDocument& document = _list->topDocuments().back();
+        maximumFraction = double(document.count) / double(document.length);
+      }
     }
 
     indri::index::TermData* termData = _list->termData();
