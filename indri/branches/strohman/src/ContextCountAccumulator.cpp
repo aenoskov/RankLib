@@ -81,21 +81,24 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
   double documentOccurrences = 0;
   double documentContextSize = 0;
 
-   if( !_context ) {
-     for( size_t i=0; i<_matches->extents().size(); i++ ) {
-       const indri::index::Extent& extent = _matches->extents()[i];
-       documentOccurrences += extent.weight;
-     }
+  if( !_context ) {
+    for( size_t i=0; i<_matches->extents().size(); i++ ) {
+      const indri::index::Extent& extent = _matches->extents()[i];
+      documentOccurrences += extent.weight;
+    }
 
-     _occurrences += documentOccurrences;
+    _occurrences += documentOccurrences;
 
-     if( _list && documentOccurrences > 0 ) {
-       double fraction = double(documentOccurrences) / double(documentLength);
-       _list->maximumContextFraction = lemur_compat::max<double>( fraction, _list->maximumContextFraction );
-       _list->maximumContextSize = lemur_compat::max<int>( documentLength, _list->maximumContextSize );
+    if( _list ) {
+      if( documentOccurrences > 0 ) {
+        double fraction = double(documentOccurrences) / double(documentLength);
+        _list->maximumContextFraction = lemur_compat::max<double>( fraction, _list->maximumContextFraction );
 
-       _list->entries.push_back( indri::index::DocumentContextCount( documentID, documentOccurrences, documentLength ) );
-     }
+        _list->entries.push_back( indri::index::DocumentContextCount( documentID, documentOccurrences, documentLength ) );
+      }
+  
+      _list->maximumContextSize = lemur_compat::max<int>( (int) documentLength, _list->maximumContextSize );
+    }
   } else {
     const indri::utility::greedy_vector<indri::index::Extent>& matches = _matches->extents();
     const indri::utility::greedy_vector<indri::index::Extent>& extents = _context->extents();
@@ -117,11 +120,13 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
     }
 
     if( _list && documentOccurrences > 0 ) {
-       double fraction = double(documentOccurrences) / double(documentContextSize);
-       _list->maximumContextFraction = lemur_compat::max<double>( fraction, _list->maximumContextFraction );
-       _list->maximumContextSize = lemur_compat::max<int>( (int) documentContextSize, _list->maximumContextSize );
+      if( documentOccurrences > 0 ) {
+        double fraction = double(documentOccurrences) / double(documentContextSize);
+        _list->maximumContextFraction = lemur_compat::max<double>( fraction, _list->maximumContextFraction );
 
-      _list->entries.push_back( indri::index::DocumentContextCount( documentID, documentOccurrences, (int) documentContextSize ) );
+        _list->entries.push_back( indri::index::DocumentContextCount( documentID, documentOccurrences, (int) documentContextSize ) );
+      }
+      _list->maximumContextSize = lemur_compat::max<int>( (int) documentContextSize, _list->maximumContextSize );
     }
 
     _occurrences += documentOccurrences;

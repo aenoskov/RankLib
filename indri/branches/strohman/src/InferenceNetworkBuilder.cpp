@@ -651,18 +651,23 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::CachedFrequency
                                         list->occurrences,
                                         list->contextSize );
 
-    double maxOccurrences = ceil( double(list->maximumContextSize) * list->maximumContextFraction );
+    BeliefNode* beliefNode = 0;
 
-    double maximumScore = function->scoreOccurrence( maxOccurrences, list->maximumContextSize );
-    double maximumBackgroundScore = function->scoreOccurrence( 1, 1 );
+    if( list->occurrences == 0 ) {
+      beliefNode = new NullScorerNode( cachedScorerNode->nodeName(),
+                                       *function );
+    } else {
+      double maxOccurrences = ceil( double(list->maximumContextSize) * list->maximumContextFraction );
 
-    std::cout << "storing ms: " << maximumScore << " mbs: " << maximumBackgroundScore << std::endl;
+      double maximumScore = function->scoreOccurrence( maxOccurrences, list->maximumContextSize );
+      double maximumBackgroundScore = function->scoreOccurrence( 0, 1 );
 
-    CachedFrequencyBeliefNode* beliefNode = new CachedFrequencyBeliefNode( cachedScorerNode->nodeName(),
-                                                                           list,
-                                                                           *function, 
-                                                                           maximumBackgroundScore,
-                                                                           maximumScore );
+      beliefNode = new CachedFrequencyBeliefNode( cachedScorerNode->nodeName(),
+                                                  list,
+                                                  *function, 
+                                                  maximumBackgroundScore,
+                                                  maximumScore );
+    }
 
     _network->addScoreFunction( function );
     _network->addBeliefNode( beliefNode );
