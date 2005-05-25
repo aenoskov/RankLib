@@ -54,7 +54,7 @@ namespace indri
       indri::lang::ListCache::CachedList* _list;
 
     public:
-      ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context, indri::lang::ListCache* cache );
+      ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context, indri::lang::ListCache* cache, indri::lang::ListCache::CachedList* list );
       ~ContextCountAccumulator();
 
       double getOccurrences() const;

@@ -37,6 +37,8 @@
 #include "indri/Appliers.hpp"
 #include "indri/ScopedLock.hpp"
 
+#include "indri/TreePrinterWalker.hpp"
+
 //
 // Response objects
 //
@@ -371,6 +373,9 @@ indri::server::QueryServerResponse* indri::server::LocalQueryServer::runQuery( s
     // annotation queries may ask for this
     networkRoots = contexts.roots();
   }
+
+  indri::lang::TreePrinterWalker walker;
+  networkRoots[0]->walk(walker);
 
   // build an inference network
   indri::infnet::InferenceNetworkBuilder builder( _repository, _cache, resultsRequested );

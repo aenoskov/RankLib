@@ -24,6 +24,7 @@
 #include <iostream>
 #include <fstream>
 #include "lemur/Exception.hpp"
+#include "indri/Parameters.hpp"
 
 static indri::api::Parameters* _parametersSingleton = 0;
 

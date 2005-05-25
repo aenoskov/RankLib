@@ -59,6 +59,9 @@
 
 #include "indri/Appliers.hpp"
 
+
+#define TIME_QUERIES
+
 // debug code: should be gone soon
 #ifdef TIME_QUERIES
 #define INIT_TIMER      indri::utility::IndriTimer t; t.start();

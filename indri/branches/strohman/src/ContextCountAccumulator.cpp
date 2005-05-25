@@ -26,14 +26,15 @@
 indri::infnet::ContextCountAccumulator::ContextCountAccumulator( const std::string& name,
                                                                  ListIteratorNode* matches,
                                                                  ListIteratorNode* context,
-                                                                 indri::lang::ListCache* cache ) :
+                                                                 indri::lang::ListCache* cache, 
+                                                                 indri::lang::ListCache::CachedList* list ) :
   _name(name),
   _matches(matches),
   _context(context),
   _occurrences(0),
   _contextSize(0),
   _cache(cache),
-  _list(new indri::lang::ListCache::CachedList)
+  _list(list)
 {
 }
 
@@ -54,7 +55,11 @@ double indri::infnet::ContextCountAccumulator::getContextSize() const {
 
 const indri::infnet::EvaluatorNode::MResults& indri::infnet::ContextCountAccumulator::getResults() {
   // we must be finished, so now is a good time to add our results to the ListCache
-  _cache->insert( _list, _matches, _context, _occurrences, _contextSize );
+  _list->occurrences = _occurrences;
+  _list->contextSize = (int) _contextSize;
+  std::cout << "counted " << _list->entries.size() << " occurrences" << std::endl;
+
+  _cache->insert( _list );
 
   _results.clear();
 
@@ -73,8 +78,8 @@ const indri::infnet::ListIteratorNode* indri::infnet::ContextCountAccumulator::g
 }
 
 void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int documentLength ) {
-  double documentOccurrences; 
-  double documentContextSize;
+  double documentOccurrences = 0;
+  double documentContextSize = 0;
 
    if( !_context ) {
      for( size_t i=0; i<_matches->extents().size(); i++ ) {
@@ -84,7 +89,11 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
 
      _occurrences += documentOccurrences;
 
-     if( _list ) {
+     if( _list && documentOccurrences > 0 ) {
+       double fraction = double(documentOccurrences) / double(documentLength);
+       _list->maximumContextFraction = lemur_compat::max<double>( fraction, _list->maximumContextFraction );
+       _list->maximumContextSize = lemur_compat::max<int>( documentLength, _list->maximumContextSize );
+
        _list->entries.push_back( indri::index::DocumentContextCount( documentID, documentOccurrences, documentLength ) );
      }
   } else {
@@ -107,8 +116,12 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
       documentContextSize += extents[i].end - extents[i].begin;
     }
 
-    if( _list ) {
-      _list->entries.push_back( indri::index::DocumentContextCount( documentID, documentOccurrences, documentLength ) );
+    if( _list && documentOccurrences > 0 ) {
+       double fraction = double(documentOccurrences) / double(documentContextSize);
+       _list->maximumContextFraction = lemur_compat::max<double>( fraction, _list->maximumContextFraction );
+       _list->maximumContextSize = lemur_compat::max<int>( (int) documentContextSize, _list->maximumContextSize );
+
+      _list->entries.push_back( indri::index::DocumentContextCount( documentID, documentOccurrences, (int) documentContextSize ) );
     }
 
     _occurrences += documentOccurrences;
