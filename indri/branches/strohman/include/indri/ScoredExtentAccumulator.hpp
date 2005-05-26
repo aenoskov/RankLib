@@ -43,7 +43,7 @@ namespace indri
         _name(name),
         _skipping(0)
       {
-        if( indri::api::Parameters::instance().get( "skipping", 1 ) )
+        if( indri::api::Parameters::instance().get( "skipping", true ) == true ) 
           _skipping = dynamic_cast<SkippingCapableNode*>(belief);
       }
 

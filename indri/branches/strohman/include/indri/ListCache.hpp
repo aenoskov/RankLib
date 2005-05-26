@@ -53,6 +53,7 @@ namespace indri
         double occurrences;
         int contextSize;
         int maximumContextSize;
+        int minimumContextSize;
         double maximumContextFraction;
       };
 
