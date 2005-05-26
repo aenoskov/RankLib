@@ -23,7 +23,6 @@ indri::infnet::CachedFrequencyBeliefNode::CachedFrequencyBeliefNode( const std::
   _maximumBackgroundScore(maximumBackgroundScore),
   _maximumScore(maximumScore)
 {
-  std::cout << "max bkgnd: " << _maximumBackgroundScore << " max score: " << _maximumScore << std::endl;
   _iter = _list->entries.begin();
 }
 

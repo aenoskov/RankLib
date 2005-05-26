@@ -374,9 +374,6 @@ indri::server::QueryServerResponse* indri::server::LocalQueryServer::runQuery( s
     networkRoots = contexts.roots();
   }
 
-  indri::lang::TreePrinterWalker walker;
-  networkRoots[0]->walk(walker);
-
   // build an inference network
   indri::infnet::InferenceNetworkBuilder builder( _repository, _cache, resultsRequested );
   indri::lang::ApplyWalker<indri::infnet::InferenceNetworkBuilder> buildWalker( networkRoots, &builder );

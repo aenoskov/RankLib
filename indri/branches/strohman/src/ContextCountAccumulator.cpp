@@ -56,8 +56,7 @@ double indri::infnet::ContextCountAccumulator::getContextSize() const {
 const indri::infnet::EvaluatorNode::MResults& indri::infnet::ContextCountAccumulator::getResults() {
   // we must be finished, so now is a good time to add our results to the ListCache
   _list->occurrences = _occurrences;
-  _list->contextSize = (int) _contextSize;
-  std::cout << "counted " << _list->entries.size() << " occurrences" << std::endl;
+  _list->contextSize = (UINT64)  _contextSize;
 
   _cache->insert( _list );
 
@@ -88,6 +87,7 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
     }
 
     _occurrences += documentOccurrences;
+    _contextSize += documentLength;
 
     if( _list ) {
       if( documentOccurrences > 0 ) {
@@ -98,6 +98,7 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
       }
   
       _list->maximumContextSize = lemur_compat::max<int>( (int) documentLength, _list->maximumContextSize );
+      _list->minimumContextSize = lemur_compat::min<int>( (int) documentLength, _list->minimumContextSize );
     }
   } else {
     const indri::utility::greedy_vector<indri::index::Extent>& matches = _matches->extents();
@@ -127,6 +128,7 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
         _list->entries.push_back( indri::index::DocumentContextCount( documentID, documentOccurrences, (int) documentContextSize ) );
       }
       _list->maximumContextSize = lemur_compat::max<int>( (int) documentContextSize, _list->maximumContextSize );
+      _list->minimumContextSize = lemur_compat::min<int>( (int) documentContextSize, _list->minimumContextSize );
     }
 
     _occurrences += documentOccurrences;
@@ -149,7 +151,5 @@ int indri::infnet::ContextCountAccumulator::nextCandidateDocument() {
 //
 
 void indri::infnet::ContextCountAccumulator::indexChanged( indri::index::Index& index ) {
-  if( ! _context ) {
-    _contextSize += index.termCount();
-  }
 }
+

@@ -23,6 +23,7 @@
 #include <iostream>
 #include "indri/Annotator.hpp"
 #include "indri/TermFrequencyBeliefNode.hpp"
+#include "indri/CachedFrequencyBeliefNode.hpp"
 #include "indri/greedy_vector"
 #include "indri/delete_range.hpp"
 #include "indri/Parameters.hpp"
@@ -62,6 +63,11 @@ void indri::infnet::WeightedAndNode::_computeQuorum() {
     _recomputeThreshold = DBL_MAX;
   else
     _recomputeThreshold = maximumScore;
+
+  if( indri::api::Parameters::instance().get( "maxscore", true ) == false )
+    _quorumIndex = 0;
+
+  //std::cout << "skipping " << _quorumIndex << std::endl;
 }
 
 void indri::infnet::WeightedAndNode::addChild( double weight, BeliefNode* node ) {
@@ -160,6 +166,7 @@ void indri::infnet::WeightedAndNode::setThreshold( double threshold ) {
   _threshold = threshold;
 
   if( _threshold >= _recomputeThreshold ) {
+   // std::cout << "threshold hit recompute " << _recomputeThreshold << std::endl;
     _computeQuorum();
   }
 }
