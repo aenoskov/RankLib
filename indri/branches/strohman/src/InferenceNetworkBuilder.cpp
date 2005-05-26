@@ -586,6 +586,10 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ContextCounterN
 
     list->maximumContextFraction = 0;
     list->maximumContextSize = 0;
+    list->minimumContextSize = 1<<30;
+
+    list->occurrences = 0;
+    list->contextSize = 0;
 
     raw->copy(list->raw);
     if( context ) {
@@ -660,7 +664,7 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::CachedFrequency
       double maxOccurrences = ceil( double(list->maximumContextSize) * list->maximumContextFraction );
 
       double maximumScore = function->scoreOccurrence( maxOccurrences, list->maximumContextSize );
-      double maximumBackgroundScore = function->scoreOccurrence( 0, 1 );
+      double maximumBackgroundScore = function->scoreOccurrence( 0, list->minimumContextSize );
 
       beliefNode = new CachedFrequencyBeliefNode( cachedScorerNode->nodeName(),
                                                   list,
