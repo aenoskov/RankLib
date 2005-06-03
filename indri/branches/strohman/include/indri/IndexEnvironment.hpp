@@ -32,6 +32,7 @@
 #include <map>
 namespace indri 
 {
+  ///indri classes that provide services to applications programmers
   namespace api 
   {
     
@@ -51,8 +52,9 @@ namespace indri
       virtual void status( int code, const std::string& documentPath, const std::string& error, int documentsIndexed, int documentsSeen ) {};
     };
 
-    /*! Principal class for interacting with Indri indexes during index 
-      construction. Provides the API for opening or creating an index and its
+    /*! \brief Principal class for interacting with Indri indexes during index 
+      construction. 
+      Provides the API for opening or creating an index and its
       associated repository, setting indexing and text parsing parameters, and
       adding documents to the repository.
     */
@@ -108,7 +110,7 @@ namespace indri
                          const std::string& iterator,
                          const std::string& parser,
                          const std::string& startDocTag,
-                         const std::string& endDogTag,
+                         const std::string& endDocTag,
                          const std::string& endMetadataTag,
                          const std::vector<std::string>& include,
                          const std::vector<std::string>& exclude,
@@ -132,14 +134,20 @@ namespace indri
       /// @see addFileClass
       /// @param fieldNames the list of fields.
       void setIndexedFields( const std::vector<std::string>& fieldNames );
-      void setNumericField( const std::string& fieldName, bool isNumeric );
+      /// Set the numeric property of a field. 
+      /// @param fieldName the field.
+      /// @param isNumeric true if the field is a numeric field, false if not.
+      /// @param parserName The name of the Transformation to use to compute the numeric value of the field. Repository currently recognizes the name NumericFieldAnnotator.
+      void setNumericField( const std::string& fieldName, bool isNumeric,
+                            const std::string &parserName = "");
       /// Set names of metadata fields to be indexed for fast retrieval.
       /// The forward fields are indexed in a B-Tree mapping (documentID, metadataValue).
       /// If a field is not forward indexed, the documentMetadata calls will still work, but they
       /// will be slower (the document has to be retrieved, decompressed and parsed to get the metadata back,
       /// instead of just a B-Tree lookup).  The backward indexed fields store a mapping of (metadataValue, documentID).
       /// If a field is not backward indexed, the documentIDsFromMetadata and documentFromMetadata calls will not work.
-      /// @param fieldNames the list of fields.
+      /// @param forwardFieldNames the list of fields to forward index.
+      /// @param backwardFieldNames the list of fields to backward index.
       void setMetadataIndexedFields( const std::vector<std::string>& forwardFieldNames, const std::vector<std::string>& backwardFieldNames );
       /// set the list of stopwords
       /// @param stopwords the list of stopwords

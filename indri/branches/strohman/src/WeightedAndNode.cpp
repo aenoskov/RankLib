@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 
 
@@ -67,7 +67,7 @@ void indri::infnet::WeightedAndNode::_computeQuorum() {
   if( indri::api::Parameters::instance().get( "maxscore", true ) == false )
     _quorumIndex = 0;
 
-  //std::cout << "skipping " << _quorumIndex << std::endl;
+  std::cout << "threshold is : " << _threshold << " recompute at: " << _recomputeThreshold << std::endl;
 }
 
 void indri::infnet::WeightedAndNode::addChild( double weight, BeliefNode* node ) {

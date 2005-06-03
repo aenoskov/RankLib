@@ -5,17 +5,15 @@ INCPATH=-I../../include $(patsubst %, -I../../contrib/%/include, $(CONTRIBDEPEND
 #LIBS=-lindri $(patsubst %,-l%, $(CONTRIBDEPENDS))
 LIBS=$(wildcard ../../obj/*.o) $(wildcard $(patsubst %, ../../contrib/%/obj/*.o, $(CONTRIBDEPENDS)))
 
-ifeq ($(HOST_OS), darwin)
-  JNIEXT=jnilib
-  DYNAMIC=-dynamiclib -undefined define_a_way
-else
-  JNIEXT=so
-  DYNAMIC=-shared
-endif
-
-LDFLAGS = $(DYNAMIC) $(LIBPATH) $(LIBS) $(CPPLDFLAGS)
+LDFLAGS = $(LIBPATH) $(LIBS) $(CPPLDFLAGS)
 SRC=interface/indri.i
 PHPSRC=php/indri.i
+ifeq ($(HOST_OS), solaris)
+  LFLAGS=-G
+else
+  LFLAGS=-shared
+endif
+
 OBJ=../obj
 OUTDIR=$(OBJ)/java/edu/umass/cs/indri
 OUTDIRUI=$(OBJ)/java/edu/umass/cs/indri/ui
@@ -30,7 +28,7 @@ PROPS = $(patsubst %,$(OUTDIRPROP)/%, $(notdir $(wildcard $(JSRCUI)/properties/*
 INTERFACES = $(wildcard interface/*.i)
 PHPINTERFACES = $(wildcard php/*.i)
 JAVAOBJ = $(patsubst %,$(OUTDIR)/%, $(JAVASRC:.java=.class)) $(patsubst %,$(OUTDIRUI)/%, $(JAVASRCUI:.java=.class))
-SOLIB=$(OBJ)/java/libindri.$(JNIEXT)
+SOLIB=$(OBJ)/java/libindri.so
 PHPLIB=$(OUTDIRPHP)/libindri.so
 JARFILES=$(OBJ)/java/indri.jar $(OBJ)/java/RetUI.jar $(OBJ)/java/IndexUI.jar
 MFST=java/manifest.indri
@@ -64,7 +62,7 @@ java-lib: $(OUTDIR) $(OUTDIRUI) $(OUTDIRPROP) $(OBJ)/java/docs $(PROPS) $(SOLIB)
 php-lib: $(OUTDIRPHP) $(PHPLIB)
 
 $(SOLIB): $(OBJ)/java/indri_javawrap.o $(LIBS)
-	$(CXX) $(SHARED) $< -o $@ $(LDFLAGS)
+	$(CXX) $(LFLAGS) $< -o $@ $(LDFLAGS)
 
 $(OBJ)/java/indri_javawrap.o: java/indri_javawrap.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $< $(INCPATH) $(JAVAINC)
@@ -103,7 +101,7 @@ $(OUTDIRPHP)/indri_phpwrap.o: php/indri_phpwrap.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $< $(INCPATH) $(PHPINCLUDE)
 
 $(PHPLIB): $(OUTDIRPHP)/indri_phpwrap.o $(LIBS)
-	$(CXX) -g $(SHARED) $< -o $@ $(LDFLAGS)
+	$(CXX) -g $(LFLAGS) $< -o $@ $(LDFLAGS)
 
 
 $(DOCS) $(DOCSUI): $(OBJ)/java/docs

@@ -19,8 +19,8 @@
 #ifndef INDRI_TERMLIST_HPP
 #define INDRI_TERMLIST_HPP
 
-#include "greedy_vector"
-#include "FieldExtent.hpp"
+#include "indri/greedy_vector"
+#include "indri/FieldExtent.hpp"
 #include "lemur/RVLCompress.hpp"
 #include "indri/Buffer.hpp"
 #include "indri/RVLCompressStream.hpp"
@@ -103,19 +103,19 @@ namespace indri {
         char* out = begin;
         
         // write count of terms and fields in the document first
-        out = RVLCompress::compress_int( out, _terms.size() );
-        out = RVLCompress::compress_int( out, _fields.size() );
+        out = lemur::utility::RVLCompress::compress_int( out, _terms.size() );
+        out = lemur::utility::RVLCompress::compress_int( out, _fields.size() );
         
         // write out terms
-        int termsSize = RVLCompress::compress_ints( &_terms.front(), (unsigned char*) out, _terms.size() );
+        int termsSize = lemur::utility::RVLCompress::compress_ints( &_terms.front(), (unsigned char*) out, _terms.size() );
         out += termsSize;
         
         // write out fields
         for( unsigned int i=0; i<_fields.size(); i++ ) {
-          out = RVLCompress::compress_int( out, _fields[i].id );
-          out = RVLCompress::compress_int( out, _fields[i].begin );
-          out = RVLCompress::compress_int( out, _fields[i].end );
-          out = RVLCompress::compress_longlong( out, _fields[i].number );
+          out = lemur::utility::RVLCompress::compress_int( out, _fields[i].id );
+          out = lemur::utility::RVLCompress::compress_int( out, _fields[i].begin );
+          out = lemur::utility::RVLCompress::compress_int( out, _fields[i].end );
+          out = lemur::utility::RVLCompress::compress_longlong( out, _fields[i].number );
         }
         
         buffer.unwrite( length - (out - begin) );
