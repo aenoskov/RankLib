@@ -384,19 +384,6 @@ wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
        ( options { greedy=true; } : w=floating n=unscoredTerm { ws->addChild( w, n ); } )+
        C_PAREN;
   
-// wsynNode : WSYN O_PAREN ( weight unscoredTerm )+ C_PAREN
-wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
-  {
-    ws = new indri::lang::WeightedExtentOr;
-    _nodes.push_back(ws);
-
-    double w = 0;
-    RawExtentNode* n = 0;
-  } :
-  WSYN O_PAREN
-       ( options { greedy=true; } : w=floating n=unscoredTerm { ws->addChild( w, n ); } )+
-       C_PAREN;
-  
 // odNode : OD DECIMAL O_PAREN ( qualifiedTerm )+ C_PAREN
 odNode returns [ indri::lang::ODNode* od ] 
   {
