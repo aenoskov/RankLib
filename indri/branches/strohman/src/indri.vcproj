@@ -724,14 +724,10 @@
 				RelativePath="..\include\indri\MaxNode.hpp">
 			</File>
 			<File
-<<<<<<< .working
 				RelativePath="..\include\indri\MboxDocumentIterator.hpp">
 			</File>
 			<File
-				RelativePath=".\indri\MemoryDocumentDataIterator.hpp">
-=======
 				RelativePath="..\include\indri\MemoryDocumentDataIterator.hpp">
->>>>>>> .merge-right.r504
 			</File>
 			<File
 				RelativePath="..\include\indri\MemoryIndex.hpp">
