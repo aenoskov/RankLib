@@ -21,7 +21,12 @@
 #include "indri/ScopedLock.hpp"
 #include <iostream>
 
-int count_term_in_documents( indri::collection::Repository& r, int termID, std::vector<int>& documents );
+//
+// Print the whole inverted file.  Each term entry starts with 
+// a term statistics header (term, termCount, documentCount)
+// followed by indented rows (one per document) of the form:
+// (document, numPositions, pos1, pos2, ... posN ).
+//
 
 void print_invfile( indri::collection::Repository& r ) {
   indri::collection::Repository::index_state state = r.indexes();
@@ -29,16 +34,57 @@ void print_invfile( indri::collection::Repository& r ) {
   indri::index::Index* index = (*state)[0];
   indri::index::DocListFileIterator* iter = index->docListFileIterator();
   iter->startIteration();
+  std::cout << index->termCount() << " " << index->documentCount() << std::endl;
 
   while( !iter->finished() ) {
     indri::index::DocListFileIterator::DocListData* entry = iter->currentEntry();
     indri::index::TermData* termData = entry->termData;
  
     entry->iterator->startIteration();
-    while( !entry->iterator->finished() )
-      entry->iterator->nextEntry();
 
-    std::cout << termData->term << std::endl;
+    std::cout << termData->term << " "
+              << termData->corpus.totalCount << " "
+              << termData->corpus.documentCount <<  std::endl;
+
+    while( !entry->iterator->finished() ) {
+      indri::index::DocListIterator::DocumentData* doc = entry->iterator->currentEntry();
+
+      std::cout << "\t" << doc->document << " " << doc->positions.size();
+      for( int i=0; i<doc->positions.size(); i++ ) {
+        std::cout << " " << doc->positions[i];
+      }
+      std::cout << std::endl;
+
+      entry->iterator->nextEntry();
+    }
+
+    iter->nextEntry();
+  }
+
+  delete iter;
+}
+
+// 
+// Prints the vocabulary of the index, including term statistics.
+//
+
+void print_vocabulary( indri::collection::Repository& r ) {
+  indri::collection::Repository::index_state state = r.indexes();
+
+  indri::index::Index* index = (*state)[0];
+  indri::index::VocabularyIterator* iter = index->vocabularyIterator();
+
+  iter->startIteration();
+  std::cout << "TOTAL" << " " << index->termCount() << " " << index->documentCount() << std::endl;
+
+  while( !iter->finished() ) {
+    indri::index::DiskTermData* entry = iter->currentEntry();
+    indri::index::TermData* termData = entry->termData;
+
+    std::cout << termData->term << " "
+              << termData->corpus.totalCount << " "
+              << termData->corpus.documentCount <<  std::endl;
+
     iter->nextEntry();
   }
 
@@ -283,6 +329,8 @@ void usage() {
   std::cout << "    documenttext (dt)    Document ID    Print the text of a document" << std::endl;
   std::cout << "    documenttext (dd)    Document ID    Print the full representation of a document" << std::endl;
   std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
+  std::cout << "    invlist (il)         None           Print the contents of all inverted lists" << std::endl;
+  std::cout << "    vocabulary (v)       None           Print the vocabulary of the index" << std::endl;
 }
 
 #define REQUIRE_ARGS(n) { if( argc < n ) { usage(); return -1; } }
@@ -327,6 +375,9 @@ int main( int argc, char** argv ) {
     } else if( command == "il" || command == "invlist" ) {
       REQUIRE_ARGS(3);
       print_invfile( r );
+    } else if( command == "v" || command == "vocabulary" ) {
+      REQUIRE_ARGS(3);
+      print_vocabulary( r );
     } else {
       r.close();
       usage();
