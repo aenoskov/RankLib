@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 //
 // DiskDocExtentListIterator
@@ -167,14 +167,15 @@ void indri::index::DiskDocExtentListIterator::_readSkip() {
 
 void indri::index::DiskDocExtentListIterator::_readEntry() {
   _data.extents.clear();
-  
+  _data.numbers.clear();
+
   int deltaDocument;
-  _list = RVLCompress::decompress_int( _list, deltaDocument );
+  _list = lemur::utility::RVLCompress::decompress_int( _list, deltaDocument );
 
   _data.document += deltaDocument;
 
   int numPositions;
-  _list = RVLCompress::decompress_int( _list, numPositions );
+  _list = lemur::utility::RVLCompress::decompress_int( _list, numPositions );
 
   int lastPosition = 0;
   INT64 number;
@@ -182,8 +183,8 @@ void indri::index::DiskDocExtentListIterator::_readEntry() {
   for( int i=0; i<numPositions; i++ ) {
     Extent extent;
 
-    _list = RVLCompress::decompress_int( _list, extent.begin );
-    _list = RVLCompress::decompress_int( _list, extent.end );
+    _list = lemur::utility::RVLCompress::decompress_int( _list, extent.begin );
+    _list = lemur::utility::RVLCompress::decompress_int( _list, extent.end );
 
     // delta-dencode
     extent.begin += lastPosition;
@@ -191,9 +192,8 @@ void indri::index::DiskDocExtentListIterator::_readEntry() {
     lastPosition = extent.end;
 
     _data.extents.push_back( extent );
-
     if( _numeric ) {
-      _list = RVLCompress::decompress_signed_longlong( _list, number );
+      _list = lemur::utility::RVLCompress::decompress_longlong( _list, number );
       _data.numbers.push_back( number );
     }
   }

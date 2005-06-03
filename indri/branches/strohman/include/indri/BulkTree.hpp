@@ -24,7 +24,7 @@
 #include "indri/HashTable.hpp"
 namespace indri
 {
-  /*! Filesystem interaction and file-based storage classes.*/
+  /*! \brief Filesystem interaction and file-based storage classes.*/
   namespace file
   {
     
@@ -85,8 +85,9 @@ namespace indri
 
     public:
       std::vector<BulkBlock*> _blocks;
-      SequentialWriteBuffer _write;
       File _file;
+      SequentialWriteBuffer _write;
+
 
       BulkTreeWriter();
       ~BulkTreeWriter();
@@ -104,24 +105,6 @@ namespace indri
       bool get( const char* key, char* value, int& actual, int valueLength );
 
       void flush();
-    };
-
-    class BulkTreeIterator {
-    private:
-      File& _file;
-      UINT64 _fileLength;
-      BulkBlock _block;
-      int _pairIndex;
-      UINT64 _blockIndex;
-
-    public:
-      BulkTreeIterator( File& file );
-
-      void startIteration();
-      bool finished();
-      bool get( char* key, int keyLength, int& keyActual, char* value, int valueLength, int& valueActual );
-      bool get( UINT32& key, char* value, int valueLength, int& valueActual );
-      void nextEntry();
     };
 
     class BulkTreeReader {
@@ -147,8 +130,6 @@ namespace indri
       bool get( const char* key, int keyLength, char* value, int& actual, int valueLength );
       bool get( UINT32 key, char* value, int& actual, int valueLength );
       void close();
-
-      BulkTreeIterator* iterator();
     };
   }
 }

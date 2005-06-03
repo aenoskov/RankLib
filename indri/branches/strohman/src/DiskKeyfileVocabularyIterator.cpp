@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 //
 // DiskKeyfileVocabularyIterator
@@ -22,24 +22,16 @@
 // DiskKeyfileVocabularyIterator constructor
 //
 
-indri::index::DiskKeyfileVocabularyIterator::DiskKeyfileVocabularyIterator( int baseID, indri::file::BulkTreeReader& bulkTree, indri::thread::Mutex& lock, int fieldCount ) :
+indri::index::DiskKeyfileVocabularyIterator::DiskKeyfileVocabularyIterator( int baseID, indri::file::BulkTreeReader& keyfile, indri::thread::Mutex& lock, int fieldCount ) :
   _baseID(baseID),
-  _bulkTree(bulkTree),
+  _keyfile(keyfile),
   _mutex(lock),
   _holdingLock(false),
+  _finished(true),
   _fieldCount(fieldCount)
 {
   _compressedData.write( disktermdata_size( _fieldCount ) * 2 );
   _decompressedData.write( disktermdata_size( _fieldCount ) );
-  _bulkIterator = _bulkTree.iterator();
-}
-
-//
-// DiskKeyfileVocabularyIterator destrcutor
-//
-
-indri::index::DiskKeyfileVocabularyIterator::~DiskKeyfileVocabularyIterator() {
-  delete _bulkIterator;
 }
 
 //
@@ -62,6 +54,8 @@ void indri::index::DiskKeyfileVocabularyIterator::_release() {
     _mutex.unlock();
     _holdingLock = false;
   }
+
+  _finished = false;
 }
 
 //
@@ -70,10 +64,21 @@ void indri::index::DiskKeyfileVocabularyIterator::_release() {
 
 void indri::index::DiskKeyfileVocabularyIterator::startIteration() {
   _acquire();
-  int actual;
+  assert( 0 && "doesn't work" );
 
-  _bulkIterator->startIteration();
-  nextEntry();
+  int actual;
+  // fix me _finished = !_keyfile.get( 0, _compressedData.front(), actual, _compressedData.size() );
+  indri::utility::RVLDecompressStream stream( _compressedData.front(), actual );
+
+  if( _finished )
+    return;
+
+  _diskTermData = ::disktermdata_decompress( stream,
+                                             _decompressedData.front(),
+                                             _fieldCount,
+                                             DiskTermData::WithOffsets |
+                                             DiskTermData::WithString );
+  _diskTermData->termID = _baseID + 0;
 }
 
 //
@@ -81,23 +86,26 @@ void indri::index::DiskKeyfileVocabularyIterator::startIteration() {
 //
 
 bool indri::index::DiskKeyfileVocabularyIterator::nextEntry() {
-  _bulkIterator->nextEntry();
-  if( _bulkIterator->finished() ) {
+  if( _finished )
+    return false;
+  assert( 0 && "doesn't work" );
+
+
+  int key;
+  int actual;
+  // fix me _finished = !_keyfile.next( key, _compressedData.front(),  actual );
+  indri::utility::RVLDecompressStream stream( _data, actual );
+
+  if( _finished ) {
     _release();
     return false;
   }
 
-  int actual;
-  UINT32 key;
-
-  _bulkIterator->get( key, _compressedData.front(), _compressedData.size(), actual );
-  indri::utility::RVLDecompressStream stream( _compressedData.front(), actual );
-
   _diskTermData = ::disktermdata_decompress( stream,
-                                            _decompressedData.front(),
-                                            _fieldCount,
-                                            DiskTermData::WithOffsets |
-                                            DiskTermData::WithString );
+                                             _decompressedData.front(),
+                                             _fieldCount,
+                                             DiskTermData::WithOffsets |
+                                             DiskTermData::WithString );
   _diskTermData->termID = _baseID + key;
 
   return true;
@@ -108,7 +116,7 @@ bool indri::index::DiskKeyfileVocabularyIterator::nextEntry() {
 //
 
 indri::index::DiskTermData* indri::index::DiskKeyfileVocabularyIterator::currentEntry() {
-  if( !_bulkIterator->finished() )
+  if( !_finished )
     return _diskTermData;
 
   return 0;
@@ -119,6 +127,7 @@ indri::index::DiskTermData* indri::index::DiskKeyfileVocabularyIterator::current
 //
 
 bool indri::index::DiskKeyfileVocabularyIterator::finished() {
-  return _bulkIterator->finished();
+  return _finished;
 }
+
 
