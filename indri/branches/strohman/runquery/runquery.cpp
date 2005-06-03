@@ -192,7 +192,7 @@ static bool copy_parameters_to_string_vector( std::vector<std::string>& vec, ind
 
 struct query_t {
   struct greater {
-    bool operator() ( const query_t*& one, const query_t*& two ) const {
+    bool operator() ( query_t* one, query_t* two ) {
       return one->number > two->number;
     }
   };
