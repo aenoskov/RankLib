@@ -242,7 +242,7 @@ private:
     }
   }
 
-  void _printResults( std::stringstream& output, int queryNumber ) {
+  void _printResults( std::stringstream& output, int queryIndex ) {
     std::vector<std::string> documentNames;
     std::vector<indri::api::ParsedDocument*> documents;
 
@@ -274,7 +274,7 @@ private:
     // Print results
     for( unsigned int i=0; i < _results.size(); i++ ) {
       int rank = i+1;
-      int queryNumber = queryNumber + _queryOffset + 1;
+      int queryNumber = queryIndex + _queryOffset + 1;
 
       if( _trecFormat ) {
         // TREC formatted output: queryNumber, Q0, documentName, rank, score, runID
@@ -359,6 +359,8 @@ public:
     _queryOffset = _parameters.get( "queryOffset" , 0 );
     _trecFormat = _parameters.get( "trecFormat" , false );
     _printQuery = _parameters.get( "printQuery", false );
+    _printDocuments = _parameters.get( "printDocuments", false );
+    _printPassages = _parameters.get( "printDocuments", false );
 
     if( _parameters.get( "fbDocs", 0 ) != 0 ) {
       _expander = new indri::query::RMExpander( &_environment, _parameters );
@@ -447,14 +449,16 @@ int main(int argc, char * argv[]) {
       threads.back()->start();
     }
 
+    int query = 0;
+
     // process output as it appears on the queue
-    for( int i=0; i<queryCount; i++ ) {
+    while( query < queryCount ) {
       query_t* result = NULL;
       
       {
         indri::thread::ScopedLock sl( queueLock );
           
-        if( output.size() && output.top()->number == i ) {
+        if( output.size() && output.top()->number == query ) {
           result = output.top();
           output.pop();
         }
@@ -463,10 +467,15 @@ int main(int argc, char * argv[]) {
       if( result ) {
         std::cout << result->text;
         delete result;
+        query++;
       } else {
         indri::thread::Thread::yield();
       }
     }
+
+    // join all the threads
+    for( int i=0; i<threads.size(); i++ )
+      threads[i]->join();
 
     // we've seen all the query output now, so we can quit
     indri::utility::delete_vector_contents( threads );
