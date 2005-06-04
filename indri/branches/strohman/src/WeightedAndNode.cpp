@@ -63,11 +63,6 @@ void indri::infnet::WeightedAndNode::_computeQuorum() {
     _recomputeThreshold = DBL_MAX;
   else
     _recomputeThreshold = maximumScore;
-
-  if( indri::api::Parameters::instance().get( "maxscore", true ) == false )
-    _quorumIndex = 0;
-
-  std::cout << "threshold is : " << _threshold << " recompute at: " << _recomputeThreshold << std::endl;
 }
 
 void indri::infnet::WeightedAndNode::addChild( double weight, BeliefNode* node ) {
