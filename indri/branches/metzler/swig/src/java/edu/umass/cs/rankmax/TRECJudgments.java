@@ -15,15 +15,20 @@ import java.util.StringTokenizer;
 public class TRECJudgments {
 
 	public HashMap totalRelevant = null;
-	public HashMap judgments = null;
+	public HashMap relJudgments = null;
+	public HashMap nonRelJudgments = null;
 		
 	public TRECJudgments() {
 		totalRelevant = new HashMap();
-		judgments = new HashMap();
+		relJudgments = new HashMap();
 	}
 	
 	public boolean isRelevant( String queryID, String docID ) {
-		return judgments.containsKey( getKey( queryID, docID ) );
+		return relJudgments.containsKey( getKey( queryID, docID ) );
+	}
+
+	public boolean isNonRelevant( String queryID, String docID ) {
+		return nonRelJudgments.containsKey( getKey( queryID, docID ) );
 	}
 	
 	public static String getKey( String queryID, String docID ) {
@@ -51,7 +56,7 @@ public class TRECJudgments {
 				String docID = tok.nextToken();
 				int judgment = Integer.parseInt( tok.nextToken() );
 				if( judgment != 0 ) {
-					results.judgments.put( getKey( queryID, docID ), null );
+					results.relJudgments.put( getKey( queryID, docID ), null );
 					Integer count = (Integer)results.totalRelevant.get( queryID );
 					if( count == null )
 						results.totalRelevant.put( queryID, new Integer( 1 ) );
@@ -60,6 +65,8 @@ public class TRECJudgments {
 						results.totalRelevant.put( queryID, count );
 					}
 				}
+				else
+					results.nonRelJudgments.put( getKey( queryID, docID ), null );
 			}
 		}
 		catch( Exception e ) {
