@@ -547,9 +547,10 @@ int indri::index::MemoryIndex::addDocument( indri::api::ParsedDocument& document
     }
 
     _removeClosedTags( openTags, position );
-    _corpusStatistics.totalTerms++;
     indexedTerms++;
   }
+
+  _corpusStatistics.totalTerms += words.size();
 
   // need to add any tags that contain no text at the end of a document
   _addOpenTags( indexedTags, openTags, document.tags, extentIndex, position );
