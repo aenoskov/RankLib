@@ -161,23 +161,27 @@ void indri::collection::Repository::_remove( const std::string& indexPath ) {
 //
 
 void indri::collection::Repository::_openIndexes( indri::api::Parameters& params, const std::string& parentPath ) {
-  indri::api::Parameters container = params["indexes"];
+  try {
+    indri::api::Parameters container = params["indexes"];
 
-  _active = new index_vector;
-  _states.push_back( _active );
-  _indexCount = params.get( "indexCount", 0 );
+    _active = new index_vector;
+    _states.push_back( _active );
+    _indexCount = params.get( "indexCount", 0 );
 
-  if( container.exists( "index" ) ) {
-    indri::api::Parameters indexes = container["index"];
+    if( container.exists( "index" ) ) {
+      indri::api::Parameters indexes = container["index"];
 
-    for( int i=0; i<indexes.size(); i++ ) {
-      indri::api::Parameters indexSpec = indexes[i];
-      indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
-      std::string indexName = (std::string) indexSpec;
+      for( int i=0; i<indexes.size(); i++ ) {
+        indri::api::Parameters indexSpec = indexes[i];
+        indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
+        std::string indexName = (std::string) indexSpec;
 
-      diskIndex->open( parentPath, indexName );
-      _active->push_back( diskIndex );
+        diskIndex->open( parentPath, indexName );
+        _active->push_back( diskIndex );
+      }
     }
+  } catch( lemur::api::Exception& e ) {
+    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "_openIndexes: Couldn't open DiskIndexes because:" );
   }
 }
 
@@ -340,37 +344,43 @@ void indri::collection::Repository::create( const std::string& path, indri::api:
 //
 
 void indri::collection::Repository::openRead( const std::string& path, indri::api::Parameters* options ) {
-  _path = path;
-  _readOnly = true;
+  try {
+    _path = path;
+    _readOnly = true;
 
-  _memory = defaultMemory;
-  if( options )
-    _memory = options->get( "memory", _memory );
+    _memory = defaultMemory;
+    if( options )
+      _memory = options->get( "memory", _memory );
 
-  float queryProportion = 1;
-  if( options )
-    queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
+    float queryProportion = 1;
+    if( options )
+      queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
-  _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
+    _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
 
-  _buildFields();
-  _buildChain( _parameters );
+    _buildFields();
+    _buildChain( _parameters );
 
-  if( options )
-    _buildTransientChain( *options );
+    if( options )
+      _buildTransientChain( *options );
 
-  std::string indexPath = indri::file::Path::combine( path, "index" );
-  std::string collectionPath = indri::file::Path::combine( path, "collection" );
-  std::string indexName = indri::file::Path::combine( indexPath, "index" );
-  std::string deletedName = indri::file::Path::combine( path, "deleted" );
+    std::string indexPath = indri::file::Path::combine( path, "index" );
+    std::string collectionPath = indri::file::Path::combine( path, "collection" );
+    std::string indexName = indri::file::Path::combine( indexPath, "index" );
+    std::string deletedName = indri::file::Path::combine( path, "deleted" );
 
-  _openIndexes( _parameters, indexPath );
+    _openIndexes( _parameters, indexPath );
 
-  _collection = new CompressedCollection();
-  _collection->openRead( collectionPath );
-  _deletedList.read( deletedName );
+    _collection = new CompressedCollection();
+    _collection->openRead( collectionPath );
+    _deletedList.read( deletedName );
 
-  _startThreads();
+    _startThreads();
+  } catch( lemur::api::Exception& e ) {
+    LEMUR_RETHROW( e, "Couldn't open a repository in read-only mode at '" + path + "' because:" );
+  } catch( ... ) {
+    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Something unexpected happened while trying to create '" + path + "'" );
+  }
 }
 
 //
@@ -378,45 +388,51 @@ void indri::collection::Repository::openRead( const std::string& path, indri::ap
 //
 
 void indri::collection::Repository::open( const std::string& path, indri::api::Parameters* options ) {
-  _path = path;
-  _readOnly = false;
+  try {
+    _path = path;
+    _readOnly = false;
 
-  _memory = defaultMemory;
-  if( options )
-    _memory = options->get( "memory", _memory );
+    _memory = defaultMemory;
+    if( options )
+      _memory = options->get( "memory", _memory );
 
-  float queryProportion = 0.75;
-  if( options )
-    queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
+    float queryProportion = 0.75;
+    if( options )
+      queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
-  std::string indexPath = indri::file::Path::combine( path, "index" );
-  std::string collectionPath = indri::file::Path::combine( path, "collection" );
-  std::string indexName = indri::file::Path::combine( indexPath, "index" );
+    std::string indexPath = indri::file::Path::combine( path, "index" );
+    std::string collectionPath = indri::file::Path::combine( path, "collection" );
+    std::string indexName = indri::file::Path::combine( indexPath, "index" );
 
-  _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
+    _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
 
-  _buildFields();
-  _buildChain( _parameters );
+    _buildFields();
+    _buildChain( _parameters );
 
-  if( options )
-    _buildTransientChain( *options );
+    if( options )
+      _buildTransientChain( *options );
 
-  // open all indexes, add a memory index
-  _openIndexes( _parameters, indexPath );
-  _addMemoryIndex();
+    // open all indexes, add a memory index
+    _openIndexes( _parameters, indexPath );
+    _addMemoryIndex();
 
-  // remove that initial state (only disk indexes)
-  _states.erase( _states.begin() );
+    // remove that initial state (only disk indexes)
+    _states.erase( _states.begin() );
 
-  // open compressed collection
-  _collection = new CompressedCollection();
-  _collection->open( collectionPath );
-  
-  // read deleted documents in
-  std::string deletedName = indri::file::Path::combine( path, "deleted" );
-  _deletedList.read( deletedName );
+    // open compressed collection
+    _collection = new CompressedCollection();
+    _collection->open( collectionPath );
+    
+    // read deleted documents in
+    std::string deletedName = indri::file::Path::combine( path, "deleted" );
+    _deletedList.read( deletedName );
 
-  _startThreads();
+    _startThreads();
+  } catch( lemur::api::Exception& e ) {
+    LEMUR_RETHROW( e, "Couldn't open a repository at '" + path + "' because:" );
+  } catch( ... ) {
+    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Something unexpected happened while trying to create '" + path + "'" );
+  }
 }
 
 //
