@@ -98,10 +98,24 @@ void indri::query::RelevanceModel::_countGrams() {
       // up to _maxGrams in length
       for( int n = 1; n <= maxGram; n++ ) {
         GramCounts* newCounts = new GramCounts;
+        bool containsOOV = false;
 
         // build the gram
-        for( int k = 0; k < n; k++ )
+        for( int k = 0; k < n; k++ ) {
+          if( positions[ k + j ] == 0 ) {
+            containsOOV = true;
+            break;
+          }
+
           newCounts->gram.terms.push_back( stems[ positions[ k + j ] ] );
+        }
+
+        if( containsOOV ) {
+          // if this contanied OOV, all larger n-grams
+          // starting at this point also will
+          delete newCounts;
+          break;
+        }
 
         GramCounts** gramCounts = 0;        
         gramCounts = _gramTable.find( &newCounts->gram );
