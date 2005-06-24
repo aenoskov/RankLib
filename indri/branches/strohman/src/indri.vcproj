@@ -347,6 +347,9 @@
 				RelativePath=".\QueryParser.cpp">
 			</File>
 			<File
+				RelativePath=".\RelevanceModel.cpp">
+			</File>
+			<File
 				RelativePath=".\Repository.cpp">
 			</File>
 			<File
@@ -872,6 +875,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\RegionAllocator.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\RelevanceModel.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\Repository.hpp">
