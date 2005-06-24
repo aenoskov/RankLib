@@ -181,7 +181,7 @@ void indri::collection::Repository::_openIndexes( indri::api::Parameters& params
       }
     }
   } catch( lemur::api::Exception& e ) {
-    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "_openIndexes: Couldn't open DiskIndexes because:" );
+    LEMUR_RETHROW( e, "_openIndexes: Couldn't open DiskIndexes because:" );
   }
 }
 
