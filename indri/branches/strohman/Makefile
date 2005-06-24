@@ -14,6 +14,8 @@ endif
 	$(MAKE) -C runquery
 	$(MAKE) -C indrid
 	$(MAKE) -C dumpindex
+	$(MAKE) -C similarity
+	$(MAKE) -C rmodel
 
 $(INSTALLDIRS):
 	$(INSTALL_DIR) $@
