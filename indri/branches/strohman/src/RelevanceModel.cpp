@@ -32,8 +32,7 @@ indri::query::RelevanceModel::RelevanceModel(
   _environment(environment),
   _smoothing(smoothing),
   _documents(documents),
-  _maxGrams(maxGrams),
-  _function(0)
+  _maxGrams(maxGrams)
 {
 }
 
@@ -45,10 +44,8 @@ indri::query::RelevanceModel::~RelevanceModel() {
   HGram::iterator iter;
 
   for( iter = _gramTable.begin(); iter != _gramTable.end(); iter++ ) {
-    delete iter->second;
+    delete *(iter->second);
   }
-
-  delete _function;
 }
 
 //
@@ -110,6 +107,7 @@ void indri::query::RelevanceModel::_countGrams() {
         gramCounts = _gramTable.find( &newCounts->gram );
 
         if( gramCounts == 0 ) {
+          assert( &newCounts->gram > (void*) 0x4000 );
           _gramTable.insert( &newCounts->gram, newCounts );
           gramCounts = &newCounts;
         } else {
@@ -213,7 +211,7 @@ void indri::query::RelevanceModel::_sortGrams() {
   _grams.clear();
   
   for( iter = _gramTable.begin(); iter != _gramTable.end(); iter++ ) {
-    _grams.push_back( *iter->first );
+    _grams.push_back( *(iter->first) );
   }
 
   std::sort( _grams.begin(), _grams.end(), Gram::weight_greater() );
