@@ -121,7 +121,6 @@ void indri::query::RelevanceModel::_countGrams() {
         gramCounts = _gramTable.find( &newCounts->gram );
 
         if( gramCounts == 0 ) {
-          assert( &newCounts->gram > (void*) 0x4000 );
           _gramTable.insert( &newCounts->gram, newCounts );
           gramCounts = &newCounts;
         } else {
