@@ -48,28 +48,37 @@ namespace indri {
         };
 
         struct weight_greater {
-          int operator() ( const Gram* o, const Gram* t ) const {
+          bool operator() ( const Gram* o, const Gram* t ) const {
             return t->weight < o->weight;
           }
         };
 
-        struct string_less {
-          bool operator() ( const Gram* o, const Gram* t ) const {
+        struct string_comparator {
+          int operator() ( const Gram* o, const Gram* t ) const {
             const Gram& one = *o;
             const Gram& two = *t;
 
-            if( one.terms.size() != two.terms.size() )
-              return one.terms.size() < two.terms.size();
+            if( one.terms.size() != two.terms.size() ) {
+              if( one.terms.size() < two.terms.size() ) {
+                return 1;
+              } else {
+                return -1;
+              }
+            }
 
             for( int i=0; i<one.terms.size(); i++ ) {
               const std::string& oneString = one.terms[i];
               const std::string& twoString = two.terms[i];
 
-              if( oneString != twoString )
-                return oneString < twoString;
+              if( oneString != twoString ) {
+                if( oneString < twoString )
+                  return -1;
+                else
+                  return 1;
+              }
             }
 
-            return false;
+            return 0;
           }
         };
       };
@@ -85,7 +94,7 @@ namespace indri {
       std::string _smoothing;
       int _documents;
 
-      typedef indri::utility::HashTable< Gram*, GramCounts*, Gram::hash, Gram::string_less > HGram;
+      typedef indri::utility::HashTable< Gram*, GramCounts*, Gram::hash, Gram::string_comparator > HGram;
       HGram _gramTable;
 
       std::vector<indri::api::ScoredExtentResult> _results;
