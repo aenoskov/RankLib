@@ -182,7 +182,7 @@ namespace indri
       INT64 stemFieldCount( const std::string& term, const std::string& field );
       /// \brief Return the total number of times this expression appears in the collection.
       /// @param expression The expression to evaluate, probably an ordered or unordered window expression
-      INT64 expressionCount( const std::string& expression );
+      double expressionCount( const std::string& expression );
       /// \brief Return the list of fields.
       /// @return vector of field names.
       std::vector<std::string> fieldList();
