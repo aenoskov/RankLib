@@ -700,7 +700,7 @@ void indri::api::QueryEnvironment::_annotateQuery( indri::infnet::InferenceNetwo
 // expressionCount
 //
 
-INT64 indri::api::QueryEnvironment::expressionCount( const std::string& expression ) {
+double indri::api::QueryEnvironment::expressionCount( const std::string& expression ) {
   std::istringstream query(expression);
   indri::lang::QueryLexer lexer( query );
   indri::lang::QueryParser parser( lexer );
