@@ -62,7 +62,9 @@ static void open_indexes( indri::api::QueryEnvironment& environment, indri::api:
 static void printGrams( const std::string& query, const std::vector<indri::query::RelevanceModel::Gram*>& grams ) {
   std::cout << "# query: " << query << std::endl;
   for( int j=0; j<grams.size(); j++ ) {
-    std::cout << grams[j]->weight << " ";
+    std::cout << std::setw(15)
+              << std::setprecision(15)
+              << grams[j]->weight << " ";
     std::cout << grams[j]->terms.size() << " ";
 
     for( int k=0; k<grams[j]->terms.size(); k++ ) {
