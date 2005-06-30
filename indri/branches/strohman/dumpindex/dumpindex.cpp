@@ -22,6 +22,45 @@
 #include <iostream>
 
 //
+// Attempts to validate the index.  Right now it only checks
+// TermLists, but may do more in the future.
+//
+
+void validate( indri::collection::Repository& r ) {
+  indri::collection::Repository::index_state state = r.indexes();
+  indri::index::Index* index = (*state)[0];
+
+  indri::index::TermListFileIterator* iter = index->termListFileIterator();
+  int document = 1;
+  iter->startIteration();
+
+  while( !iter->finished() ) {
+    indri::index::TermList* list = iter->currentEntry();
+    
+    if( list->terms().size() != index->documentLength( document ) ) {
+      std::cout << "Document " << document << " length mismatch" << std::endl;
+    }
+
+    std::cout << document << std::endl;
+    const indri::index::TermList* flist = index->termList( document );
+
+    if( flist->terms().size() != list->terms().size() ) {
+      std::cout << "Fetched version of term list is different for " << document << std::endl;
+    }
+    delete flist;
+
+    document++;
+    iter->nextEntry();
+  }
+
+  if( (document-1) != index->documentCount() ) {
+    std::cout << "Document count (" << index->documentCount() << ") does not match term list count " << (document-1) << std::endl;
+  }
+
+  delete iter;
+}
+
+//
 // Print the whole inverted file.  Each term entry starts with 
 // a term statistics header (term, termCount, documentCount)
 // followed by indented rows (one per document) of the form:
@@ -378,6 +417,9 @@ int main( int argc, char** argv ) {
     } else if( command == "v" || command == "vocabulary" ) {
       REQUIRE_ARGS(3);
       print_vocabulary( r );
+    } else if( command == "vtl" || command == "validate" ) {
+      REQUIRE_ARGS(3);
+      validate(r);
     } else {
       r.close();
       usage();
