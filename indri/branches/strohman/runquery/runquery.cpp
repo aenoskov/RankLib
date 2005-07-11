@@ -193,17 +193,19 @@ static bool copy_parameters_to_string_vector( std::vector<std::string>& vec, ind
 struct query_t {
   struct greater {
     bool operator() ( query_t* one, query_t* two ) {
-      return one->number > two->number;
+      return one->index > two->index;
     }
   };
 
-  query_t( int _number, const std::string& _text ) :
+  query_t( int _index, int _number, const std::string& _text ) :
+    index( _index ),
     number( _number ),
     text( _text )
   {
   }
 
   int number;
+  int index;
   std::string text;
 };
 
@@ -223,7 +225,6 @@ private:
   bool _printQuery;
 
   std::string _runID;
-  int _queryOffset;
   bool _trecFormat;
 
   indri::query::QueryExpander* _expander;
@@ -274,7 +275,7 @@ private:
     // Print results
     for( unsigned int i=0; i < _results.size(); i++ ) {
       int rank = i+1;
-      int queryNumber = queryIndex + _queryOffset + 1;
+      int queryNumber = queryIndex;
 
       if( _trecFormat ) {
         // TREC formatted output: queryNumber, Q0, documentName, rank, score, runID
@@ -356,7 +357,6 @@ public:
     _requested = _parameters.get( "count", 1000 );
     _initialRequested = _parameters.get( "fbDocs", _requested );
     _runID = _parameters.get( "runID", "indri" );
-    _queryOffset = _parameters.get( "queryOffset" , 0 );
     _trecFormat = _parameters.get( "trecFormat" , false );
     _printQuery = _parameters.get( "printQuery", false );
     _printDocuments = _parameters.get( "printDocuments", false );
@@ -382,7 +382,7 @@ public:
   UINT64 work() {
     query_t* query;
     std::stringstream output;
-    
+
     // pop a query off the queue
     {
       indri::thread::ScopedLock sl( &_queueLock );
@@ -403,7 +403,7 @@ public:
     // push that data into an output queue...?
     {
       indri::thread::ScopedLock sl( &_queueLock );
-      _output.push( new query_t( query->number, output.str() ) );
+      _output.push( new query_t( query->index, query->number, output.str() ) );
     }
 
     delete query;
@@ -412,8 +412,21 @@ public:
 };
 
 void push_queue( std::queue< query_t* >& q, indri::api::Parameters& queries ) {
+  int queryOffset = queries.get( "queryOffset", 0 );
+
   for( int i=0; i<queries.size(); i++ ) {
-    q.push( new query_t( i, (std::string) queries[i] ) );
+    int queryNumber;
+    std::string queryText;
+
+    if( queries[i].exists( "number" ) ) {
+      queryText = (std::string) queries[i]["text"];
+      queryNumber = (int) queries[i]["number"];
+    } else {
+      queryText = (std::string) queries[i];
+      queryNumber = queryOffset + i;
+    }
+    
+    q.push( new query_t( i, queryNumber, queryText ) );
   }
 }
 
@@ -458,7 +471,7 @@ int main(int argc, char * argv[]) {
       {
         indri::thread::ScopedLock sl( queueLock );
           
-        if( output.size() && output.top()->number == query ) {
+        if( output.size() && output.top()->index == query ) {
           result = output.top();
           output.pop();
         }
