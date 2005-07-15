@@ -16,6 +16,7 @@ endif
 	$(MAKE) -C dumpindex
 	$(MAKE) -C similarity
 	$(MAKE) -C rmodel
+	$(MAKE) -C stemclass
 
 $(INSTALLDIRS):
 	$(INSTALL_DIR) $@
@@ -30,6 +31,9 @@ endif
 	$(MAKE) clean -C runquery
 	$(MAKE) clean -C indrid
 	$(MAKE) clean -C dumpindex
+	$(MAKE) clean -C stemclass
+	$(MAKE) clean -C rmodel
+	$(MAKE) clean -C similarity
 	rm -f depend/*
 
 distclean: clean
