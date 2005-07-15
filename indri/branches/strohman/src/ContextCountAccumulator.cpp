@@ -87,7 +87,6 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
     }
 
     _occurrences += documentOccurrences;
-    _contextSize += documentLength;
 
     if( _list ) {
       if( documentOccurrences > 0 ) {
@@ -151,5 +150,8 @@ int indri::infnet::ContextCountAccumulator::nextCandidateDocument() {
 //
 
 void indri::infnet::ContextCountAccumulator::indexChanged( indri::index::Index& index ) {
+  if( ! _context ) {
+    _contextSize += index.termCount();
+  }
 }
 
