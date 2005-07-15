@@ -81,6 +81,8 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
   double documentContextSize = 0;
 
   if( !_context ) {
+    // we're not evaluating a context expression, so our job is just to find
+    // out how many times this expression occurs
     for( size_t i=0; i<_matches->extents().size(); i++ ) {
       const indri::index::Extent& extent = _matches->extents()[i];
       documentOccurrences += extent.weight;
@@ -88,6 +90,7 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
 
     _occurrences += documentOccurrences;
 
+    // if we're making a CachedList, update the list
     if( _list ) {
       if( documentOccurrences > 0 ) {
         double fraction = double(documentOccurrences) / double(documentLength);
@@ -100,13 +103,35 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
       _list->minimumContextSize = lemur_compat::min<int>( (int) documentLength, _list->minimumContextSize );
     }
   } else {
+    // this is a context expression, so we need to know how many
+    // time the inner expression occurs within the context.
+    // at the same time, we want to know how big the context is
     const indri::utility::greedy_vector<indri::index::Extent>& matches = _matches->extents();
     const indri::utility::greedy_vector<indri::index::Extent>& extents = _context->extents();
     unsigned int ex = 0;
 
     for( unsigned int i=0; i<matches.size() && ex < extents.size(); i++ ) {
-      while( ex < extents.size() && matches[i].begin < extents[ex].begin )
+      // find a context extent that might possibly contain this match
+      // here we're relying on the following invariants: 
+      //    both arrays are sorted by beginning position
+      //    the extents array may have some that are inside others, like:
+      //      [1, 10] and [4, 6], or even [1,10] and [1,4]
+      //      but it will never have overlapping extents, such as:
+      //      [1, 10] and [5, 15]
+      //    also, in the event that two inner extents start at the
+      //      same position, the largest end position comes first
+      //      (e.g. [1,10] comes before [1,4])
+      // Therefore, if a match [a,b] is in any extent, it will be
+      //   in the first one [c,d] such that d>=a.
+      // Proof is by contradiction: if the match is in a context extent,
+      //   but it's not the first one such that d>=a, then that context
+      //   extent must overlap the first extent such that d>=a (which
+      //   is not allowed).
+      while( extents[ex].end < matches[i].begin ) {
         ex++;
+
+        if( ex >= extents.size() ) break;
+      }
 
       if( ex < extents.size() &&
         matches[i].begin >= extents[ex].begin &&
@@ -119,6 +144,7 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
       documentContextSize += extents[i].end - extents[i].begin;
     }
 
+    // if we're making a CachedList, update the list
     if( _list && documentOccurrences > 0 ) {
       if( documentOccurrences > 0 ) {
         double fraction = double(documentOccurrences) / double(documentContextSize);
