@@ -360,7 +360,7 @@ public:
     _trecFormat = _parameters.get( "trecFormat" , false );
     _printQuery = _parameters.get( "printQuery", false );
     _printDocuments = _parameters.get( "printDocuments", false );
-    _printPassages = _parameters.get( "printDocuments", false );
+    _printPassages = _parameters.get( "printPassages", false );
 
     if( _parameters.get( "fbDocs", 0 ) != 0 ) {
       _expander = new indri::query::RMExpander( &_environment, _parameters );
