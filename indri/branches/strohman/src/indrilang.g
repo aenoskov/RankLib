@@ -112,7 +112,7 @@ protected DIGIT:             ('0'..'9');
 protected ASCII_LETTER:      ('a'..'z' | 'A'..'Z');
 protected SAFE_LETTER:       ('a'..'z' | 'A'..'Z' | '-' | '_');
 protected SAFE_CHAR:         ('a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_');
-protected BASESIXFOUR_CHAR:  ('a'..'z' | 'A'..'Z' | '0'..'9' | '+' | '/');
+protected BASESIXFOUR_CHAR:  ('a'..'z' | 'A'..'Z' | '0'..'9' | '+' | '/' | '=');
 
 //
 // Within the ASCII range, we only accept a restricted
@@ -360,7 +360,7 @@ priorNode returns [ indri::lang::PriorNode* p ]
 
     _nodes.push_back(p);
   };
-    
+  
 //
 // Extent operators start here:
 //    #wsyn = wsynNode
@@ -370,7 +370,7 @@ priorNode returns [ indri::lang::PriorNode* p ]
 //    #filrej = filrejNode
 //    #filreq = filreqNode
 //
-
+  
 // wsynNode : WSYN O_PAREN ( weight unscoredTerm )+ C_PAREN
 wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
   {
@@ -707,6 +707,10 @@ rawText returns [ indri::lang::IndexTerm* t ] {
     t = new indri::lang::IndexTerm(n->getText());
     _nodes.push_back(t);
   } |
+  nn:NEGATIVE_NUMBER {
+    t = new indri::lang::IndexTerm(nn->getText());
+    _nodes.push_back(t);
+  } |
   f:FLOAT {
     t = new indri::lang::IndexTerm(f->getText());
     _nodes.push_back(t);
@@ -723,7 +727,7 @@ rawText returns [ indri::lang::IndexTerm* t ] {
   } |
   qet:ENCODED_QUOTED_TERM {
     std::string decodedString; 
-    base64_decode_string(decodedString, et->getText());
+    base64_decode_string(decodedString, qet->getText());
     t = new indri::lang::IndexTerm( decodedString );
     t->setStemmed(true);
     _nodes.push_back(t);
