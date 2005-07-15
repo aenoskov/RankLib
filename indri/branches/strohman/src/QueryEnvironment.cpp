@@ -289,7 +289,7 @@ void indri::api::QueryEnvironment::_mergeServerQuery( indri::infnet::InferenceNe
   for( nodeIter = results.begin(); nodeIter != results.end(); nodeIter++ ) {
     for( listIter = nodeIter->second.begin(); listIter != nodeIter->second.end(); listIter++ ) {
       std::vector<indri::api::ScoredExtentResult>& listResults = listIter->second;
-      std::sort( listResults.begin(), listResults.end(), indri::api::ScoredExtentResult::score_greater() );
+      std::stable_sort( listResults.begin(), listResults.end(), indri::api::ScoredExtentResult::score_greater() );
 
       if( int(listResults.size()) > resultsRequested )
         listResults.resize( resultsRequested );
@@ -800,7 +800,7 @@ std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::_runQu
   std::string accumulatorName;
   _scoredQuery( results, rootNode, accumulatorName, resultsRequested, documentSet );
   std::vector<indri::api::ScoredExtentResult> queryResults = results[accumulatorName]["scores"];
-  std::sort( queryResults.begin(), queryResults.end() );
+  std::stable_sort( queryResults.begin(), queryResults.end(), indri::api::ScoredExtentResult::score_greater() );
   if( queryResults.size() > resultsRequested )
     queryResults.resize( resultsRequested );
 
