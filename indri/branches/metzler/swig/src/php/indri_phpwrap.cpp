@@ -613,9 +613,8 @@ type_error:
 #define  SWIGTYPE_p_UINT64 swig_types[4] 
 #define  SWIGTYPE_p_indri__api__ParsedDocument swig_types[5] 
 #define  SWIGTYPE_p_indri__api__QueryAnnotationNode swig_types[6] 
-#define  SWIGTYPE_p_indri__infnet__EvaluatorNode__MResults swig_types[7] 
-#define  SWIGTYPE_p_indri__api__QueryAnnotation swig_types[8] 
-static swig_type_info *swig_types[10];
+#define  SWIGTYPE_p_indri__api__QueryAnnotation swig_types[7] 
+static swig_type_info *swig_types[9];
 
 /* -------- TYPES TABLE (END) -------- */
 
@@ -835,7 +834,6 @@ static swig_type_info _swigt__p_indri__api__QueryEnvironment[] = {{"_p_indri__ap
 static swig_type_info _swigt__p_UINT64[] = {{"_p_UINT64", 0, "long long *|UINT64 *", 0, 0, 0, 0},{"_p_INT64", 0, 0, 0, 0, 0, 0},{"_p_UINT64", 0, 0, 0, 0, 0, 0},{0, 0, 0, 0, 0, 0, 0}};
 static swig_type_info _swigt__p_indri__api__ParsedDocument[] = {{"_p_indri__api__ParsedDocument", 0, "indri::api::ParsedDocument *", 0, 0, 0, 0},{"_p_indri__api__ParsedDocument", 0, 0, 0, 0, 0, 0},{0, 0, 0, 0, 0, 0, 0}};
 static swig_type_info _swigt__p_indri__api__QueryAnnotationNode[] = {{"_p_indri__api__QueryAnnotationNode", 0, "indri::api::QueryAnnotationNode *", 0, 0, 0, 0},{"_p_indri__api__QueryAnnotationNode", 0, 0, 0, 0, 0, 0},{0, 0, 0, 0, 0, 0, 0}};
-static swig_type_info _swigt__p_indri__infnet__EvaluatorNode__MResults[] = {{"_p_indri__infnet__EvaluatorNode__MResults", 0, "indri::infnet::EvaluatorNode::MResults *", 0, 0, 0, 0},{"_p_indri__infnet__EvaluatorNode__MResults", 0, 0, 0, 0, 0, 0},{0, 0, 0, 0, 0, 0, 0}};
 static swig_type_info _swigt__p_indri__api__QueryAnnotation[] = {{"_p_indri__api__QueryAnnotation", 0, "indri::api::QueryAnnotation *", 0, 0, 0, 0},{"_p_indri__api__QueryAnnotation", 0, 0, 0, 0, 0, 0},{0, 0, 0, 0, 0, 0, 0}};
 
 static swig_type_info *swig_types_initial[] = {
@@ -846,7 +844,6 @@ _swigt__p_indri__api__QueryEnvironment,
 _swigt__p_UINT64, 
 _swigt__p_indri__api__ParsedDocument, 
 _swigt__p_indri__api__QueryAnnotationNode, 
-_swigt__p_indri__infnet__EvaluatorNode__MResults, 
 _swigt__p_indri__api__QueryAnnotation, 
 0
 };
@@ -874,7 +871,6 @@ static int le_swig__p_indri__api__QueryEnvironment=0; /* handle for QueryEnviron
 static int le_swig__p_UINT64=0; /* handle for QueryEnvironment */
 static int le_swig__p_indri__api__ParsedDocument=0; /* handle for ParsedDocument */
 static int le_swig__p_indri__api__QueryAnnotationNode=0; /* handle for QueryAnnotationNode */
-static int le_swig__p_indri__infnet__EvaluatorNode__MResults=0; /* handle for QueryAnnotationNode */
 static int le_swig__p_indri__api__QueryAnnotation=0; /* handle for QueryAnnotation */
 /* end vdecl subsection */
 /* wrapper section */
@@ -1593,9 +1589,36 @@ ZEND_NAMED_FUNCTION(_wrap_QueryAnnotation_getAnnotations) {
         result = (indri::infnet::EvaluatorNode::MResults *) &_result_ref;
     }
     
-    
-    SWIG_SetPointerZval(return_value, (void *)result, SWIGTYPE_p_indri__infnet__EvaluatorNode__MResults, 0);
-    
+    {
+        array_init(return_value);
+        const indri::infnet::EvaluatorNode::MResults & matches = *result; 
+        indri::infnet::EvaluatorNode::MResults::iterator iter;
+        std::vector< indri::api::ScoredExtentResult >::size_type iIndex;
+        for( iter = result->begin(); iter != result->end(); iter++ ) {
+            zval *seRes;
+            MAKE_STD_ZVAL(seRes);
+            array_init(seRes);
+            std::vector<indri::api::ScoredExtentResult>& vec = iter->second;
+            char *key = (char *)iter->first.c_str();
+            for (iIndex=0;iIndex<vec.size();iIndex++)  {
+                zval *obj, *_cPtr;
+                MAKE_STD_ZVAL(obj);
+                MAKE_STD_ZVAL(_cPtr);
+                indri::api::ScoredExtentResult *r = new indri::api::ScoredExtentResult(vec[iIndex]);
+                SWIG_SetPointerZval(obj, (void *)r, SWIGTYPE_p_indri__api__ScoredExtentResult, 1);
+                *_cPtr = *obj;
+                INIT_ZVAL(*obj);
+                object_init_ex(obj,ptr_ce_swig_ScoredExtentResult);
+                add_property_double(obj,"score",r->score);
+                add_property_long(obj,"document",r->document);
+                add_property_long(obj,"begin",r->begin);
+                add_property_long(obj,"end",r->end);
+                add_property_zval(obj,"_cPtr",_cPtr);
+                add_next_index_zval(seRes, obj);
+            }
+            add_assoc_zval(return_value, key, seRes);
+        }
+    }
 }
 
 
@@ -2016,7 +2039,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runQuery) {
         try {
             result = (arg1)->runQuery((std::string const &)*arg2,arg3);
             
-        } catch( Exception& e ) {
+        } catch( lemur::api::Exception& e ) {
             //    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // get a warning message rather than abort the script.
             zend_error(E_WARNING, e.what().c_str());
@@ -2050,7 +2073,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runQuery) {
 ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runQuerydocset) {
     indri::api::QueryEnvironment *arg1 = (indri::api::QueryEnvironment *) 0 ;
     std::string *arg2 = 0 ;
-    std::vector<DOCID_T > *arg3 = 0 ;
+    std::vector<lemur::api::DOCID_T > *arg3 = 0 ;
     int arg4 ;
     SwigValueWrapper< std::vector<indri::api::ScoredExtentResult > > result;
     std::string temp2 ;
@@ -2080,7 +2103,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runQuerydocset) {
         ulong iIndex;
         char *sIndex=NULL;
         zval **Data;
-        arg3=new std::vector<DOCID_T>;
+        arg3=new std::vector<lemur::api::DOCID_T>;
         convert_to_array(*args[2-argbase]);
         zend_hash_internal_pointer_reset((*args[1-argbase])->value.ht);
         while((iStatus=zend_hash_get_current_key((*args[2-argbase])->value.ht,&sIndex,&iIndex,1))!=HASH_KEY_NON_EXISTANT) {
@@ -2101,9 +2124,9 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runQuerydocset) {
     
     {
         try {
-            result = (arg1)->runQuerydocset((std::string const &)*arg2,(std::vector<DOCID_T > const &)*arg3,arg4);
+            result = (arg1)->runQuerydocset((std::string const &)*arg2,(std::vector<lemur::api::DOCID_T > const &)*arg3,arg4);
             
-        } catch( Exception& e ) {
+        } catch( lemur::api::Exception& e ) {
             //    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // get a warning message rather than abort the script.
             zend_error(E_WARNING, e.what().c_str());
@@ -2173,7 +2196,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runAnnotatedQuery) {
         try {
             result = (indri::api::QueryAnnotation *)(arg1)->runAnnotatedQuery((std::string const &)*arg2,arg3);
             
-        } catch( Exception& e ) {
+        } catch( lemur::api::Exception& e ) {
             //    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // get a warning message rather than abort the script.
             zend_error(E_WARNING, e.what().c_str());
@@ -2201,7 +2224,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runAnnotatedQuery) {
 ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runAnnotatedQuerydocset) {
     indri::api::QueryEnvironment *arg1 = (indri::api::QueryEnvironment *) 0 ;
     std::string *arg2 = 0 ;
-    std::vector<DOCID_T > *arg3 = 0 ;
+    std::vector<lemur::api::DOCID_T > *arg3 = 0 ;
     int arg4 ;
     indri::api::QueryAnnotation *result;
     std::string temp2 ;
@@ -2231,7 +2254,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runAnnotatedQuerydocset) {
         ulong iIndex;
         char *sIndex=NULL;
         zval **Data;
-        arg3=new std::vector<DOCID_T>;
+        arg3=new std::vector<lemur::api::DOCID_T>;
         convert_to_array(*args[2-argbase]);
         zend_hash_internal_pointer_reset((*args[1-argbase])->value.ht);
         while((iStatus=zend_hash_get_current_key((*args[2-argbase])->value.ht,&sIndex,&iIndex,1))!=HASH_KEY_NON_EXISTANT) {
@@ -2252,9 +2275,9 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runAnnotatedQuerydocset) {
     
     {
         try {
-            result = (indri::api::QueryAnnotation *)(arg1)->runAnnotatedQuerydocset((std::string const &)*arg2,(std::vector<DOCID_T > const &)*arg3,arg4);
+            result = (indri::api::QueryAnnotation *)(arg1)->runAnnotatedQuerydocset((std::string const &)*arg2,(std::vector<lemur::api::DOCID_T > const &)*arg3,arg4);
             
-        } catch( Exception& e ) {
+        } catch( lemur::api::Exception& e ) {
             //    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // get a warning message rather than abort the script.
             zend_error(E_WARNING, e.what().c_str());
@@ -2285,7 +2308,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_runAnnotatedQuerydocset) {
 
 ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documentsdocids) {
     indri::api::QueryEnvironment *arg1 = (indri::api::QueryEnvironment *) 0 ;
-    std::vector<DOCID_T > *arg2 = 0 ;
+    std::vector<lemur::api::DOCID_T > *arg2 = 0 ;
     SwigValueWrapper< std::vector<indri::api::ParsedDocument * > > result;
     zval **args[3];
     int argbase=0 ;
@@ -2308,7 +2331,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documentsdocids) {
         ulong iIndex;
         char *sIndex=NULL;
         zval **Data;
-        arg2=new std::vector<DOCID_T>;
+        arg2=new std::vector<lemur::api::DOCID_T>;
         convert_to_array(*args[1-argbase]);
         zend_hash_internal_pointer_reset((*args[1-argbase])->value.ht);
         while((iStatus=zend_hash_get_current_key((*args[1-argbase])->value.ht,&sIndex,&iIndex,1))!=HASH_KEY_NON_EXISTANT) {
@@ -2325,9 +2348,9 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documentsdocids) {
     }
     {
         try {
-            result = (arg1)->documentsdocids((std::vector<DOCID_T > const &)*arg2);
+            result = (arg1)->documentsdocids((std::vector<lemur::api::DOCID_T > const &)*arg2);
             
-        } catch( Exception& e ) {
+        } catch( lemur::api::Exception& e ) {
             //    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // get a warning message rather than abort the script.
             zend_error(E_WARNING, e.what().c_str());
@@ -2441,7 +2464,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documents) {
         try {
             result = (arg1)->documents((std::vector<indri::api::ScoredExtentResult > const &)*arg2);
             
-        } catch( Exception& e ) {
+        } catch( lemur::api::Exception& e ) {
             //    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // get a warning message rather than abort the script.
             zend_error(E_WARNING, e.what().c_str());
@@ -2512,7 +2535,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documents) {
 
 ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documentMetadatadocids) {
     indri::api::QueryEnvironment *arg1 = (indri::api::QueryEnvironment *) 0 ;
-    std::vector<DOCID_T > *arg2 = 0 ;
+    std::vector<lemur::api::DOCID_T > *arg2 = 0 ;
     std::string *arg3 = 0 ;
     SwigValueWrapper< std::vector<std::string > > result;
     std::string temp3 ;
@@ -2537,7 +2560,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documentMetadatadocids) {
         ulong iIndex;
         char *sIndex=NULL;
         zval **Data;
-        arg2=new std::vector<DOCID_T>;
+        arg2=new std::vector<lemur::api::DOCID_T>;
         convert_to_array(*args[1-argbase]);
         zend_hash_internal_pointer_reset((*args[1-argbase])->value.ht);
         while((iStatus=zend_hash_get_current_key((*args[1-argbase])->value.ht,&sIndex,&iIndex,1))!=HASH_KEY_NON_EXISTANT) {
@@ -2559,9 +2582,9 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documentMetadatadocids) {
     }
     {
         try {
-            result = (arg1)->documentMetadatadocids((std::vector<DOCID_T > const &)*arg2,(std::string const &)*arg3);
+            result = (arg1)->documentMetadatadocids((std::vector<lemur::api::DOCID_T > const &)*arg2,(std::string const &)*arg3);
             
-        } catch( Exception& e ) {
+        } catch( lemur::api::Exception& e ) {
             //    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // get a warning message rather than abort the script.
             zend_error(E_WARNING, e.what().c_str());
@@ -2634,7 +2657,7 @@ ZEND_NAMED_FUNCTION(_wrap_QueryEnvironment_documentMetadata) {
         try {
             result = (arg1)->documentMetadata((std::vector<indri::api::ScoredExtentResult > const &)*arg2,(std::string const &)*arg3);
             
-        } catch( Exception& e ) {
+        } catch( lemur::api::Exception& e ) {
             //    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
             // get a warning message rather than abort the script.
             zend_error(E_WARNING, e.what().c_str());
@@ -3094,10 +3117,6 @@ static ZEND_RSRC_DTOR_FUNC(_wrap_destroy_p_indri__api__QueryAnnotationNode) {
 __wrap_delete_QueryAnnotationNode(rsrc, SWIGTYPE_p_indri__api__QueryAnnotationNode->name TSRMLS_CC);
 }
 /* NEW Destructor style */
-static ZEND_RSRC_DTOR_FUNC(_wrap_destroy_p_indri__infnet__EvaluatorNode__MResults) {
-/* bah! No destructor for this simple type!! */
-}
-/* NEW Destructor style */
 static ZEND_RSRC_DTOR_FUNC(_wrap_destroy_p_indri__api__QueryAnnotation) {
 /* has destructor: __wrap_delete_QueryAnnotation */
 __wrap_delete_QueryAnnotation(rsrc, SWIGTYPE_p_indri__api__QueryAnnotation->name TSRMLS_CC);
@@ -3167,8 +3186,6 @@ le_swig__p_indri__api__ParsedDocument=zend_register_list_destructors_ex(_wrap_de
 SWIG_TypeClientData(SWIGTYPE_p_indri__api__ParsedDocument,&le_swig__p_indri__api__ParsedDocument);
 le_swig__p_indri__api__QueryAnnotationNode=zend_register_list_destructors_ex(_wrap_destroy_p_indri__api__QueryAnnotationNode,NULL,(char *)(SWIGTYPE_p_indri__api__QueryAnnotationNode->name),module_number);
 SWIG_TypeClientData(SWIGTYPE_p_indri__api__QueryAnnotationNode,&le_swig__p_indri__api__QueryAnnotationNode);
-le_swig__p_indri__infnet__EvaluatorNode__MResults=zend_register_list_destructors_ex(_wrap_destroy_p_indri__infnet__EvaluatorNode__MResults,NULL,(char *)(SWIGTYPE_p_indri__infnet__EvaluatorNode__MResults->name),module_number);
-SWIG_TypeClientData(SWIGTYPE_p_indri__infnet__EvaluatorNode__MResults,&le_swig__p_indri__infnet__EvaluatorNode__MResults);
 le_swig__p_indri__api__QueryAnnotation=zend_register_list_destructors_ex(_wrap_destroy_p_indri__api__QueryAnnotation,NULL,(char *)(SWIGTYPE_p_indri__api__QueryAnnotation->name),module_number);
 SWIG_TypeClientData(SWIGTYPE_p_indri__api__QueryAnnotation,&le_swig__p_indri__api__QueryAnnotation);
 CG(active_class_entry) = NULL;

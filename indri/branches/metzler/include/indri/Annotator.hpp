@@ -21,13 +21,14 @@
 
 #include <map>
 #include <vector>
+#include <algorithm>
 #include "indri/InferenceNetworkNode.hpp"
 #include "indri/BeliefNode.hpp"
 #include "indri/EvaluatorNode.hpp"
 #include "indri/Extent.hpp"
 namespace indri
 {
-  /*! Inference net and inference net node classes. */
+  /*! \brief Inference net and inference net node classes. */
   namespace infnet 
   {
     

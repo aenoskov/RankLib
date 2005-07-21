@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 
 //
@@ -155,10 +155,13 @@ double indri::infnet::ListBeliefNode::contextSize( int begin, int end ) {
 
 void indri::infnet::ListBeliefNode::annotate( Annotator& annotator, int documentID, int begin, int end ) {
   const indri::utility::greedy_vector<indri::index::Extent>& extents = _list.extents();
-  int count = 0;
+
+  indri::index::Extent range( begin, end );
+  indri::utility::greedy_vector<indri::index::Extent>::const_iterator iter;
+  iter = std::lower_bound( extents.begin(), extents.end(), range, indri::index::Extent::begins_before_less() );
 
   // mark the begin and end points for this list
-  for( size_t i=0; i<extents.size(); i++ ) {
+  for( size_t i = iter - extents.begin(); i < extents.size() && extents[i].begin <= end; i++ ) {
     if( extents[i].begin >= begin &&
         extents[i].end <= end ) {
       annotator.add( this, documentID, extents[i].begin, extents[i].end );

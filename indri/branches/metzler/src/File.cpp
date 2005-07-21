@@ -108,7 +108,7 @@ bool indri::file::File::openRead( const std::string& filename ) {
 #ifdef WIN32
   _handle = ::CreateFile( filename.c_str(),
                           GENERIC_READ,
-                          0,
+                          FILE_SHARE_READ,
                           NULL,
                           OPEN_EXISTING,
                           FILE_ATTRIBUTE_NORMAL,
@@ -220,6 +220,9 @@ void indri::file::File::close() {
 
 UINT64 indri::file::File::size() {
 #ifdef WIN32
+  if( _handle == INVALID_HANDLE_VALUE )
+    return 0;
+
   LARGE_INTEGER length;
   BOOL result = ::GetFileSizeEx( _handle, &length );
 
@@ -229,6 +232,10 @@ UINT64 indri::file::File::size() {
   return length.QuadPart;
 #else // POSIX
   struct stat stats;
+  
+  if( _handle == -1 )
+    return 0;
+
   fstat( _handle, &stats );
   return stats.st_size;
 #endif

@@ -21,7 +21,51 @@
 #include "indri/ScopedLock.hpp"
 #include <iostream>
 
-int count_term_in_documents( indri::collection::Repository& r, int termID, std::vector<int>& documents );
+//
+// Attempts to validate the index.  Right now it only checks
+// TermLists, but may do more in the future.
+//
+
+void validate( indri::collection::Repository& r ) {
+  indri::collection::Repository::index_state state = r.indexes();
+  indri::index::Index* index = (*state)[0];
+
+  indri::index::TermListFileIterator* iter = index->termListFileIterator();
+  int document = 1;
+  iter->startIteration();
+
+  while( !iter->finished() ) {
+    indri::index::TermList* list = iter->currentEntry();
+    
+    if( list->terms().size() != index->documentLength( document ) ) {
+      std::cout << "Document " << document << " length mismatch" << std::endl;
+    }
+
+    std::cout << document << std::endl;
+    const indri::index::TermList* flist = index->termList( document );
+
+    if( flist->terms().size() != list->terms().size() ) {
+      std::cout << "Fetched version of term list is different for " << document << std::endl;
+    }
+    delete flist;
+
+    document++;
+    iter->nextEntry();
+  }
+
+  if( (document-1) != index->documentCount() ) {
+    std::cout << "Document count (" << index->documentCount() << ") does not match term list count " << (document-1) << std::endl;
+  }
+
+  delete iter;
+}
+
+//
+// Print the whole inverted file.  Each term entry starts with 
+// a term statistics header (term, termCount, documentCount)
+// followed by indented rows (one per document) of the form:
+// (document, numPositions, pos1, pos2, ... posN ).
+//
 
 void print_invfile( indri::collection::Repository& r ) {
   indri::collection::Repository::index_state state = r.indexes();
@@ -29,16 +73,57 @@ void print_invfile( indri::collection::Repository& r ) {
   indri::index::Index* index = (*state)[0];
   indri::index::DocListFileIterator* iter = index->docListFileIterator();
   iter->startIteration();
+  std::cout << index->termCount() << " " << index->documentCount() << std::endl;
 
   while( !iter->finished() ) {
     indri::index::DocListFileIterator::DocListData* entry = iter->currentEntry();
     indri::index::TermData* termData = entry->termData;
  
     entry->iterator->startIteration();
-    while( !entry->iterator->finished() )
-      entry->iterator->nextEntry();
 
-    std::cout << termData->term << std::endl;
+    std::cout << termData->term << " "
+              << termData->corpus.totalCount << " "
+              << termData->corpus.documentCount <<  std::endl;
+
+    while( !entry->iterator->finished() ) {
+      indri::index::DocListIterator::DocumentData* doc = entry->iterator->currentEntry();
+
+      std::cout << "\t" << doc->document << " " << doc->positions.size();
+      for( int i=0; i<doc->positions.size(); i++ ) {
+        std::cout << " " << doc->positions[i];
+      }
+      std::cout << std::endl;
+
+      entry->iterator->nextEntry();
+    }
+
+    iter->nextEntry();
+  }
+
+  delete iter;
+}
+
+// 
+// Prints the vocabulary of the index, including term statistics.
+//
+
+void print_vocabulary( indri::collection::Repository& r ) {
+  indri::collection::Repository::index_state state = r.indexes();
+
+  indri::index::Index* index = (*state)[0];
+  indri::index::VocabularyIterator* iter = index->vocabularyIterator();
+
+  iter->startIteration();
+  std::cout << "TOTAL" << " " << index->termCount() << " " << index->documentCount() << std::endl;
+
+  while( !iter->finished() ) {
+    indri::index::DiskTermData* entry = iter->currentEntry();
+    indri::index::TermData* termData = entry->termData;
+
+    std::cout << termData->term << " "
+              << termData->corpus.totalCount << " "
+              << termData->corpus.documentCount <<  std::endl;
+
     iter->nextEntry();
   }
 
@@ -59,6 +144,8 @@ void print_field_positions( indri::collection::Repository& r, const std::string&
     indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocExtentListIterator* iter = index->fieldListIterator( fieldString );
+    if (iter == NULL) continue;
+    
     iter->startIteration();
 
     int doc = 0;
@@ -107,6 +194,8 @@ void print_term_positions( indri::collection::Repository& r, const std::string& 
     indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocListIterator* iter = index->docListIterator( stem );
+    if (iter == NULL) continue;
+    
     iter->startIteration();
 
     int doc = 0;
@@ -151,6 +240,8 @@ void print_term_counts( indri::collection::Repository& r, const std::string& ter
     indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocListIterator* iter = index->docListIterator( stem );
+    if (iter == NULL) continue;
+
     iter->startIteration();
 
     int doc = 0;
@@ -170,7 +261,8 @@ void print_term_counts( indri::collection::Repository& r, const std::string& ter
 
 void print_document_name( indri::collection::Repository& r, const char* number ) {
   indri::collection::CompressedCollection* collection = r.collection();
-  std::string documentName = collection->retrieveMetadatum( atoi( number ), "docid" );
+  //  std::string documentName = collection->retrieveMetadatum( atoi( number ), "docid" );
+  std::string documentName = collection->retrieveMetadatum( atoi( number ), "docno" );
   std::cout << documentName << std::endl;
 }
 
@@ -225,9 +317,9 @@ void print_document_data( indri::collection::Repository& r, const char* number )
 
 void print_document_vector( indri::collection::Repository& r, const char* number ) {
   indri::server::LocalQueryServer local(r);
-  DOCID_T documentID = atoi( number );
+  lemur::api::DOCID_T documentID = atoi( number );
 
-  std::vector<DOCID_T> documentIDs;
+  std::vector<lemur::api::DOCID_T> documentIDs;
   documentIDs.push_back(documentID);
 
   indri::server::QueryServerVectorsResponse* response = local.documentVectors( documentIDs );
@@ -261,13 +353,35 @@ void print_document_id( indri::collection::Repository& r, const char* an, const 
   indri::collection::CompressedCollection* collection = r.collection();
   std::string attributeName = an;
   std::string attributeValue = av;
-  std::vector<DOCID_T> documentIDs;
+  std::vector<lemur::api::DOCID_T> documentIDs;
 
   documentIDs = collection->retrieveIDByMetadatum( attributeName, attributeValue );
 
   for( size_t i=0; i<documentIDs.size(); i++ ) {
     std::cout << documentIDs[i] << std::endl;
   }
+}
+
+void print_repository_stats( indri::collection::Repository& r ) {
+  indri::server::LocalQueryServer local(r);
+  UINT64 termCount = local.termCount();
+  UINT64 docCount = local.documentCount();
+  std::vector<std::string> fields = local.fieldList();
+  indri::collection::Repository::index_state state = r.indexes();
+  UINT64 uniqueTermCount = 0;
+  for( size_t i=0; i<state->size(); i++ ) {
+    indri::index::Index* index = (*state)[i];
+    uniqueTermCount += index->uniqueTermCount();
+  }
+  std::cout << "Repository statistics:\n"
+            << "documents:\t" << docCount << "\n"
+            << "unique terms:\t" << uniqueTermCount    << "\n"
+            << "total terms:\t" << termCount    << "\n"
+            << "fields:\t\t";
+  for( size_t i=0; i<fields.size(); i++ ) {
+    std::cout << fields[i] << " ";
+  }
+  std::cout << std::endl;
 }
 
 void usage() {
@@ -277,12 +391,14 @@ void usage() {
   std::cout << "    term (t)             Term text      Print inverted list for a term" << std::endl;
   std::cout << "    termpositions (tp)   Term text      Print inverted list for a term, with positions" << std::endl;
   std::cout << "    fieldpositions (fp)  Field name     Print inverted list for a field, with positions" << std::endl;
-  std::cout << "    documentid (di)      Field, Value   Print the document IDs of documents having a metadata field"
-            << "                                              matching this value" << std::endl;
+  std::cout << "    documentid (di)      Field, Value   Print the document IDs of documents having a metadata field matching this value" << std::endl;
   std::cout << "    documentname (dn)    Document ID    Print the text representation of a document ID" << std::endl;
   std::cout << "    documenttext (dt)    Document ID    Print the text of a document" << std::endl;
   std::cout << "    documenttext (dd)    Document ID    Print the full representation of a document" << std::endl;
   std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
+  std::cout << "    invlist (il)         None           Print the contents of all inverted lists" << std::endl;
+  std::cout << "    vocabulary (v)       None           Print the vocabulary of the index" << std::endl;
+  std::cout << "    stats (s)                           Print statistics for the Repository" << std::endl;
 }
 
 #define REQUIRE_ARGS(n) { if( argc < n ) { usage(); return -1; } }
@@ -327,6 +443,15 @@ int main( int argc, char** argv ) {
     } else if( command == "il" || command == "invlist" ) {
       REQUIRE_ARGS(3);
       print_invfile( r );
+    } else if( command == "v" || command == "vocabulary" ) {
+      REQUIRE_ARGS(3);
+      print_vocabulary( r );
+    } else if( command == "vtl" || command == "validate" ) {
+      REQUIRE_ARGS(3);
+      validate(r);
+    } else if( command == "s" || command == "stats" ) {
+      REQUIRE_ARGS(3);
+      print_repository_stats( r );
     } else {
       r.close();
       usage();
@@ -335,7 +460,7 @@ int main( int argc, char** argv ) {
 
     r.close();
     return 0;
-  } catch( Exception& e ) {
+  } catch( lemur::api::Exception& e ) {
     LEMUR_ABORT(e);
   }
 }

@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 //
 // atomic
@@ -23,7 +23,7 @@
 #endif
 
 namespace indri {
-  /*! Atomic actions for thread support */
+  /*! \brief Atomic actions for thread support */
   namespace atomic {
 #ifdef WIN32
     typedef volatile LONG value_type;
@@ -45,7 +45,9 @@ namespace indri {
     inline void decrement( value_type& variable ) {
       __atomic_add( &variable, -1 );
     }
-#elif defined(HOST_OS) && (HOST_OS == solaris)
+#else
+    // GCC 3.4+ declares these in the __gnu_cxx namespace, 3.3- does not.
+    using namespace __gnu_cxx;
     typedef _Atomic_word value_type;
 
     inline void increment( value_type& variable ) {
@@ -54,16 +56,6 @@ namespace indri {
 
     inline void decrement( value_type& variable ) {
       __atomic_add( &variable, -1 );
-    }
-#else
-    typedef _Atomic_word value_type;
-
-    inline void increment( value_type& variable ) {
-      __gnu_cxx::__atomic_add( &variable, 1 );
-    }
-
-    inline void decrement( value_type& variable ) {
-      __gnu_cxx::__atomic_add( &variable, -1 );
     }
 #endif
   };

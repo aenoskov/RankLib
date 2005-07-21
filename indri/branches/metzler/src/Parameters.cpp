@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 
 //
@@ -445,7 +445,7 @@ void indri::api::Parameters::load( const std::string& text ) {
   try {
     std::auto_ptr<indri::xml::XMLNode> result( reader.read( text ) );
     _loadXML( result.get() );
-  } catch( Exception& e ) {
+  } catch( lemur::api::Exception& e ) {
     LEMUR_RETHROW( e, "Had trouble parsing parameter text" );
   }
 }
@@ -462,14 +462,16 @@ void indri::api::Parameters::loadFile( const std::string& filename ) {
   input.seekg( 0, std::ios::end );
   size_t length = input.tellg();
   input.seekg( 0, std::ios::beg );
-  char* buffer = new char[length];
-  
+  // null terminate it to make a string in the XML reader for comment strip
+  char* buffer = new char[length + 1];
+  buffer[length] = '\0';
+
   try {
     input.read( buffer, length );
     std::auto_ptr<indri::xml::XMLNode> result( reader.read( buffer, length ) );
 
     _loadXML( result.get() );
-  } catch( Exception& e ) {
+  } catch( lemur::api::Exception& e ) {
     LEMUR_RETHROW( e, "Had trouble parsing parameter file '" + filename + "'" );
   }
 

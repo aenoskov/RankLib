@@ -31,7 +31,7 @@
 #include "lemur/lemur-compat.hpp"
 namespace indri
 {
-  /*! XML support classes. */
+  /*! \brief XML support classes. */
   namespace xml
   {
     
@@ -316,7 +316,7 @@ inline void base64_decode_string( std::string& out, const std::string& in ) {
   size_t outLength = base64_decode( buf, in.size()+5, in );
   buf[outLength] = 0;
   out = buf;
-  delete buf;
+  delete[] buf;
 }
 
 #endif // MONITOR_XMLNODE_H
