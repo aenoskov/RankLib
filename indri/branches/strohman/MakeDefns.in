@@ -1,6 +1,5 @@
 SHELL = @SHELL@
 host_os = @host_os@
-HOST_OS = @HOST_OS@
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -36,6 +35,7 @@ JAR = @JAR@
 JAVAINC = @JAVAINC@
 JAVAHOME = @JAVAHOME@
 SWIG = @SWIG@
+SWIG_SHARED = @SWIG_SHARED@
 PHPINCLUDE = @PHPINCLUDE@
 DEPENDENCIES = xpdf antlr lemur
 

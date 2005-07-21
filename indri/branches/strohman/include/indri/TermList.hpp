@@ -80,7 +80,7 @@ namespace indri {
           assert( termID >= 0 );
           _terms.push_back( termID ); 
         }
-
+        
         for( int i=0; i<fieldCount; i++ ) {
           FieldExtent extent;
           
@@ -88,7 +88,9 @@ namespace indri {
                  >> extent.begin
                  >> extent.end
                  >> extent.number;
-
+          
+          assert( extent.id >= 0 );
+          assert( extent.begin >= 0 );
           assert( extent.end >= extent.begin );
 
           _fields.push_back( extent );
@@ -100,17 +102,17 @@ namespace indri {
         //   term count
         //   field count
         //   termID * termCount (compressed)
-        //   ( fieldID, begin, (delta begin) end, number ) * fieldCount
+        //   ( fieldID, begin, end, number ) * fieldCount
         
         indri::utility::RVLCompressStream out( buffer );
-
+        
         // write count of terms and fields in the document first
         int termCount = _terms.size();
         int fieldCount = _fields.size();
 
         out << termCount
             << fieldCount;
-
+        
         // write out terms
         for( int i=0; i<_terms.size(); i++ ) {
           assert( _terms[i] >= 0 );
@@ -119,8 +121,8 @@ namespace indri {
 
         // write out fields
         for( unsigned int i=0; i<_fields.size(); i++ ) {
+
           assert( _fields[i].id >= 0 );
-          assert( _fields[i].begin <= _fields[i].end );
 
           out << _fields[i].id
               << _fields[i].begin

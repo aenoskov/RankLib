@@ -23,31 +23,33 @@ case $host in
    *-*-solaris*) 
      AC_CHECK_LIB(nsl, gethostbyname)
      AC_CHECK_LIB(socket, socket)
-     HOST_OS=solaris
-     AC_DEFINE(HOST_OS, solaris, [osname for jni build])
-     SHARED=-shared -fPIC
+     SHARED="-shared -fPIC"
+     SWIG_SHARED="-G"
      ;;
    *linux*) 
-     HOST_OS=linux
-     AC_DEFINE(HOST_OS, linux, [osname for jni build])
-     SHARED=-shared -fPIC
+     SHARED="-shared -fPIC"
+     SWIG_SHARED="-shared"
      ;;
    *-*-darwin*)
-     HOST_OS=darwin
-     AC_DEFINE(HOST_OS, darwin, [osname for jni build])
      SHARED=
+     SWIG_SHARED=
      ;;
    *);;
 esac
-AC_SUBST(HOST_OS)
+
 AC_CHECK_LIB(z, deflate)
 AC_CHECK_LIB(iberty, mkstemps)
 
 dnl Checks for header files.
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-
+dnl AC_CHECK_SIZEOF(int)
+dnl AC_CHECK_SIZEOF(void *)
+dnl AC_CHECK_SIZEOF(unsigned long)
+dnl AC_CHECK_SIZEOF(unsigned long long)
+AC_C_BIGENDIAN
 AC_SYS_LARGEFILE
+AC_FUNC_FSEEKO
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(mkstemp)
@@ -55,6 +57,7 @@ AC_CHECK_FUNCS(mkstemps)
 
 dnl Finish up and output.
 AC_SUBST(WITH_SWIG)
+AC_SUBST(SWIG_SHARED)
 
 AC_ARG_ENABLE(swig,
 	    AC_HELP_STRING([--enable-swig],

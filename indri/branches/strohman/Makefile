@@ -53,5 +53,5 @@ endif
 	$(MAKE) install -C runquery
 	$(MAKE) install -C indrid
 	$(MAKE) install -C dumpindex
-	$(MAKE) install -C doc
+#	$(MAKE) install -C doc
 	$(INSTALL_DATA) Makefile.app $(pkgdatadir)
