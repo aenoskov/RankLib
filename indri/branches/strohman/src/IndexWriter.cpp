@@ -350,23 +350,22 @@ void IndexWriter::_writeFieldList( const std::string& fileName, int fieldIndex, 
       stream << count;
 
       // extents and numbers
-      int lastPosition = 0;
+      int lastStart = 0;
+
       for( int j=0; j<count; j++ ) {
         Extent& extent = entry->extents[j];
 
-        assert( extent.begin - lastPosition >= 0 );
+        assert( extent.begin - lastStart >= 0 );
         assert( extent.end - extent.begin >= 0 );
 
-        stream << (extent.begin - lastPosition);
-        lastPosition = extent.begin;
-        stream << (extent.end - lastPosition);
-        lastPosition = extent.end;
+        stream << (extent.begin - lastStart);
+        lastStart = extent.begin;
+        stream << (extent.end - extent.begin);
         terms += (extent.end - extent.begin);
 
         if( entry->numbers.size() )
           stream << entry->numbers[j];
       }
-
 
       iterator->nextEntry();
       documents++;
@@ -942,7 +941,7 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
     documentData.byteLength = length;
     documentData.offset = directOutput->tell() + writeStart + sizeof(UINT32);
 
-    // flush buffer
+    // tell has to happen before a write or the offset will be wrong.
     if( outputBuffer.position() > 128*1024 ) {
       directOutput->write( outputBuffer.front(), outputBuffer.position() );
       outputBuffer.clear();

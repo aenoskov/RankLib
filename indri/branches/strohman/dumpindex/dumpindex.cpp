@@ -144,6 +144,8 @@ void print_field_positions( indri::collection::Repository& r, const std::string&
     indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocExtentListIterator* iter = index->fieldListIterator( fieldString );
+    if (iter == NULL) continue;
+    
     iter->startIteration();
 
     int doc = 0;
@@ -192,6 +194,8 @@ void print_term_positions( indri::collection::Repository& r, const std::string& 
     indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocListIterator* iter = index->docListIterator( stem );
+    if (iter == NULL) continue;
+    
     iter->startIteration();
 
     int doc = 0;
@@ -236,6 +240,8 @@ void print_term_counts( indri::collection::Repository& r, const std::string& ter
     indri::thread::ScopedLock( index->iteratorLock() );
 
     indri::index::DocListIterator* iter = index->docListIterator( stem );
+    if (iter == NULL) continue;
+
     iter->startIteration();
 
     int doc = 0;
@@ -255,7 +261,8 @@ void print_term_counts( indri::collection::Repository& r, const std::string& ter
 
 void print_document_name( indri::collection::Repository& r, const char* number ) {
   indri::collection::CompressedCollection* collection = r.collection();
-  std::string documentName = collection->retrieveMetadatum( atoi( number ), "docid" );
+  //  std::string documentName = collection->retrieveMetadatum( atoi( number ), "docid" );
+  std::string documentName = collection->retrieveMetadatum( atoi( number ), "docno" );
   std::cout << documentName << std::endl;
 }
 
@@ -355,6 +362,28 @@ void print_document_id( indri::collection::Repository& r, const char* an, const 
   }
 }
 
+void print_repository_stats( indri::collection::Repository& r ) {
+  indri::server::LocalQueryServer local(r);
+  UINT64 termCount = local.termCount();
+  UINT64 docCount = local.documentCount();
+  std::vector<std::string> fields = local.fieldList();
+  indri::collection::Repository::index_state state = r.indexes();
+  UINT64 uniqueTermCount = 0;
+  for( size_t i=0; i<state->size(); i++ ) {
+    indri::index::Index* index = (*state)[i];
+    uniqueTermCount += index->uniqueTermCount();
+  }
+  std::cout << "Repository statistics:\n"
+            << "documents:\t" << docCount << "\n"
+            << "unique terms:\t" << uniqueTermCount    << "\n"
+            << "total terms:\t" << termCount    << "\n"
+            << "fields:\t\t";
+  for( size_t i=0; i<fields.size(); i++ ) {
+    std::cout << fields[i] << " ";
+  }
+  std::cout << std::endl;
+}
+
 void usage() {
   std::cout << "dumpindex <repository> <command> [ <argument> ]*" << std::endl;
   std::cout << "Valid commands are: " << std::endl;
@@ -362,14 +391,14 @@ void usage() {
   std::cout << "    term (t)             Term text      Print inverted list for a term" << std::endl;
   std::cout << "    termpositions (tp)   Term text      Print inverted list for a term, with positions" << std::endl;
   std::cout << "    fieldpositions (fp)  Field name     Print inverted list for a field, with positions" << std::endl;
-  std::cout << "    documentid (di)      Field, Value   Print the document IDs of documents having a metadata field"
-            << "                                              matching this value" << std::endl;
+  std::cout << "    documentid (di)      Field, Value   Print the document IDs of documents having a metadata field matching this value" << std::endl;
   std::cout << "    documentname (dn)    Document ID    Print the text representation of a document ID" << std::endl;
   std::cout << "    documenttext (dt)    Document ID    Print the text of a document" << std::endl;
   std::cout << "    documenttext (dd)    Document ID    Print the full representation of a document" << std::endl;
   std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
   std::cout << "    invlist (il)         None           Print the contents of all inverted lists" << std::endl;
   std::cout << "    vocabulary (v)       None           Print the vocabulary of the index" << std::endl;
+  std::cout << "    stats (s)                           Print statistics for the Repository" << std::endl;
 }
 
 #define REQUIRE_ARGS(n) { if( argc < n ) { usage(); return -1; } }
@@ -420,6 +449,9 @@ int main( int argc, char** argv ) {
     } else if( command == "vtl" || command == "validate" ) {
       REQUIRE_ARGS(3);
       validate(r);
+    } else if( command == "s" || command == "stats" ) {
+      REQUIRE_ARGS(3);
+      print_repository_stats( r );
     } else {
       r.close();
       usage();
