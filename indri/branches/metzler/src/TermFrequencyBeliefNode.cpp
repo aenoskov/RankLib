@@ -7,22 +7,24 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 #include "indri/TermFrequencyBeliefNode.hpp"
 #include "indri/InferenceNetwork.hpp"
 #include <math.h>
 
 indri::infnet::TermFrequencyBeliefNode::TermFrequencyBeliefNode( const std::string& name,
-                                                  class InferenceNetwork& network,
-                                                  int listID,
-                                                  indri::query::TermScoreFunction& scoreFunction )
+                                                                 class InferenceNetwork& network,
+                                                                 int listID,
+                                                                 indri::query::TermScoreFunction& scoreFunction )
   :
   _name(name),
   _network(network),
   _listID(listID),
   _function(scoreFunction)
 {
+  _maximumBackgroundScore = INDRI_HUGE_SCORE;
+  _maximumScore = INDRI_HUGE_SCORE;
 }
 
 indri::infnet::TermFrequencyBeliefNode::~TermFrequencyBeliefNode() {
@@ -65,6 +67,9 @@ const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infn
     double score = _function.scoreOccurrence( count, documentLength );
 
     _extents.push_back( indri::api::ScoredExtentResult( score, documentID, begin, end ) );
+
+    assert( score < _maximumScore || _list->topDocuments().size() > 0 );
+    assert( score <= _maximumBackgroundScore || count != 0 );
   }
 
   return _extents;
@@ -122,10 +127,10 @@ void indri::infnet::TermFrequencyBeliefNode::indexChanged( indri::index::Index& 
 
     indri::index::TermData* termData = _list->termData();
 
-    UINT64 maxOccurrences = UINT64( ceil( double(termData->maxDocumentLength) * maximumFraction ) );
+    double maxOccurrences = ceil( double(termData->maxDocumentLength) * maximumFraction );
 
     _maximumScore = _function.scoreOccurrence( maxOccurrences, termData->maxDocumentLength );
-    _maximumBackgroundScore = _function.scoreOccurrence( 0, termData->minDocumentLength );
+    _maximumBackgroundScore = _function.scoreOccurrence( 0, 1 );
   }
 }
 

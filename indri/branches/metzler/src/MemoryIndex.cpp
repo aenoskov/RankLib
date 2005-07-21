@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 //
 // MemoryIndex
@@ -122,7 +122,7 @@ int indri::index::MemoryIndex::documentLength( int documentID ) {
   assert( documentID - _baseDocumentID >= 0 );
   assert( (documentID - _baseDocumentID) < _documentData.size() );
 
-  return _documentData[ documentID - _baseDocumentID ].indexedLength;
+  return _documentData[ documentID - _baseDocumentID ].totalLength;
 }
 
 //
@@ -196,6 +196,10 @@ int indri::index::MemoryIndex::field( const char* fieldName ) {
 
 UINT64 indri::index::MemoryIndex::documentCount( const std::string& term ) {
   term_entry** entry = _stringToTerm.find( term.c_str() );
+
+  if( !entry )
+    return 0;
+
   return (*entry)->termData->corpus.documentCount;
 }
 
@@ -266,7 +270,12 @@ UINT64 indri::index::MemoryIndex::termCount() {
 //
 
 UINT64 indri::index::MemoryIndex::termCount( const std::string& term ) {
-  return _corpusStatistics.totalTerms;
+  term_entry** entry = _stringToTerm.find( term.c_str() );
+
+  if( !entry )
+    return 0;
+
+  return (*entry)->termData->corpus.totalCount;
 }
 
 //
@@ -327,6 +336,7 @@ void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byt
   indri::utility::Buffer* addBuffer = 0;
   int docDataLength = 10 + 5 * locatedTerms.terms().size() + 2 * sizeof(FieldExtent) * locatedTerms.fields().size();
   
+  // find a buffer to store this term list in, making a new one if necessary
   if( !_termLists.size() || _termLists.back()->size() - _termLists.back()->position() < docDataLength ) {
     // we need a new Buffer
     if( !_termLists.size() )
@@ -340,8 +350,9 @@ void indri::index::MemoryIndex::_writeDocumentTermList( UINT64& offset, int& byt
     addBuffer = _termLists.back();
   }
   
+  // found a buffer, now add the term list data
   offset = _termListsBaseOffset + addBuffer->position();
-  _termList.write( *addBuffer );
+  locatedTerms.write( *addBuffer );
   byteLength = addBuffer->position() + _termListsBaseOffset - offset;
 }
 
@@ -354,7 +365,9 @@ void indri::index::MemoryIndex::_writeDocumentStatistics( UINT64 offset, int byt
   
   data.offset = offset;
   data.byteLength = byteLength;
+  data.totalLength = totalLength;
   data.indexedLength = indexedLength;
+  data.totalLength = totalLength;
   data.uniqueTermCount = uniqueTerms;
   
   _documentData.push_back( data );
@@ -365,10 +378,10 @@ void indri::index::MemoryIndex::_writeDocumentStatistics( UINT64 offset, int byt
 //
 
 void indri::index::MemoryIndex::_addOpenTags( indri::utility::greedy_vector<indri::index::FieldExtent>& indexedTags,
-                               indri::utility::greedy_vector<indri::index::FieldExtent>& openTags,
-                               const indri::utility::greedy_vector<indri::parse::TagExtent>& extents,
-                               unsigned int& extentIndex, 
-                               unsigned int position ) {
+                                              indri::utility::greedy_vector<indri::index::FieldExtent>& openTags,
+                                              const indri::utility::greedy_vector<indri::parse::TagExtent>& extents,
+                                              unsigned int& extentIndex, 
+                                              unsigned int position ) {
   for( ; extentIndex < extents.size(); extentIndex++ ) {
     const indri::parse::TagExtent* extent = &extents[extentIndex];
     
@@ -488,7 +501,7 @@ int indri::index::MemoryIndex::addDocument( indri::api::ParsedDocument& document
 
     int wordLength = strlen(word);
 
-    if( wordLength >= Keyfile::MAX_KEY_LENGTH-1 ) {
+    if( wordLength >= lemur::file::Keyfile::MAX_KEY_LENGTH-1 ) {
       _termList.addTerm(0);     
       continue;
     }
@@ -534,12 +547,18 @@ int indri::index::MemoryIndex::addDocument( indri::api::ParsedDocument& document
     }
 
     _removeClosedTags( openTags, position );
-    _corpusStatistics.totalTerms++;
     indexedTerms++;
   }
 
+  _corpusStatistics.totalTerms += words.size();
+
+  // need to add any tags that contain no text at the end of a document
+  _addOpenTags( indexedTags, openTags, document.tags, extentIndex, position );
+  _removeClosedTags( openTags, position );
+
   // go through the list of terms we've seen and update doc length counts
   term_entry* entry = entries;
+  int uniqueTerms = 0;
 
   while( entry ) {
     indri::index::TermData* termData = entry->termData;
@@ -552,6 +571,7 @@ int indri::index::MemoryIndex::addDocument( indri::api::ParsedDocument& document
     entry->list.endDocument();
     entry = entry->hasNext() ? entry->next : 0;
     old->clearMark();
+    uniqueTerms++;
   }
 
   // write out any field data we've encountered
@@ -561,7 +581,7 @@ int indri::index::MemoryIndex::addDocument( indri::api::ParsedDocument& document
   int byteLength;
 
   _writeDocumentTermList( offset, byteLength, documentID, int(words.size()), _termList );
-  _writeDocumentStatistics( offset, byteLength, indexedTerms, int(words.size()), indexedTerms );
+  _writeDocumentStatistics( offset, byteLength, indexedTerms, int(words.size()), uniqueTerms );
 
   return documentID;
 }
@@ -748,7 +768,7 @@ size_t indri::index::MemoryIndex::memorySize() {
   }
 
   return listDataSize +
-         documentDataSize +
-         termListsSize +
-         fieldListsSize;
+    documentDataSize +
+    termListsSize +
+    fieldListsSize;
 }

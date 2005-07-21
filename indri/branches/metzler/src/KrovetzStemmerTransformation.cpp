@@ -24,6 +24,7 @@
 extern int kstem_stem_tobuffer( char* term, char* buffer );
 extern void kstem_allocate_memory( int entries );
 extern void kstem_add_table_entry( const char* variant, const char* word );
+extern void kstem_release_memory();
 
 struct conflation_pair {
   const char* const variant;
@@ -68,7 +69,8 @@ indri::parse::KrovetzStemmerTransformation::KrovetzStemmerTransformation( indri:
 }
 
 indri::parse::KrovetzStemmerTransformation::~KrovetzStemmerTransformation() {
-  delete _stemBuffer;
+  delete[] _stemBuffer;
+  //  kstem_release_memory(); // don't do this, multiple instances.
 }
 
 char* indri::parse::KrovetzStemmerTransformation::_growBuffer( size_t length, char* oldEnd ) {
@@ -77,7 +79,7 @@ char* indri::parse::KrovetzStemmerTransformation::_growBuffer( size_t length, ch
   char* startPoint = (oldEnd - _stemBuffer) + newBuffer;
 
   _stemBufferSize = length;
-  delete _stemBuffer;
+  delete[] _stemBuffer;
   _stemBuffer = newBuffer;
 
   return startPoint;
@@ -85,7 +87,7 @@ char* indri::parse::KrovetzStemmerTransformation::_growBuffer( size_t length, ch
 
 char* indri::parse::KrovetzStemmerTransformation::_getBuffer( size_t length ) {
   if( _stemBufferSize < length ) {
-    delete _stemBuffer;
+    delete[] _stemBuffer;
     _stemBuffer = new char[length];
     _stemBufferSize = length;
   }

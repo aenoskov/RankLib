@@ -24,7 +24,17 @@ public class IndriSmoothingSearch implements Ranker {
 		indri = new QueryEnvironment();
 		indri.addIndex( index );				
 	}
-	
+
+    	// accepts config strings of the form index::queryFile
+	public IndriSmoothingSearch( String config ) {
+		String [] args = config.split( "\\:\\:" );
+		queries = RankMaxTools.getQueries( args[1] );
+		
+		indri = new QueryEnvironment();
+		indri.addIndex( args[0] );
+	}
+
+    
 	public Parameters getDefaultStartParam() {
 		return new Parameters( new double [] { 2500.0 } );
 	}
@@ -43,7 +53,7 @@ public class IndriSmoothingSearch implements Ranker {
 		for( int i = 0; i < queries.size(); i++ ) {
 			String query = (String)queries.get( i );
 			ScoredExtentResult [] r = indri.runQuery( query, 1000 );
-			results[i] = new IndriRanking( (i+1)+"", r, getDocumentIDs( r ) );
+			results[i] = new IndriRanking( (50+i+1)+"", r, getDocumentIDs( r ) );
 		}
 		
 		return results;

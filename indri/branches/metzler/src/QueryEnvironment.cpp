@@ -7,7 +7,7 @@
  * http://www.lemurproject.org/license.html
  *
  *==========================================================================
-*/
+ */
 
 
 //
@@ -58,6 +58,8 @@
 #include <map>
 
 #include "indri/Appliers.hpp"
+
+using namespace lemur::api;
 
 // debug code: should be gone soon
 #ifdef TIME_QUERIES
@@ -158,7 +160,9 @@ void indri::api::QueryEnvironment::setStopwords( const std::vector<std::string>&
   _parameters.set("stopper","");
   Parameters p = _parameters.get("stopper");
   for( unsigned int i=0; i<stopwords.size(); i++ ) {
-    _parameters.append("word").set(stopwords[i]);
+    //    _parameters.append("word").set(stopwords[i]);
+    // should be the slice.
+    p.append("word").set(stopwords[i]);
   }
 }
 
@@ -170,8 +174,8 @@ void indri::api::QueryEnvironment::_copyStatistics( std::vector<indri::lang::Raw
     std::vector<ScoredExtentResult>& docOccurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "docOccurrences" ];
     std::vector<ScoredExtentResult>& docCountList = statisticsResults[ scorerNodes[i]->nodeName() ][ "docCount" ];
     
-    double occurrences = UINT64(occurrencesList[0].score);
-    double contextSize = UINT64(contextSizeList[0].score);
+    double occurrences = occurrencesList[0].score;
+    double contextSize = contextSizeList[0].score;
 
     UINT64 docOccurrences = UINT64(docOccurrencesList[0].score);
     
@@ -194,8 +198,8 @@ std::vector<indri::server::QueryServerResponse*> indri::api::QueryEnvironment::_
   
   // this ships out the requests to each server (doesn't necessarily block until they're done)
   for( unsigned int i=0; i<_servers.size(); i++ ) {
-      indri::server::QueryServerResponse* response = _servers[i]->runQuery( roots, resultsRequested, true );
-      responses.push_back( response );
+    indri::server::QueryServerResponse* response = _servers[i]->runQuery( roots, resultsRequested, true );
+    responses.push_back( response );
   }
 
   // this just goes through all the results, blocking on each one,
@@ -297,7 +301,8 @@ void indri::api::QueryEnvironment::_mergeServerQuery( indri::infnet::InferenceNe
   for( nodeIter = results.begin(); nodeIter != results.end(); nodeIter++ ) {
     for( listIter = nodeIter->second.begin(); listIter != nodeIter->second.end(); listIter++ ) {
       std::vector<indri::api::ScoredExtentResult>& listResults = listIter->second;
-      std::sort( listResults.begin(), listResults.end(), indri::api::ScoredExtentResult::score_greater() );
+      // use stable sort to minimize differences across platforms.
+      std::stable_sort( listResults.begin(), listResults.end(), indri::api::ScoredExtentResult::score_greater() );
 
       if( int(listResults.size()) > resultsRequested )
         listResults.resize( resultsRequested );
@@ -655,9 +660,9 @@ void indri::api::QueryEnvironment::_scoredQuery( indri::infnet::InferenceNetwork
 }
 
 void indri::api::QueryEnvironment::_annotateQuery( indri::infnet::InferenceNetwork::MAllResults& results,
-                                       const std::vector<int>& documentSet,
-                                       std::string& annotatorName,
-                                       indri::lang::Node* queryRoot ) {
+                                                   const std::vector<DOCID_T>& documentSet,
+                                                   std::string& annotatorName,
+                                                   indri::lang::Node* queryRoot ) {
   // add a FilterNode, unique to each server
   // send off each query for evaluation
   std::vector< std::vector<int> > docIDLists;
@@ -708,13 +713,13 @@ void indri::api::QueryEnvironment::_annotateQuery( indri::infnet::InferenceNetwo
 
 // run a query (Indri query language)
 std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::_runQuery( indri::infnet::InferenceNetwork::MAllResults& results,
-                                                             const std::string& q,
-                                                             int resultsRequested,
-                                                             const std::vector<int>* documentSet,
-                                                             indri::api::QueryAnnotation** annotation ) {
+                                                                                     const std::string& q,
+                                                                                     int resultsRequested,
+                                                                                     const std::vector<DOCID_T>* documentSet,
+                                                                                     indri::api::QueryAnnotation** annotation ) {
   INIT_TIMER
 
-  std::istringstream query(q);
+    std::istringstream query(q);
   indri::lang::QueryLexer lexer( query );
   indri::lang::QueryParser parser( lexer );
   
@@ -766,7 +771,8 @@ std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::_runQu
   std::string accumulatorName;
   _scoredQuery( results, rootNode, accumulatorName, resultsRequested, documentSet );
   std::vector<indri::api::ScoredExtentResult> queryResults = results[accumulatorName]["scores"];
-  std::sort( queryResults.begin(), queryResults.end() );
+  // use stable sort to minimize differences across platforms.
+  std::stable_sort( queryResults.begin(), queryResults.end() );
   if( queryResults.size() > resultsRequested )
     queryResults.resize( resultsRequested );
 

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(Indri, 1.0, indri-info@ciir.cs.umass.edu)
+AC_INIT(Indri, 2.0, indri-info@ciir.cs.umass.edu)
 AC_CONFIG_SRCDIR(indri.sln)
 AC_CONFIG_FILES(MakeDefns Makefile.app)
 dnl To use a header file instead of command line -D defs, use
@@ -13,44 +13,51 @@ AC_PROG_CXX
 AC_PROG_LEX
 AC_PROG_INSTALL
 AC_CHECK_PROGS(AR, ar gar)
-
-AC_SUBST(HOST_OS)
 AC_SUBST(SHARED)
-dnl Checks for libraries.
 
+dnl Checks for libraries.
+AC_CHECK_LIB(m, log)
+AC_CHECK_LIB(pthread, pthread_create)
 dnl If/when we add client server
 case $host in
    *-*-solaris*) 
      AC_CHECK_LIB(nsl, gethostbyname)
      AC_CHECK_LIB(socket, socket)
-     HOST_OS=solaris
-     AC_DEFINE(HOST_OS, solaris, [osname for jni build])
-     SHARED=-shared -fPIC
+     SHARED="-shared -fPIC"
+     SWIG_SHARED="-G"
      ;;
    *linux*) 
-     HOST_OS=linux
-     AC_DEFINE(HOST_OS, linux, [osname for jni build])
-     SHARED=-shared -fPIC
+     SHARED="-shared -fPIC"
+     SWIG_SHARED="-shared"
      ;;
    *-*-darwin*)
-     HOST_OS=darwin
-     AC_DEFINE(HOST_OS, darwin, [osname for jni build])
      SHARED=
+     SWIG_SHARED=
      ;;
    *);;
 esac
+
 AC_CHECK_LIB(z, deflate)
+AC_CHECK_LIB(iberty, mkstemps)
 
 dnl Checks for header files.
 
 dnl Checks for typedefs, structures, and compiler characteristics.
-
+dnl AC_CHECK_SIZEOF(int)
+dnl AC_CHECK_SIZEOF(void *)
+dnl AC_CHECK_SIZEOF(unsigned long)
+dnl AC_CHECK_SIZEOF(unsigned long long)
+AC_C_BIGENDIAN
 AC_SYS_LARGEFILE
+AC_FUNC_FSEEKO
 
 dnl Checks for library functions.
+AC_CHECK_FUNCS(mkstemp)
+AC_CHECK_FUNCS(mkstemps)
 
 dnl Finish up and output.
 AC_SUBST(WITH_SWIG)
+AC_SUBST(SWIG_SHARED)
 
 AC_ARG_ENABLE(swig,
 	    AC_HELP_STRING([--enable-swig],

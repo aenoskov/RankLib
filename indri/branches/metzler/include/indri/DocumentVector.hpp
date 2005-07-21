@@ -23,11 +23,10 @@
 #include <string>
 #include <map>
 #include <vector>
-#include "indri/TermListBuilder.hpp"
 #include "indri/Index.hpp"
 namespace indri 
 {
-  /*! Indri API classes for interacting with indri collections. */
+  /*! \brief Indri API classes for interacting with indri collections. */
   namespace api 
   {
 

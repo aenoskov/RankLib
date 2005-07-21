@@ -113,7 +113,7 @@ protected DIGIT:             ('0'..'9');
 protected ASCII_LETTER:      ('a'..'z' | 'A'..'Z');
 protected SAFE_LETTER:       ('a'..'z' | 'A'..'Z' | '-' | '_');
 protected SAFE_CHAR:         ('a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_');
-protected BASESIXFOUR_CHAR:  ('a'..'z' | 'A'..'Z' | '0'..'9' | '+' | '/');
+protected BASESIXFOUR_CHAR:  ('a'..'z' | 'A'..'Z' | '0'..'9' | '+' | '/' | '=');
 
 //
 // Within the ASCII range, we only accept a restricted
@@ -125,12 +125,12 @@ protected BASESIXFOUR_CHAR:  ('a'..'z' | 'A'..'Z' | '0'..'9' | '+' | '/');
 protected TEXT_TERM:        ( HIGH_CHAR | SAFE_CHAR )+;
 protected NUMBER:           ( '0'..'9' )+;
 protected NEGATIVE_NUMBER:  DASH ( '0'..'9' )+;
-protected FLOAT:            ( '0'..'9' )+ DOT ( '0'..'9' )*;
+protected FLOAT:            (DASH)? ( '0'..'9' )+ DOT ( '0'..'9' )+;
 
 TERM:     ( (DIGIT)+ SAFE_LETTER ) => TEXT_TERM |
-          ( NUMBER DOT ) => FLOAT { $setType(FLOAT); } |
-          ( DASH NUMBER DOT ) => NEGATIVE_NUMBER { $setType(NEGATIVE_NUMBER); } |
+          ( FLOAT ) => FLOAT { $setType(FLOAT); } |
           ( NUMBER ) => NUMBER { $setType(NUMBER); } |
+          ( NEGATIVE_NUMBER ) => NEGATIVE_NUMBER { $setType(NEGATIVE_NUMBER); } |
           TEXT_TERM;
           
 protected ENCODED_QUOTED_TERM:    "#base64quote"! O_PAREN! (TAB! | SPACE!)* (BASESIXFOUR_CHAR)+ (TAB! | SPACE!)* C_PAREN!;
@@ -213,7 +213,7 @@ scoredRaw returns [ indri::lang::ScoredExtentNode* sn ]
     RawExtentNode* contexts = 0;
     sn = 0;
   } :
-    ( qualifiedTerm context_list ) => raw=qualifiedTerm contexts=context_list
+    ( qualifiedTerm DOT ) => raw=qualifiedTerm DOT contexts=context_list
   {
     sn = new indri::lang::RawScorerNode( raw, contexts );
     _nodes.push_back(sn);
@@ -394,19 +394,6 @@ wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
        ( options { greedy=true; } : w=floating n=unscoredTerm { ws->addChild( w, n ); } )+
        C_PAREN;
   
-// wsynNode : WSYN O_PAREN ( weight unscoredTerm )+ C_PAREN
-wsynNode returns [ indri::lang::WeightedExtentOr* ws ]
-  {
-    ws = new indri::lang::WeightedExtentOr;
-    _nodes.push_back(ws);
-
-    double w = 0;
-    RawExtentNode* n = 0;
-  } :
-  WSYN O_PAREN
-       ( options { greedy=true; } : w=floating n=unscoredTerm { ws->addChild( w, n ); } )+
-       C_PAREN;
-  
 // odNode : OD DECIMAL O_PAREN ( qualifiedTerm )+ C_PAREN
 odNode returns [ indri::lang::ODNode* od ] 
   {
@@ -487,7 +474,7 @@ anyField returns [ indri::lang::Field* f ]
     f = new Field(t->getText());
     _nodes.push_back(f);
   };
- 
+
 unscoredTerm returns [ RawExtentNode* t ]
   {
     t = 0;
@@ -506,6 +493,7 @@ qualifiedTerm returns [ RawExtentNode* t ]
     if( fields ) {
       t = new indri::lang::ExtentInside( synonyms, fields );
       _nodes.push_back(t);
+      synonyms = t;
     } else {
       t = synonyms;
     }
@@ -730,6 +718,10 @@ rawText returns [ indri::lang::IndexTerm* t ] {
     t = new indri::lang::IndexTerm(n->getText());
     _nodes.push_back(t);
   } |
+  nn:NEGATIVE_NUMBER {
+    t = new indri::lang::IndexTerm(nn->getText());
+    _nodes.push_back(t);
+  } |
   f:FLOAT {
     t = new indri::lang::IndexTerm(f->getText());
     _nodes.push_back(t);
@@ -746,7 +738,7 @@ rawText returns [ indri::lang::IndexTerm* t ] {
   } |
   qet:ENCODED_QUOTED_TERM {
     std::string decodedString; 
-    base64_decode_string(decodedString, et->getText());
+    base64_decode_string(decodedString, qet->getText());
     t = new indri::lang::IndexTerm( decodedString );
     t->setStemmed(true);
     _nodes.push_back(t);
