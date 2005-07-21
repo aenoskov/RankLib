@@ -25,6 +25,8 @@
 #include "indri/BeliefNode.hpp"
 #include "indri/EvaluatorNode.hpp"
 #include "indri/Extent.hpp"
+#include <algorithm>
+
 namespace indri
 {
   /*! \brief Inference net and inference net node classes. */
