@@ -63,19 +63,6 @@ namespace indri
       }
 
       void _fetchText( indri::utility::greedy_vector<TagExtent>& tags, indri::utility::greedy_vector<char*>& terms ) {
-        // first, surround current text with a mainbody tag
-        TagExtent mainbody;
-        mainbody.begin = 0;
-        mainbody.end = terms.size();
-        mainbody.name = "mainbody";
-        mainbody.number = 0;
-
-        indri::utility::greedy_vector<TagExtent> oldTags;
-        oldTags = tags;
-        tags.clear();
-        tags.push_back( mainbody );
-        tags.append( oldTags.begin(), oldTags.end() );
-
         // now, fetch the additional terms
         char line[65536];
         _buffer.clear();
@@ -84,6 +71,9 @@ namespace indri
           // LINK
           _in.getline( line, sizeof line-1 );
 
+	  // LINKDOCNO 
+          _in.getline( line, sizeof line-1 );
+	  
           // TEXT=
           _in.getline( line, sizeof line-1 );
           int textLen = strlen(line+6);
@@ -170,6 +160,20 @@ namespace indri
       }
 
       indri::api::ParsedDocument* transform( indri::api::ParsedDocument* document ) {
+
+	// surround current text with a mainbody tag
+        TagExtent mainbody;
+        mainbody.begin = 0;
+        mainbody.end = document->terms.size();
+        mainbody.name = "mainbody";
+        mainbody.number = 0;
+
+        indri::utility::greedy_vector<TagExtent> oldTags;
+        oldTags = document->tags;
+        document->tags.clear();
+        document->tags.push_back( mainbody );
+        document->tags.append( oldTags.begin(), oldTags.end() );
+	
         if( _matchingDocno( document ) ) {
           _fetchText( document->tags, document->terms );
           _readDocumentHeader();
