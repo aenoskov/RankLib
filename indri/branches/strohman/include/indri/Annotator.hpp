@@ -52,6 +52,8 @@ namespace indri
       EvaluatorNode::MResults& getResults();
       const std::string& getName() const;
       const EvaluatorNode::MResults& getResults() const;
+      
+      bool isComplex();
     };
   }
 }

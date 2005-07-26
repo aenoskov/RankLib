@@ -96,6 +96,10 @@ namespace indri
       void indexChanged( indri::index::Index& index ) {
         // do nothing
       }
+      
+      bool isComplex() {
+        return true;
+      }
     };
   }
 }

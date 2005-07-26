@@ -2,11 +2,14 @@
 //
 // similarity
 //
-// Compute similarity scores between documents or passages in
+// June 2005 -- tds
+//
+// Compute similarity scores between documents in
 // an Indri index and output a binary file.
 // 
 // This application computes similarity as KL-divergence or 
 // with the Fisher diffusion kernel.
+//
 //
 
 #include <math.h>
@@ -275,7 +278,7 @@ static void partition( const std::string& outputPath,
                        int startDocID,
                        int endDocID ) {
   std::ofstream output;
-  output.open( outputPath.c_str() );
+  output.open( outputPath.c_str(), std::ofstream::out | std::ofstream::binary );
   
   // part
   output << 'P';
@@ -340,7 +343,7 @@ static void full_similarity( const std::string& outputPath, indri::index::Index*
 
   // output file
   std::ofstream output;
-  output.open( outputPath.c_str() );
+  output.open( outputPath.c_str(), std::ofstream::out | std::ofstream::binary );
   
   // statistics
   statistics_t* stats = collect_statistics( index );

@@ -603,7 +603,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ContextCounterN
                                                 list );
 
     _network->addEvaluatorNode( contextCount );
-    _network->addComplexEvaluatorNode( contextCount );
     _nodeMap[ contextCounterNode ] = contextCount;
   }
 }
@@ -629,7 +628,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ScoreAccumulato
     ScoredExtentAccumulator* accumulator = new ScoredExtentAccumulator( scoreAccumulatorNode->nodeName(), child, _resultsRequested );
 
     _network->addEvaluatorNode( accumulator );
-    _network->addComplexEvaluatorNode( accumulator );
     _nodeMap[ scoreAccumulatorNode ] = accumulator;
   }
 }
@@ -641,7 +639,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::AnnotatorNode* 
     Annotator* annotator = new Annotator( annotatorNode->nodeName(), child );
 
     _network->addEvaluatorNode( annotator );
-    _network->addComplexEvaluatorNode( annotator );
     _nodeMap[ annotatorNode ] = annotator;
   }
 }
@@ -759,9 +756,8 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::RawScorerNode* 
 
 void indri::infnet::InferenceNetworkBuilder::after( indri::lang::PriorNode* pNode ) {
   if( _nodeMap.find( pNode ) == _nodeMap.end() ) {
-    FieldIteratorNode* field = dynamic_cast<FieldIteratorNode*>(_nodeMap[pNode->getField()]);
-    PriorNode* priorNode = new PriorNode( pNode->nodeName(), field, pNode->getTable() );
-
+    PriorNode* priorNode = new PriorNode( pNode->nodeName(), *_network, _network->addPriorIterator( pNode->getPriorName() ) );
+    
     _network->addBeliefNode( priorNode );
     _nodeMap[pNode] = priorNode;
   }

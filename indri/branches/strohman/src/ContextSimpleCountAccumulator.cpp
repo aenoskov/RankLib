@@ -86,3 +86,8 @@ void indri::infnet::ContextSimpleCountAccumulator::evaluate( int documentID, int
 int indri::infnet::ContextSimpleCountAccumulator::nextCandidateDocument() {
   return MAX_INT32;
 }
+
+bool indri::infnet::ContextSimpleCountAccumulator::isComplex() {
+  return false;
+}
+
