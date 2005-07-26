@@ -708,7 +708,7 @@ double indri::api::QueryEnvironment::expressionCount( const std::string& express
   // this step is required to initialize some internal
   // parser variables, since ANTLR grammars can't add things
   // to the constructor
-  parser.init( &_priorFactory, &lexer );
+  parser.init( &lexer );
   lexer.init();
 
   indri::lang::ScoredExtentNode* rootNode;
@@ -755,7 +755,7 @@ std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::_runQu
   // this step is required to initialize some internal
   // parser variables, since ANTLR grammars can't add things
   // to the constructor
-  parser.init( &_priorFactory, &lexer );
+  parser.init( &lexer );
   lexer.init();
 
   PRINT_TIMER( "Initialization complete" );

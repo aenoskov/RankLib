@@ -68,6 +68,7 @@ namespace indri
       void evaluate( int documentID, int documentLength );
       int nextCandidateDocument();
       void indexChanged( indri::index::Index& index );
+      bool isComplex();
     };
   }
 }

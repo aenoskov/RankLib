@@ -330,7 +330,15 @@ public:
   UINT64 initialize() {
     _environment.setMemory( _parameters.get("memory", 100*1024*1024) );
 
-    if( _parameters.exists( "index" ) ) {
+    std::vector<std::string> stopwords;
+    if( copy_parameters_to_string_vector( stopwords, _parameters, "stopper.word" ) )
+      _environment.setStopwords(stopwords);
+    
+    std::vector<std::string> smoothingRules;
+    if( copy_parameters_to_string_vector( smoothingRules, _parameters, "rule" ) )
+      _environment.setScoringRules( smoothingRules );
+
+   if( _parameters.exists( "index" ) ) {
       indri::api::Parameters indexes = _parameters["index"];
 
       for( unsigned int i=0; i < indexes.size(); i++ ) {
@@ -345,14 +353,6 @@ public:
         _environment.addServer( std::string(servers[i]) );
       }
     }
-
-    std::vector<std::string> stopwords;
-    if( copy_parameters_to_string_vector( stopwords, _parameters, "stopper.word" ) )
-      _environment.setStopwords(stopwords);
-    
-    std::vector<std::string> smoothingRules;
-    if( copy_parameters_to_string_vector( smoothingRules, _parameters, "rule" ) )
-      _environment.setScoringRules( smoothingRules );
 
     _requested = _parameters.get( "count", 1000 );
     _initialRequested = _parameters.get( "fbDocs", _requested );

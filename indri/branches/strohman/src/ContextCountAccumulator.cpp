@@ -181,3 +181,13 @@ void indri::infnet::ContextCountAccumulator::indexChanged( indri::index::Index& 
   }
 }
 
+//
+// isComplex
+//
+
+bool indri::infnet::ContextCountAccumulator::isComplex() {
+  return true;
+}
+
+
+

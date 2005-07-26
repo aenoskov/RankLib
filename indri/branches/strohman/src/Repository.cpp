@@ -34,11 +34,53 @@
 #include "indri/RepositoryLoadThread.hpp"
 #include "indri/RepositoryMaintenanceThread.hpp"
 #include "indri/IndriTimer.hpp"
+#include "indri/DirectoryIterator.hpp" 
+
 #include <math.h>
 #include <string>
 #include <algorithm>
 
 const static int defaultMemory = 100*1024*1024;
+
+//
+// _openPriors
+//
+
+void indri::collection::Repository::_openPriors( const std::string& indexPath ) {
+  assert( _priorFiles.size() == 0 );
+  std::string priorDirectory = indri::file::Path::combine( indexPath, "prior" );
+  
+  // if the prior directory doesn't exist, we're done
+  if( !indri::file::Path::isDirectory( priorDirectory ) )
+    return;          
+
+  indri::file::DirectoryIterator files( priorDirectory, false );
+
+  for( ; !(files == indri::file::DirectoryIterator::end()); files++ ) {
+    std::string priorName = *files;
+    std::string priorPath = indri::file::Path::combine( priorDirectory, priorName );
+    indri::file::File* priorFile = new indri::file::File;
+
+    assert( _priorFiles.find( priorName ) == _priorFiles.end() );
+    priorFile->openRead( priorPath );
+    _priorFiles[ priorName ] = priorFile;  
+  }  
+}
+
+//
+// _closePriors
+//
+
+void indri::collection::Repository::_closePriors() {
+  std::map< std::string, indri::file::File* >::iterator iter;
+  
+  for( iter = _priorFiles.begin(); iter != _priorFiles.end(); iter++ ) {
+    iter->second->close();
+    delete iter->second;
+  }
+  
+  _priorFiles.clear();
+}
 
 //
 // _fieldsForIndex
@@ -374,6 +416,9 @@ void indri::collection::Repository::openRead( const std::string& path, indri::ap
     _collection = new CompressedCollection();
     _collection->openRead( collectionPath );
     _deletedList.read( deletedName );
+    
+    // open priors
+    _openPriors( path );
 
     _startThreads();
   } catch( lemur::api::Exception& e ) {
@@ -423,6 +468,9 @@ void indri::collection::Repository::open( const std::string& path, indri::api::P
     _collection = new CompressedCollection();
     _collection->open( collectionPath );
     
+    // open priors
+    _openPriors( path );
+    
     // read deleted documents in
     std::string deletedName = indri::file::Path::combine( path, "deleted" );
     _deletedList.read( deletedName );
@@ -442,6 +490,20 @@ void indri::collection::Repository::open( const std::string& path, indri::api::P
 bool indri::collection::Repository::exists( const std::string& path ) {
   std::string manifestPath = indri::file::Path::combine( path, "manifest" );
   return indri::file::Path::exists( manifestPath );
+}
+
+//
+// priorListIterator
+//
+
+indri::collection::PriorListIterator* indri::collection::Repository::priorListIterator( const std::string& priorName ) {
+  if( _priorFiles.find( priorName ) == _priorFiles.end() )
+    return 0;
+    
+  indri::file::File* priorFile = _priorFiles[priorName];
+  indri::file::SequentialReadBuffer* buffer = new indri::file::SequentialReadBuffer( *priorFile, 1024*1024 );
+  
+  return new indri::collection::PriorListIterator( buffer );
 }
 
 //
@@ -1068,6 +1130,8 @@ void indri::collection::Repository::close() {
 
     _closeIndexes();
     _collection->close();
+    
+    _closePriors();
 
     delete _collection;
     _collection = 0;
