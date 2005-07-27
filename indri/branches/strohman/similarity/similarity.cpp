@@ -361,15 +361,18 @@ static void full_similarity( const std::string& outputPath, indri::index::Index*
   for( int i=0; i < documents.size(); i++ ) {
     output << documents[i];
   }
+
+  double* table = new double[ documents.size() * documents.size() ];
   
   // for cache purposes, it's probably better to do this in strides
   for( int i=0; i < documents.size(); i++ ) {
     for( int j=i; j < documents.size(); j++ ) {
       double similarity = func( documents[i]->counts, documents[j]->counts, stats );
-      output << similarity;
+      table[ documents.size() * i + j ]  = similarity;
     }
   }
   
+  // TODO fix output
   output.close();
 }
 
