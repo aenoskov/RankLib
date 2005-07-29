@@ -2743,6 +2743,85 @@ namespace indri {
       }
     };
 
+    class TermFrequencyAccumulatorNode : public AccumulatorNode {
+    private:
+      std::vector< std::pair<double, ScoredExtentNode*> > _children;
+
+    public:
+      TermFrequencyAccumulatorNode( const std::vector< std::pair<double, ScoredExtentNode*> >& children ) :
+        _children(children)
+      {
+      }
+
+      TermFrequencyAccumulatorNode( Unpacker& unpacker ) {
+        std::vector<double> weights = unpacker.getDoubleVector( "weights" );
+        std::vector<ScoredExtentNode*> nodes = unpacker.getScoredExtentVector( "children" );
+
+        for( unsigned int i=0; i<weights.size(); i++ ) {
+          _children.push_back( std::make_pair( weights[i], nodes[i] ) );
+        }
+      }
+
+      std::string typeName() const {
+        return "TermFrequencyAccumulatorNode";
+      }
+
+      std::string queryText() const {
+        // anonymous
+        return _scoredNode->queryText();
+      }
+
+      UINT64 hashCode() const {
+        // we don't use hashCodes for accumulatorNodes
+        return 0;
+      }
+
+      ScoredExtentNode* getChild() {
+        return _scoredNode;
+      }
+
+      void pack( Packer& packer ) {
+        packer.before(this);
+        
+        std::vector<double> weights;
+        std::vector<ScoredExtentNode*> nodes;
+
+        for( unsigned int i=0; i<_children.size(); i++ ) {
+          weights.push_back( _children[i].first );
+          nodes.push_back( _children[i].second );
+        }
+
+        packer.put( "weights", weights );
+        packer.put( "children", nodes );
+        packer.after(this);
+      }
+
+      void walk( Walker& walker ) {
+        walker.before(ptr);
+        for( unsigned int i=0; i<_children.size(); i++ ) {
+          _children[i].second->walk(walker);
+        }
+        walker.after(ptr);
+      }
+
+      Node* copy( Copier& copier ) {
+        copier.before(ptr);
+
+        std::vector< std::pair< double, ScoredExtentNode* > > children;
+        for( unsigned int i=0; i<_children.size(); i++ ) {
+          double childWeight = _children[i].first;
+          Node* childCopy = _children[i].second->copy( copier );
+
+          children.push_back( childWeight, childCopy );
+        }
+
+        TermFrequencyAccumulatorNode* duplicate = new TermFrequencyAccumulatorNode( children );
+        duplicate->setNodeName( nodeName() );
+
+        return copier.after(ptr, duplicate);
+      }
+    };
+
     class AnnotatorNode : public AccumulatorNode {
     private:
       ScoredExtentNode* _scoredNode;

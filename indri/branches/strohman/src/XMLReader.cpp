@@ -305,5 +305,3 @@ indri::xml::XMLNode* indri::xml::XMLReader::read( const char* buffer, size_t len
 indri::xml::XMLNode* indri::xml::XMLReader::read( const std::string& str ) {
   return read( str.c_str(), str.length() );
 }
-
-

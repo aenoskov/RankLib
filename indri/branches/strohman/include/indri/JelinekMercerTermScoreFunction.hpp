@@ -69,6 +69,10 @@ namespace indri
         double documentFrequency = documentLength ? documentOccurrences / double(documentLength) : 0.0;
         return log( _contextLambda * contextFrequency + _documentLambda * documentFrequency + _collectionComponent );
       }
+
+      double equivalentFraction( double score, int maxContextLength ) {
+        return (1.0/_foregroundLambda) * (exp(score) - _collectionComponent);
+      }
     };
   }
 }

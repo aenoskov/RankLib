@@ -48,6 +48,22 @@ namespace indri
         // can't two-level smooth with dirichlet
         return scoreOccurrence( occurrences, contextSize );
       }
+
+      // what is the fraction (count/length) necessary to achieve a score of <score>
+      // in a document of length maximumDocumentLength?
+      double equivalentFraction( double score, int maximumDocumentLength ) {
+        // Mark says Dirichlet is equivalent to linear smoothing with a lambda equal to
+        // [1 - |D|/(|D|+mu)].
+        // Let the foreground be f, and background be g.  We want to solve for f' in:
+        //    ( 1 - \lambda' ) f' + \lambda' g = ( 1 - \lambda ) f + \lambda g
+        // Solving, we get:
+        //    f' = (( 1 - \lambda ) f + \lambda g + \lambda' g) / ( 1 - \lambda' )
+        // Equivalently:
+        //    f' = (exp(score) + \lambda' g) / ( 1 - \lambda' )
+
+        double lambdaPrime = 1.0 - double(maximumDocumentLength) / ( double(maximumDocumentLength) + _mu );
+        return exp(score) + lambdaPrime * _collectionFrequency / ( 1.0 - lambdaPrime );
+      }
     };
   }
 }

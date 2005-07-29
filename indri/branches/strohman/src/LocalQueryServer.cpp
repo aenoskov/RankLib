@@ -25,6 +25,7 @@
 #include "indri/UnnecessaryNodeRemoverCopier.hpp"
 #include "indri/ContextSimpleCountCollectorCopier.hpp"
 #include "indri/FrequencyListCopier.hpp"
+#include "indri/FrequencyAccumulatorCopier.hpp"
 #include "indri/DagCopier.hpp"
 
 #include "indri/InferenceNetworkBuilder.hpp"
@@ -362,8 +363,11 @@ indri::server::QueryServerResponse* indri::server::LocalQueryServer::runQuery( s
   // fold together any nested weight nodes
   indri::lang::ApplyCopiers<indri::lang::WeightFoldingCopier> weight( frequency.roots() );
 
+  // use frequency accumulators where appropriate
+  indri::lang::ApplyCopiers<indri::lang::FrequencyAccumulatorCopier> accumulator( weight.roots() );
+
   // make all this into a dag
-  indri::lang::ApplySingleCopier<indri::lang::DagCopier> dag( weight.roots(), _repository );
+  indri::lang::ApplySingleCopier<indri::lang::DagCopier> dag( accumulator.roots(), _repository );
 
   std::vector<indri::lang::Node*>& networkRoots = dag.roots();
 
