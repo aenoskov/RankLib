@@ -51,7 +51,7 @@ struct MergeFile {
   }
   
   bool operator< ( const MergeFile& other ) const {
-    return document < other.document;
+    return document > other.document;
   }
 };
 
