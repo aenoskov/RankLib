@@ -371,6 +371,9 @@
 				RelativePath=".\TaggedTextParser.cpp">
 			</File>
 			<File
+				RelativePath=".\TermFrequencyAccumulator.cpp">
+			</File>
+			<File
 				RelativePath=".\TermFrequencyBeliefNode.cpp">
 			</File>
 			<File
@@ -647,6 +650,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\FixedPassageNode.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\FrequencyAccumulatorCopier.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\FrequencyListCopier.hpp">
@@ -953,6 +959,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\TermFieldStatistics.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\TermFrequencyAccumulator.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\TermFrequencyBeliefNode.hpp">

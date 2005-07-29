@@ -53,6 +53,10 @@ namespace indri
         double p = ( 1-_lambda ) * dirichlet + _lambda * _collectionFrequency;
         return log(p);
       }
+
+      double equivalentFraction( double score, int maxContextLength ) {
+        return 0; // TODO: effectively turns off topdocs scoring!  fix later
+      }
     };
   }
 }

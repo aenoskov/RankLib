@@ -19,6 +19,7 @@
 // have all the necessary information.
 //
 
+#include "indri/TermFrequencyAccumulator.hpp"
 #include "indri/WeightedAndNode.hpp"
 #include <algorithm>
 #include "lemur/lemur-platform.h"
@@ -30,25 +31,17 @@
 #include "indri/delete_range.hpp"
 #include "indri/Parameters.hpp"
 
-void indri::infnet::TermFrequencyAccumulator::_findPotentialMatches( indri::utility::greedy_vector< std::pair< int, int > >& matches, const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all ) {
-  int lastDocument = 0;
-  int matchCount = 0;
-  
-  for( int i=0; i<all.size(); i++ ) {
-    if( lastDocument == all[i].document ) {
-      matchCount++;
-      if( matchCount == totalNodes )
-        matches.push_back( std::make_pair( i, lastDocument ) );
-    } else {
-      lastDocument = all[i].document;
-      matchCount = 1;
-      if( matchCount == totalNodes )
-        matches.push_back( std::make_pair( i, lastDocument ) );
-    }
-  }
-}
 
-void indri::infnet::TermFrequencyAccumulator::_buildSingleTermMatches( indri::utility::greedy_vector< std::pair< int, int > >& matches, const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all, TermScoreFunction& function, int k ) {
+//
+// _buildSingleTermMatches
+//
+
+void indri::infnet::TermFrequencyAccumulator::_buildSingleTermMatches( indri::utility::greedy_vector< int >& matches,
+                                                                       const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all,
+                                                                       indri::query::TermScoreFunction& function,
+                                                                       int maximumDocumentLength,
+                                                                       int k )
+{
   // argh; have to consider dirichlet here too, so have to run down the list until it
   // isn't possible that a lower document might have a higher dirichlet score
 
@@ -62,10 +55,10 @@ void indri::infnet::TermFrequencyAccumulator::_buildSingleTermMatches( indri::ut
   // suppose this document was the longest document in the
   // collection -- what frequency would it need in order to
   // surpass this one in score function order?
-  double bigDocumentFrequency = 0; // not sure how to do this--maybe change score function API?
+  double bigDocumentFrequency = function.equivalentFraction( frequency, maximumDocumentLength );
   
   for( int i=0; i<all.size(); i++ ) {
-    matches.push_back( std::make_pair( i, all[i].document ) );
+    matches.push_back( i );
     
     frequency = all[i].count / all[i].length;
     
@@ -74,13 +67,138 @@ void indri::infnet::TermFrequencyAccumulator::_buildSingleTermMatches( indri::ut
   }
 }
 
-void indri::infnet::TermFrequencyAccumulator::precomputeQuery( ) {
+//
+// _buildCandidatesList
+//
+
+void indri::infnet::TermFrequencyAccumulator::_buildCandidatesList( const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all ) {
+  int lastDocument = 0;
+
+  for( int i=0; i<all.size(); i++ ) {
+    if( all[i].document != lastDocument ) {
+      _candidates.push_back( i );
+    }
+
+    lastDocument = all[i].document;
+  }
+}
+
+//
+// _findPotentialMatches
+//
+
+void indri::infnet::TermFrequencyAccumulator::_findPotentialMatches( indri::utility::greedy_vector< int >& matches, 
+                                                                     const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all,
+                                                                     int nodeCount )
+{
+  int lastDocument = 0;
+  int sameDocCount = 0;
+
+  for( int i=0; i<all.size(); i++ ) {
+    if( lastDocument == all[i].document ) {
+      sameDocCount++;
+    } else {
+      lastDocument = all[i].document;
+      sameDocCount = 1;
+    }
+
+    if( sameDocCount == nodeCount ) {
+      matches.push_back( i-nodeCount+1 );
+    }
+  }
+}
+
+//
+// _scorePotentialMatches
+//
+
+void indri::infnet::TermFrequencyAccumulator::_scorePotentialMatches( const indri::utility::greedy_vector< int >& matches,
+                                                                      const indri::utility::greedy_vector< indri::index::DocListIterator::TopDocument>& all,
+                                                                      const indri::utility::greedy_vector< indri::query::TermScoreFunction* >& functions,
+                                                                      const indri::utility::greedy_vector< double >& weights )
+{
+  // clear scores
+  while( _scores.size() )
+    _scores.pop();
+
+  for( int i=0; i<matches.size(); i++ ) {
+    // score this match
+    double score = 0;
+    int index = matches[i];
+
+    for( int j=0; j<functions.size(); j++ ) {
+      score += weights[j] * functions[j]->scoreOccurrence( all[i+j].count, all[i+j].length );
+    }
+
+    _scores.push( indri::api::ScoredExtentResult( score, all[i].document, 0, all[i].length ) );
+  }
+}
+
+//
+// _topdocsScoresAreSufficient
+//
+
+bool indri::infnet::TermFrequencyAccumulator::_topdocsScoresAreSufficient(
+                    const indri::utility::greedy_vector< indri::infnet::TermFrequencyBeliefNode* >& nodes,
+                    const indri::utility::greedy_vector< double >& weights ) 
+{
+  double smallestDifference = MAX_INT32;
+
+  while( _scores.size() > _resultsRequested )
+    _scores.pop();
+
+  if( _scores.size() < _resultsRequested )
+    return false;
+
+  // we want to know if there is any possible document that might have a higher score
+  // than the what we're currently seeing.  Therefore, we put a bound on what any 
+  // document not in _scores could possibly score.
+
+  double bound = 0;
+  double maximum = 0;
+  int minimumDocumentLength = MAX_INT32;
+
+  for( int i=0; i<nodes.size(); i++ ) {
+    indri::index::TermData* termData = nodes[i]->termData();
+    minimumDocumentLength = lemur_compat::min<int>( termData->minDocumentLength, minimumDocumentLength );
+  }
+
+  for( int i=0; i<nodes.size(); i++ ) {
+    indri::query::TermScoreFunction* function = nodes[i]->scoreFunction();
+    indri::index::TermData* termData = nodes[i]->termData();
+    const indri::utility::greedy_vector< indri::index::DocListIterator::TopDocument >& topdocs = nodes[i]->topdocs();
+
+    double maximumFraction = double(topdocs[0].count) / double(topdocs[0].length);
+    double maximumUnseenFraction = double(topdocs[topdocs.size()-1].count) / double(topdocs[topdocs.size()-1].length);
+
+    double maxOccurrences = ceil( double(termData->maxDocumentLength) * maximumFraction );
+    double maxUnseenOccurrences = ceil( double(termData->maxDocumentLength) * maximumUnseenFraction );
+
+    double maximum = weights[i] * function->scoreOccurrence( maxOccurrences, termData->maxDocumentLength );
+    double maximumUnseen = weights[i] * function->scoreOccurrence( maxUnseenOccurrences, termData->maxDocumentLength );
+
+    double difference = maximum - maximumUnseen;
+    smallestDifference = lemur_compat::min<double>( smallestDifference, difference );
+  }
+
+  return ( maximum - smallestDifference ) < _scores.top().score;
+}
+
+//
+// _precomputeQuery
+//
+
+void indri::infnet::TermFrequencyAccumulator::_precomputeQuery( ) {
   // precondition: if we're in this accumulator, some preprocessing
   // step has told us that all our children are termfrequency nodes or stopwords
   
   // we're going to add all the documents to a single vector called 'all'.  
   indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument> all;
-  
+  indri::utility::greedy_vector<int> matches;
+  indri::utility::greedy_vector< indri::query::TermScoreFunction* > functions;
+  indri::utility::greedy_vector< indri::index::TermData* > termDatas;
+  indri::utility::greedy_vector< double > weights;
+  indri::utility::greedy_vector< indri::infnet::TermFrequencyBeliefNode* > nodes;
   int totalNodes = 0;
   
     // get all the relevant topdocs lists
@@ -94,38 +212,52 @@ void indri::infnet::TermFrequencyAccumulator::precomputeQuery( ) {
     
       _children[i].maximumWeightedScore = node->maximumScore() * _children[i].weight;
       _children[i].backgroundWeightedScore = node->maximumBackgroundScore() * _children[i].weight;
+      functions.push_back( node->scoreFunction() );
+      termDatas.push_back( node->termData() );
+      weights.push_back( _children[i].weight );
     }    
   }
 
   // should have a special, ultra-fast pipeline for single term queries;
   // maybe just by prepopulating the matches array with the first k docs of 'all'
   // and not sorting 'all'.
-    
-  // sort all extents by documentID, while maintaining node order
-  std::stable_sort( all.begin(), all.end(), indri::index::DocListIterator::TopDocument::docid_less() );
-    
-  // run down the 'all' list, looking for potential matches
-  // a match is a document that contains all the query terms
-  indri::utility::greedy_vector< std::pair< int, int > > matches;
-  _findPotentialMatches( matches, all );
-  
-  
-  
-  
-  // run down the frequency lists, scoring as we go
-  // might want to vary the number of candidates we consider based on number of terms, etc.
-  
-  // need an accumulator table that can handle frequency sorted scoring
 
+  if( totalNodes > 1 ) {
+    // sort all extents by documentID, while maintaining node order
+    std::stable_sort( all.begin(), all.end(), indri::index::DocListIterator::TopDocument::docid_less() );
+      
+    // run down the 'all' list, looking for potential matches
+    // a match is a document that contains all the query terms
+    indri::utility::greedy_vector< int > matches;
+    _findPotentialMatches( matches, all, totalNodes );
+  } else {
+    _buildSingleTermMatches( matches, all, *functions[0], termDatas[0]->maxDocumentLength, _resultsRequested );
+  }
+  
+  // score all of our candidates
+  _scorePotentialMatches( matches, all, functions, weights );
+  
+  // find out if this made a difference
+  _complex = _topdocsScoresAreSufficient( nodes, weights );
 
+  if( !_complex ) {
+    while( _scores.size() )
+      _scores.pop();
 
+    if( totalNodes == 1 ) {
+      std::stable_sort( all.begin(), all.end(), indri::index::DocListIterator::TopDocument::docid_less() );
+    }
 
-
+    _buildCandidatesList( all );
+  }
 }
 
+//
+// isComplex
+//
+
 bool indri::infnet::TermFrequencyAccumulator::isComplex() {
-  // return true if we need to actually score the query, 
-  // return false otherwise
+  return _complex;
 }
 
 
@@ -171,12 +303,10 @@ void indri::infnet::WeightedAndNode::addChild( double weight, BeliefNode* node )
 
   child.node = node;
   child.weight = weight;
-  child.backgroundWeightedScore = node->maximumBackgroundScore() * weight;
-  child.maximumWeightedScore = node->maximumScore() * weight;
+  child.backgroundWeightedScore = 0;
+  child.maximumWeightedScore = 0;
 
   _children.push_back( child );
-  std::sort( _children.begin(), _children.end(), child_type::maxscore_less() );
-  _computeQuorum();
 }
 
 struct double_greater {
@@ -185,11 +315,11 @@ struct double_greater {
   }
 };
 
-void indri::infnet::WeightedAndNode::doneAddingChildren() {
-  // should be removed
-}
+//
+// indexChanged
+//
 
-void indri::infnet::WeightedAndNode::indexChanged( indri::index::Index& index ) {
+void indri::infnet::TermFrequencyAccumulator::indexChanged( indri::index::Index& index ) {
   _candidates.clear();
   _candidatesIndex = 0;
 
@@ -258,16 +388,23 @@ void indri::infnet::WeightedAndNode::indexChanged( indri::index::Index& index ) 
   _computeQuorum();
 }
 
+//
+// setThreshold
+//
+
 void indri::infnet::WeightedAndNode::setThreshold( double threshold ) {
   _threshold = threshold;
 
   if( _threshold >= _recomputeThreshold ) {
-   // std::cout << "threshold hit recompute " << _recomputeThreshold << std::endl;
     _computeQuorum();
   }
 }
   
-int indri::infnet::WeightedAndNode::nextCandidateDocument() {
+//
+// nextCandidateDocument
+//
+
+int indri::infnet::TermFrequencyAccumulator::nextCandidateDocument() {
   std::vector<child_type>::iterator iter;
   int minDocument = MAX_INT32;
   int currentCandidate;
@@ -287,43 +424,17 @@ int indri::infnet::WeightedAndNode::nextCandidateDocument() {
   return minDocument;
 }
 
-void indri::infnet::WeightedAndNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
-  std::vector<child_type>::iterator iter;
-  annotator.add( this, documentID, begin, end );
+//
+// evaluate
+//
 
-  for( iter = _children.begin(); iter != _children.end(); iter++ ) {
-    (*iter).node->annotate( annotator, documentID, begin, end );
-  }
-}
-
-double indri::infnet::WeightedAndNode::maximumBackgroundScore() {
-  std::vector<child_type>::iterator iter;
-  double minimum = 0.0;
-
-  for( iter = _children.begin(); iter != _children.end(); iter++ ) {
-    minimum += (*iter).weight * (*iter).node->maximumBackgroundScore();
-  }
-
-  return minimum;
-}
-
-double indri::infnet::WeightedAndNode::maximumScore() {
-  std::vector<child_type>::iterator iter;
-  double maximum = 0.0;
-
-  for( iter = _children.begin(); iter != _children.end(); iter++ ) {
-    maximum += (*iter).weight * (*iter).node->maximumScore();
-  }
-
-  return maximum;
-}
-
-indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::WeightedAndNode::score( int documentID, int begin, int end, int documentLength ) {
+void indri::infnet::TermFrequencyAccumulator::evaluate( int documentID, int documentLength ) {
   std::vector<child_type>::iterator iter;
   double score = 0;
 
   for( iter = _children.begin(); iter != _children.end(); iter++ ) {
-    const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& childResults = (*iter).node->score( documentID, begin, end, documentLength );
+    const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& childResults =
+          (*iter).node->score( documentID, 0, documentLength, documentLength );
 
     double childScore = 0;
     for( unsigned int j=0; j<childResults.size(); j++ ) {
@@ -333,56 +444,11 @@ indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infnet::We
     score += childScore;
   }
 
-  _scores.clear();
-  _scores.push_back( indri::api::ScoredExtentResult(score, documentID, begin, end) );
+  _scores.push( indri::api::ScoredExtentResult( score, documentID, 0, documentLength ) );
 
   // advance candidates
   while( _candidatesIndex < _candidates.size() && _candidates[_candidatesIndex] <= documentID )
     _candidatesIndex++;
-
-  return _scores;
-}
-
-//
-// hasMatch
-//
-
-bool indri::infnet::WeightedAndNode::hasMatch( int documentID ) {
-  // advance candidates
-  while( _candidatesIndex < _candidates.size() && _candidates[_candidatesIndex] <= documentID )
-    _candidatesIndex++;
-
-  for( unsigned int i=0; i<_children.size(); i++ ) {
-    if( _children[i].node->hasMatch( documentID ) )
-      return true;
-  }
-
-  return false;
-}
-
-//
-// hasMatch
-//
-
-const indri::utility::greedy_vector<bool>& indri::infnet::WeightedAndNode::hasMatch( int documentID, const indri::utility::greedy_vector<indri::index::Extent>& extents ) {
-  // advance candidates
-  while( _candidatesIndex < _candidates.size() && _candidates[_candidatesIndex] <= documentID )
-    _candidatesIndex++;
-
-  _matches.clear();
-  _matches.resize( extents.size(), false );
-
-  for( unsigned int i=0; i<_children.size(); i++ ) {
-    const indri::utility::greedy_vector<bool>& kidMatches = _children[i].node->hasMatch( documentID, extents );
-
-    for( unsigned int j=0; j<kidMatches.size(); j++ ) {
-      if( kidMatches[j] ) {
-        _matches[j] = true;
-      }
-    }
-  }
-
-  return _matches;
 }
 
 //
@@ -392,6 +458,3 @@ const indri::utility::greedy_vector<bool>& indri::infnet::WeightedAndNode::hasMa
 const std::string& indri::infnet::WeightedAndNode::getName() const {
   return _name;
 }
-
-
-

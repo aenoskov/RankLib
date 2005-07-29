@@ -129,3 +129,19 @@ void indri::infnet::TermFrequencyBeliefNode::indexChanged( indri::index::Index& 
 void indri::infnet::TermFrequencyBeliefNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
   // can't annotate -- don't have position info
 }
+
+//
+// scoreFunction
+//
+
+indri::query::TermScoreFunction* indri::infnet::TermFrequencyBeliefNode::scoreFunction() {
+  return &_function;
+}
+
+//
+// termData
+//
+
+indri::index::TermData* indri::infnet::TermFrequencyBeliefNode::termData() {
+  return _list->termData();
+}

@@ -66,10 +66,6 @@ namespace indri
       index_state _active;
       int _indexCount;
 
-      // maintenance and load threads
-      indri::thread::ConditionVariable _quitLoadThread;
-      indri::thread::ConditionVariable _quitMaintenanceThread;
-
       // running flags
       volatile bool _maintenanceRunning;
       volatile bool _loadThreadRunning;
