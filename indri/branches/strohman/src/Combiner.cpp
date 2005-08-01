@@ -624,7 +624,7 @@ void indri::parse::Combiner::sortCorpusFiles( const std::string& outputPath, con
           e->linkinfo.unwrite(1); // remove trailing 0
         e->linkCount += linkCount;
       } else {
-        e = _newUrlEntry( docUrl, "", docno );
+        e = e = _newUrlEntry( docUrl + sizeof "DOCURL=" - 1, "", docno + sizeof "DOCNO=" - 1 );
         e->linkCount = linkCount;
         urlTable.insert( e->docNo, e );
         insertCount++;
@@ -688,7 +688,7 @@ void indri::parse::Combiner::sortCorpusFiles( const std::string& outputPath, con
         continue;
 
       totalDocuments++;
-      url_entry** e = urlTable.find( docno );
+      url_entry** e = urlTable.find( docno + sizeof "DOCNO=" - 1 );
 
       if( !e )
         continue;
