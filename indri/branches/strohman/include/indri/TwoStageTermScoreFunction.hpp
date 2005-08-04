@@ -55,7 +55,11 @@ namespace indri
       }
 
       double equivalentFraction( double score, int maxContextLength ) {
-        return 0; // TODO: effectively turns off topdocs scoring!  fix later
+        return 0;
+      }
+      
+      bool optimizable() {
+        return false;
       }
     };
   }

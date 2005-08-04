@@ -53,7 +53,7 @@ const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infn
   int key;
   double score = -1e100;
   
-  if( _iterator )
+  if( _iterator && !_iterator->finished() )
     score = _iterator->currentEntry()->score;
   
   _scores.clear();

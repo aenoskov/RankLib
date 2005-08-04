@@ -340,40 +340,39 @@ static void partition( const std::string& outputPath,
 //
 
 static void full_similarity( const std::string& outputPath, indri::index::Index* index, std::vector< document_t* >& documents, similarity_function func ) {
-
   // output file
-  std::ofstream output;
-  output.open( outputPath.c_str(), std::ofstream::out | std::ofstream::binary );
-  
+  indri::file::File out;
+  out.create( outputPath );
+
+  indri::file::SequentialWriteBuffer* outb = new indri::file::SequentialWriteBuffer( out, 1024*1024 );
+
   // statistics
   statistics_t* stats = collect_statistics( index );
   
   // write full dword
-  output << 'F';
-  output << 'U';
-  output << 'L';
-  output << 'L';
+  outb->write( "FULL", 4 );
   
   // write docs
-  output << documents.size();
+  int size = documents.size();
+  outb->write( &size, sizeof(UINT32) );
   
   // write docIDs
   for( int i=0; i < documents.size(); i++ ) {
-    output << documents[i];
+    int docID = documents[i]->id;
+    outb->write( &docID, sizeof(lemur::api::DOCID_T) );
   }
 
-  double* table = new double[ documents.size() * documents.size() ];
-  
   // for cache purposes, it's probably better to do this in strides
   for( int i=0; i < documents.size(); i++ ) {
     for( int j=i; j < documents.size(); j++ ) {
       double similarity = func( documents[i]->counts, documents[j]->counts, stats );
-      table[ documents.size() * i + j ]  = similarity;
+      outb->write( &similarity, sizeof(double) );
     }
   }
   
-  // TODO fix output
-  output.close();
+  outb->flush();
+  delete outb;
+  out.close();
 }
 
 //
@@ -394,7 +393,6 @@ static std::vector<int> random_set( int size, int maximum ) {
   }
   
   std::sort( v.begin(), v.end() );
-  
   return v;
 }
 

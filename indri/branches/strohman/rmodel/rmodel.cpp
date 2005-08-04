@@ -97,8 +97,6 @@ int main( int argc, char** argv ) {
     int documents = (int) param[ "documents" ];
     int maxGrams = (int) param.get( "maxGrams", 1 ); // unigram is default
 
-    std::setw(
-
     for( int i=0; i<parameterQueries.size(); i++ ) {
       std::string query = parameterQueries[i];
       indri::query::RelevanceModel model( environment, rmSmoothing, maxGrams, documents );

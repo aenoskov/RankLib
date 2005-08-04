@@ -76,6 +76,8 @@ namespace indri {
    void Walker::after( class ContextSimpleCounterNode* n ) { defaultAfter( n ); }
    void Walker::before( class ScoreAccumulatorNode* n ) { defaultBefore( n ); }
    void Walker::after( class ScoreAccumulatorNode* n ) { defaultAfter( n ); }
+   void Walker::before( class TermFrequencyAccumulatorNode* n ) { defaultBefore( n ); }
+   void Walker::after( class TermFrequencyAccumulatorNode* n ) { defaultAfter( n ); }
    void Walker::before( class AnnotatorNode* n ) { defaultBefore( n ); }
    void Walker::after( class AnnotatorNode* n ) { defaultAfter( n ); }
  };

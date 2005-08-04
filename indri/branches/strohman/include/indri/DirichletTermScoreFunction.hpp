@@ -62,7 +62,11 @@ namespace indri
         //    f' = (exp(score) + \lambda' g) / ( 1 - \lambda' )
 
         double lambdaPrime = 1.0 - double(maximumDocumentLength) / ( double(maximumDocumentLength) + _mu );
-        return exp(score) + lambdaPrime * _collectionFrequency / ( 1.0 - lambdaPrime );
+        return (exp(score) + lambdaPrime * _collectionFrequency) / ( 1.0 - lambdaPrime );
+      }
+      
+      bool optimizable( ) {
+        return ( _mu >= 1000 );
       }
     };
   }

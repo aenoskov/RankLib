@@ -33,6 +33,9 @@
 #include "indri/MemoryIndex.hpp"
 #include "indri/BulkTree.hpp"
 
+#include "indri/TermScoreFunction.hpp"
+#include "indri/DirichletTermScoreFunction.hpp"
+
 #include "indri/IndriTimer.hpp"
 const int KEYFILE_MEMORY_SIZE = 128*1024;
 const int OUTPUT_BUFFER_SIZE = 512*1024;
@@ -395,6 +398,31 @@ void IndexWriter::_writeFieldList( const std::string& fileName, int fieldIndex, 
 // 
 //
 
+struct IndexTopDocument {
+  IndexTopDocument( double s, int d, int c, int l ) :
+    score(s),
+    document(d),
+    count(c),
+    length(l)
+  {
+  }
+  
+  IndexTopDocument() {}
+
+  double score;
+  int document;
+  int count;
+  int length;
+  
+  bool operator< ( const IndexTopDocument& other ) const {
+    if( score != other.score ) {
+      return score > other.score;
+    }
+    
+    return document > other.document;
+  }
+};
+
 void IndexWriter::_addInvertedListData( indri::utility::greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, indri::utility::Buffer& listBuffer, UINT64& endOffset ) {
   indri::utility::greedy_vector<WriterIndexContext*>::iterator iter;
   const int minimumSkip = 1<<12; // 4k
@@ -418,23 +446,21 @@ void IndexWriter::_addInvertedListData( indri::utility::greedy_vector<WriterInde
   }
 
   // maintain a list of top documents
-  std::priority_queue<DocListIterator::TopDocument,
-    std::vector<DocListIterator::TopDocument>,
-    DocListIterator::TopDocument::less> topdocs;
-  DocListIterator::TopDocument::less docLess;
+  std::priority_queue<IndexTopDocument> topdocs;
+  indri::query::DirichletTermScoreFunction function( 1000, 0 );
   double threshold = 0;
 
   int lastDocument = 0;
   int positions = 0;
   int docs = 0;
-
+  
   // for each matching list:
   for( iter = lists.begin(); iter != lists.end(); ++iter ) {
     indri::index::DocListFileIterator::DocListData* listData = (*iter)->iterator->currentEntry();
     DocListIterator* iterator = listData->iterator;
     Index* index = (*iter)->index;
     indri::utility::RVLCompressStream stream( listBuffer );
-
+    
     int listDocs = 0;
     int listPositions = 0;
 
@@ -449,21 +475,21 @@ void IndexWriter::_addInvertedListData( indri::utility::greedy_vector<WriterInde
       if( hasTopdocs ) {
         int length = index->documentLength( documentData->document );
         int count = documentData->positions.size();
+        
+        double score = function.scoreOccurrence( count, length );
 
-        if( int(length * threshold) < positions || topdocs.size() < topdocsCount ) {
+        if( topdocs.size() < topdocsCount || topdocs.top().score <= score ) {
           // form a topdocs entry for this document
-          DocListIterator::TopDocument topDocument( documentData->document,
-                                                    count,
-                                                    length );
+          IndexTopDocument topDocument( score,
+                                        documentData->document,
+                                        count,
+                                        length );
 
-          if( topdocs.size() < topdocsCount || docLess(topDocument, topdocs.top()) ) {
-            topdocs.push( topDocument );
-            while( topdocs.size() > topdocsCount )
-              topdocs.pop();
+          topdocs.push( topDocument );
+          while( topdocs.size() > topdocsCount ) {
+            topdocs.pop();
           }
-
-          threshold = topdocs.top().count / double(topdocs.top().length);
-        }
+        } 
       }
 
       if( listBuffer.position() > minimumSkip ) {
@@ -513,7 +539,7 @@ void IndexWriter::_addInvertedListData( indri::utility::greedy_vector<WriterInde
     // write these into the topdocs list in order from smallest fraction to largest fraction,
     // where fraction = c(w;D)/|D|
     while( topdocs.size() ) {
-      DocListIterator::TopDocument topDocument = topdocs.top();
+      IndexTopDocument topDocument = topdocs.top();
       
       _invertedOutput->write( &topDocument.document, sizeof(int) );
       _invertedOutput->write( &topDocument.count, sizeof(int) );

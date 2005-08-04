@@ -71,7 +71,11 @@ namespace indri
       }
 
       double equivalentFraction( double score, int maxContextLength ) {
-        return (1.0/_foregroundLambda) * (exp(score) - _collectionComponent);
+        return 0;
+      }
+      
+      bool optimizable() {
+        return false;
       }
     };
   }

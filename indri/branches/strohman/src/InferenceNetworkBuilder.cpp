@@ -52,6 +52,7 @@
 #include "indri/TermScoreFunctionFactory.hpp"
 #include "indri/TermFrequencyBeliefNode.hpp"
 #include "indri/CachedFrequencyBeliefNode.hpp"
+#include "indri/TermFrequencyAccumulator.hpp"
 #include "indri/BooleanAndNode.hpp"
 
 #include <stdexcept>
@@ -632,6 +633,26 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ScoreAccumulato
   }
 }
 
+void indri::infnet::InferenceNetworkBuilder::after( indri::lang::TermFrequencyAccumulatorNode* termFrequencyAccumulatorNode ) {
+  if( _nodeMap.find( termFrequencyAccumulatorNode ) == _nodeMap.end() ) {
+    const std::vector< std::pair<double, indri::lang::ScoredExtentNode*> >& children = termFrequencyAccumulatorNode->getChildren();
+    TermFrequencyAccumulator* accumulator = new TermFrequencyAccumulator( termFrequencyAccumulatorNode->nodeName(), _resultsRequested );
+    
+    double totalWeights = 0;
+    for( unsigned int i=0; i<children.size(); i++ ) {
+      totalWeights += children[i].first;
+    }
+
+    for( unsigned int i=0; i<children.size(); i++ ) {
+      accumulator->addChild( children[i].first / totalWeights,
+                             dynamic_cast<BeliefNode*>( _nodeMap[children[i].second] ) );
+    }  
+
+    _network->addEvaluatorNode( accumulator );
+    _nodeMap[ termFrequencyAccumulatorNode ] = accumulator;  
+  }
+}
+
 void indri::infnet::InferenceNetworkBuilder::after( indri::lang::AnnotatorNode* annotatorNode ) {
   if( _nodeMap.find( annotatorNode ) == _nodeMap.end() ) {
     indri::lang::Node* c = annotatorNode->getChild();
@@ -778,8 +799,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::WeightNode* wei
                           dynamic_cast<BeliefNode*>( _nodeMap[children[i].second] ) );
     }
 
-    wandNode->doneAddingChildren();
-
     _network->addBeliefNode( wandNode );
     _nodeMap[weightNode] = wandNode;
   }
@@ -819,8 +838,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::WAndNode* wandN
       weightedAndNode->addChild( children[i].first / totalWeights,
                                  dynamic_cast<BeliefNode*>( _nodeMap[children[i].second] ) );
     }
-
-    weightedAndNode->doneAddingChildren();
 
     _network->addBeliefNode( weightedAndNode );
     _nodeMap[wandNode] = weightedAndNode;
@@ -868,8 +885,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::CombineNode* co
     for( unsigned int i=0; i<children.size(); i++ ) {
       wandNode->addChild( weight, translation[i] );
     }
-
-    wandNode->doneAddingChildren();
 
     _network->addBeliefNode( wandNode );
     _nodeMap[combineNode] = wandNode;
