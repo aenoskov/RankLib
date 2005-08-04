@@ -63,7 +63,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="include/lemur"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
-				RuntimeLibrary="0"
+				RuntimeLibrary="2"
 				RuntimeTypeInfo="TRUE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -102,6 +102,9 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
+				RelativePath=".\src\fileio.c">
+			</File>
+			<File
 				RelativePath=".\src\Keyfile.cpp">
 			</File>
 			<File
@@ -111,13 +114,7 @@
 				RelativePath=".\src\keyprint.c">
 			</File>
 			<File
-				RelativePath=".\src\kstem.cpp">
-			</File>
-			<File
 				RelativePath=".\src\lemur-compat.cpp">
-			</File>
-			<File
-				RelativePath=".\src\porter_stemmer.cpp">
 			</File>
 			<File
 				RelativePath=".\src\RVLCompress.cpp">
@@ -137,13 +134,13 @@
 				RelativePath=".\include\lemur\Exception.hpp">
 			</File>
 			<File
+				RelativePath=".\include\lemur\fileio.h">
+			</File>
+			<File
 				RelativePath=".\include\lemur\IndexTypes.hpp">
 			</File>
 			<File
 				RelativePath=".\include\lemur\InvFPTypes.hpp">
-			</File>
-			<File
-				RelativePath=".\include\lemur\keyconst.h">
 			</File>
 			<File
 				RelativePath=".\include\lemur\keydef.h">
