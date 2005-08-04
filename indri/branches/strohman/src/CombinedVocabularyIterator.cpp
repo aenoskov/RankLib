@@ -52,7 +52,7 @@ void indri::index::CombinedVocabularyIterator::startIteration() {
   if( _first->finished() ) {
     _usingSecond = true;
     _second->startIteration();
-
+  
     if( _second->finished() ) {
       _finished = true;
     }

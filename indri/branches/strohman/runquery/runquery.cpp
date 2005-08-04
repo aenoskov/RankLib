@@ -424,9 +424,7 @@ public:
   }
 };
 
-void push_queue( std::queue< query_t* >& q, indri::api::Parameters& queries ) {
-  int queryOffset = queries.get( "queryOffset", 0 );
-
+void push_queue( std::queue< query_t* >& q, indri::api::Parameters& queries, int queryOffset ) {
   for( int i=0; i<queries.size(); i++ ) {
     int queryNumber;
     std::string queryText;
@@ -467,7 +465,8 @@ int main(int argc, char * argv[]) {
 
     // push all queries onto a queue
     indri::api::Parameters parameterQueries = param[ "query" ];
-    push_queue( queries, parameterQueries );
+    int queryOffset = param.get( "queryOffset", 0 );
+    push_queue( queries, parameterQueries, queryOffset );
     int queryCount = queries.size();
 
     // launch threads

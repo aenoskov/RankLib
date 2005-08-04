@@ -17,6 +17,7 @@ endif
 	$(MAKE) -C similarity
 	$(MAKE) -C rmodel
 	$(MAKE) -C stemclass
+	$(MAKE) -C rmodel
 
 $(INSTALLDIRS):
 	$(INSTALL_DIR) $@
@@ -34,6 +35,7 @@ endif
 	$(MAKE) clean -C stemclass
 	$(MAKE) clean -C rmodel
 	$(MAKE) clean -C similarity
+	$(MAKE) clean -C rmodel
 	rm -f depend/*
 
 distclean: clean
@@ -53,5 +55,6 @@ endif
 	$(MAKE) install -C runquery
 	$(MAKE) install -C indrid
 	$(MAKE) install -C dumpindex
+	$(MAKE) install -C rmodel
 #	$(MAKE) install -C doc
 	$(INSTALL_DATA) Makefile.app $(pkgdatadir)

@@ -83,6 +83,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="wsock32.lib"
 				OutputFile="$(OutDir)/relevancemodel.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="TRUE"

@@ -104,8 +104,8 @@ namespace indri
       void _closePriors();
 
       void _buildFields();
-      void _buildChain( indri::api::Parameters& parameters );
-      void _buildTransientChain( indri::api::Parameters& parameters );
+      void _buildChain( indri::api::Parameters& parameters,
+                        indri::api::Parameters *options );
 
       void _copyParameters( indri::api::Parameters& options );
 
