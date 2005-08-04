@@ -35,6 +35,7 @@ namespace indri
       virtual double scoreOccurrence( double occurrences, int contextLength, double documentOccurrences, int documentLength ) = 0;
       
       virtual double equivalentFraction( double score, int maxContextLength ) = 0;
+      virtual bool optimizable() = 0;
     };
   }
 }

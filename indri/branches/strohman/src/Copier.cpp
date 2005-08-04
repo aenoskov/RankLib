@@ -76,6 +76,8 @@ namespace indri {
     Node* Copier::after( class ContextSimpleCounterNode* oldNode, class ContextSimpleCounterNode* newNode ) { return defaultAfter( oldNode, newNode ); }
     void Copier::before( class ScoreAccumulatorNode* oldNode ) { defaultBefore( oldNode ); }
     Node* Copier::after( class ScoreAccumulatorNode* oldNode, class ScoreAccumulatorNode* newNode ) { return defaultAfter( oldNode, newNode ); }
+    void Copier::before( class TermFrequencyAccumulatorNode* oldNode ) { defaultBefore( oldNode ); }
+    Node* Copier::after( class TermFrequencyAccumulatorNode* oldNode, class TermFrequencyAccumulatorNode* newNode ) { return defaultAfter( oldNode, newNode ); }
     void Copier::before( class AnnotatorNode* oldNode ) { defaultBefore( oldNode ); }
     Node* Copier::after( class AnnotatorNode* oldNode, class AnnotatorNode* newNode ) { return defaultAfter( oldNode, newNode ); }
  };

@@ -20,7 +20,6 @@
 //
 
 #include "indri/TermFrequencyAccumulator.hpp"
-#include "indri/WeightedAndNode.hpp"
 #include <algorithm>
 #include "lemur/lemur-platform.h"
 #include <iostream>
@@ -30,13 +29,14 @@
 #include "indri/greedy_vector"
 #include "indri/delete_range.hpp"
 #include "indri/Parameters.hpp"
+#include <math.h>
 
 
 //
 // _buildSingleTermMatches
 //
 
-void indri::infnet::TermFrequencyAccumulator::_buildSingleTermMatches( indri::utility::greedy_vector< int >& matches,
+bool indri::infnet::TermFrequencyAccumulator::_scoreSingleTerm( indri::utility::greedy_vector< int >& matches,
                                                                        const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all,
                                                                        indri::query::TermScoreFunction& function,
                                                                        int maximumDocumentLength,
@@ -47,24 +47,34 @@ void indri::infnet::TermFrequencyAccumulator::_buildSingleTermMatches( indri::ut
 
   // need at least k documents for this to work
   if( all.size() < k )
-    return;
-  
-  // pick out the k^th document by frequency:
-  double frequency = all[k-1].count / all[k-1].length;
+    return false;
   
   // suppose this document was the longest document in the
   // collection -- what frequency would it need in order to
   // surpass this one in score function order?
-  double bigDocumentFrequency = function.equivalentFraction( frequency, maximumDocumentLength );
+  double bigDocumentFrequency = 1;
   
-  for( int i=0; i<all.size(); i++ ) {
+  for( int i=all.size()-1; i>=0; i-- ) {
     matches.push_back( i );
+  
+    double score = function.scoreOccurrence( all[i].count, all[i].length );
     
-    frequency = all[i].count / all[i].length;
+    if( score >= _scores.top().score || _scores.size() < k ) {
+      _scores.push( indri::api::ScoredExtentResult( score, all[i].document, 0, all[i].length ) ); 
     
-    if( frequency < bigDocumentFrequency )
-      break; 
+      while( _scores.size() > k ) {
+        _scores.pop();
+        bigDocumentFrequency = function.equivalentFraction( _scores.top().score, maximumDocumentLength );      
+      }
+    }
+    
+    double frequency = double(all[i].count) / double(all[i].length);
+
+    if( frequency < bigDocumentFrequency && bigDocumentFrequency != 1.0 )
+      return true; 
   }
+  
+  return false;
 }
 
 //
@@ -127,10 +137,10 @@ void indri::infnet::TermFrequencyAccumulator::_scorePotentialMatches( const indr
     int index = matches[i];
 
     for( int j=0; j<functions.size(); j++ ) {
-      score += weights[j] * functions[j]->scoreOccurrence( all[i+j].count, all[i+j].length );
+      score += weights[j] * functions[j]->scoreOccurrence( all[index+j].count, all[index+j].length );
     }
-
-    _scores.push( indri::api::ScoredExtentResult( score, all[i].document, 0, all[i].length ) );
+    
+    _scores.push( indri::api::ScoredExtentResult( score, all[index].document, 0, all[index].length ) );
   }
 }
 
@@ -162,23 +172,30 @@ bool indri::infnet::TermFrequencyAccumulator::_topdocsScoresAreSufficient(
     indri::index::TermData* termData = nodes[i]->termData();
     minimumDocumentLength = lemur_compat::min<int>( termData->minDocumentLength, minimumDocumentLength );
   }
-
+  
   for( int i=0; i<nodes.size(); i++ ) {
     indri::query::TermScoreFunction* function = nodes[i]->scoreFunction();
     indri::index::TermData* termData = nodes[i]->termData();
     const indri::utility::greedy_vector< indri::index::DocListIterator::TopDocument >& topdocs = nodes[i]->topdocs();
 
-    double maximumFraction = double(topdocs[0].count) / double(topdocs[0].length);
-    double maximumUnseenFraction = double(topdocs[topdocs.size()-1].count) / double(topdocs[topdocs.size()-1].length);
+    const indri::index::DocListIterator::TopDocument& maxDoc = topdocs[topdocs.size()-1];
+    const indri::index::DocListIterator::TopDocument& maxUnseenDoc = topdocs[0];
+    
+    double maximumFractionScore = function->scoreOccurrence( maxDoc.count, maxDoc.length );
+    double maximumFraction = function->equivalentFraction( maximumFractionScore, termData->maxDocumentLength );
+
+    double maximumUnseenScore = function->scoreOccurrence( maxUnseenDoc.count, maxUnseenDoc.length );    
+    double maximumUnseenFraction = function->equivalentFraction( maximumUnseenScore, termData->maxDocumentLength );
 
     double maxOccurrences = ceil( double(termData->maxDocumentLength) * maximumFraction );
     double maxUnseenOccurrences = ceil( double(termData->maxDocumentLength) * maximumUnseenFraction );
 
-    double maximum = weights[i] * function->scoreOccurrence( maxOccurrences, termData->maxDocumentLength );
-    double maximumUnseen = weights[i] * function->scoreOccurrence( maxUnseenOccurrences, termData->maxDocumentLength );
+    double nodeMaximum = weights[i] * function->scoreOccurrence( maxOccurrences, termData->maxDocumentLength );
+    double nodeMaximumUnseen = weights[i] * function->scoreOccurrence( maxUnseenOccurrences, termData->maxDocumentLength );
 
-    double difference = maximum - maximumUnseen;
+    double difference = nodeMaximum - nodeMaximumUnseen;
     smallestDifference = lemur_compat::min<double>( smallestDifference, difference );
+    maximum += nodeMaximum;
   }
 
   return ( maximum - smallestDifference ) < _scores.top().score;
@@ -200,12 +217,18 @@ void indri::infnet::TermFrequencyAccumulator::_precomputeQuery( ) {
   indri::utility::greedy_vector< double > weights;
   indri::utility::greedy_vector< indri::infnet::TermFrequencyBeliefNode* > nodes;
   int totalNodes = 0;
+  _complex = true;
   
     // get all the relevant topdocs lists
   for( unsigned int i=0; i<_children.size(); i++ ) {
     indri::infnet::TermFrequencyBeliefNode* node = dynamic_cast<indri::infnet::TermFrequencyBeliefNode*>(_children[i].node);
 
     if( node ) {
+      if( node->scoreFunction()->optimizable() == false ) {
+        _complex = true;
+        return;
+      }
+      
       totalNodes++;
     
       all.append( node->topdocs().begin(), node->topdocs().end() );
@@ -215,6 +238,7 @@ void indri::infnet::TermFrequencyAccumulator::_precomputeQuery( ) {
       functions.push_back( node->scoreFunction() );
       termDatas.push_back( node->termData() );
       weights.push_back( _children[i].weight );
+      nodes.push_back( node );
     }    
   }
 
@@ -230,17 +254,22 @@ void indri::infnet::TermFrequencyAccumulator::_precomputeQuery( ) {
     // a match is a document that contains all the query terms
     indri::utility::greedy_vector< int > matches;
     _findPotentialMatches( matches, all, totalNodes );
+    
+    // score all of our candidates
+    _scorePotentialMatches( matches, all, functions, weights );
+  
+    // find out if this made a difference
+    _complex = (_topdocsScoresAreSufficient( nodes, weights ) == false);
   } else {
-    _buildSingleTermMatches( matches, all, *functions[0], termDatas[0]->maxDocumentLength, _resultsRequested );
+    _complex = (_scoreSingleTerm( matches, all, *functions[0], termDatas[0]->maxDocumentLength, _resultsRequested ) == false);
   }
-  
-  // score all of our candidates
-  _scorePotentialMatches( matches, all, functions, weights );
-  
-  // find out if this made a difference
-  _complex = _topdocsScoresAreSufficient( nodes, weights );
+    
+  if( !_complex )
+    std::cout << "scoring entirely from topdocs" << std::endl;
 
-  if( !_complex ) {
+  if( _complex ) {
+    std::cout << "using full eval anyway" << std::endl;
+    
     while( _scores.size() )
       _scores.pop();
 
@@ -261,7 +290,7 @@ bool indri::infnet::TermFrequencyAccumulator::isComplex() {
 }
 
 
-double indri::infnet::WeightedAndNode::_computeMaxScore( unsigned int start ) {
+double indri::infnet::TermFrequencyAccumulator::_computeMaxScore( unsigned int start ) {
   // first, find the maximum score of the first few columns
   double maxScoreSum = 0;
 
@@ -279,7 +308,7 @@ double indri::infnet::WeightedAndNode::_computeMaxScore( unsigned int start ) {
   return maxScoreSum + minScoreSum;
 }
 
-void indri::infnet::WeightedAndNode::_computeQuorum() {
+void indri::infnet::TermFrequencyAccumulator::_computeQuorum() {
   double maximumScore = -DBL_MAX;
   unsigned int i;
 
@@ -298,7 +327,7 @@ void indri::infnet::WeightedAndNode::_computeQuorum() {
     _recomputeThreshold = maximumScore;
 }
 
-void indri::infnet::WeightedAndNode::addChild( double weight, BeliefNode* node ) {
+void indri::infnet::TermFrequencyAccumulator::addChild( double weight, BeliefNode* node ) {
   child_type child;
 
   child.node = node;
@@ -323,76 +352,80 @@ void indri::infnet::TermFrequencyAccumulator::indexChanged( indri::index::Index&
   _candidates.clear();
   _candidatesIndex = 0;
 
-  indri::utility::greedy_vector< indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>* > lists;
-
-  // get all the relevant topdocs lists
-  for( unsigned int i=0; i<_children.size(); i++ ) {
-    indri::infnet::TermFrequencyBeliefNode* node = dynamic_cast<indri::infnet::TermFrequencyBeliefNode*>(_children[i].node);
-
-    if( node && indri::api::Parameters::instance().get( "topdocs", true ) ) {
-      indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>* copy = new indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>( node->topdocs() );
-      lists.push_back( copy );
-      std::sort( copy->begin(), copy->end(), indri::index::DocListIterator::TopDocument::docid_less() );
-
-      _children[i].maximumWeightedScore = node->maximumScore() * _children[i].weight;
-      _children[i].backgroundWeightedScore = node->maximumBackgroundScore() * _children[i].weight;
+  _precomputeQuery();
+  
+  if( _complex ) {
+    indri::utility::greedy_vector< indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>* > lists;
+  
+    // get all the relevant topdocs lists
+    for( unsigned int i=0; i<_children.size(); i++ ) {
+      indri::infnet::TermFrequencyBeliefNode* node = dynamic_cast<indri::infnet::TermFrequencyBeliefNode*>(_children[i].node);
+  
+      if( node && indri::api::Parameters::instance().get( "topdocs", true ) ) {
+        indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>* copy = new indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>( node->topdocs() );
+        lists.push_back( copy );
+        std::sort( copy->begin(), copy->end(), indri::index::DocListIterator::TopDocument::docid_less() );
+  
+        _children[i].maximumWeightedScore = node->maximumScore() * _children[i].weight;
+        _children[i].backgroundWeightedScore = node->maximumBackgroundScore() * _children[i].weight;
+      }
     }
-  }
-
-  std::sort( _children.begin(), _children.end(), child_type::maxscore_less() );
-
-  // TODO: could compute an initial threshold here, but that may not be necessary
-  indri::utility::greedy_vector<int> indexes;
-
-  for( unsigned int i=0; i<lists.size(); i++ ) {
-    if( lists[i]->size() )
-      indexes.push_back( 0 );
-    else
-      indexes.push_back( -1 );
-  }
-
-  while( true ) {
-    // find the smallest document
-    int smallestDocument = MAX_INT32;
-
+  
+    std::sort( _children.begin(), _children.end(), child_type::maxscore_less() );
+  
+    // TODO: could compute an initial threshold here, but that may not be necessary
+    indri::utility::greedy_vector<int> indexes;
+  
     for( unsigned int i=0; i<lists.size(); i++ ) {
-      indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& currentList = *lists[i];      
-
-      if( indexes[i] >= 0 )
-        smallestDocument = lemur_compat::min( smallestDocument, currentList[indexes[i]].document );
+      if( lists[i]->size() )
+        indexes.push_back( 0 );
+      else
+        indexes.push_back( -1 );
     }
-
-    if( smallestDocument == MAX_INT32 )
-      break;
-
-    _candidates.push_back( smallestDocument );
-
-    // increment indexes
-    for( unsigned int i=0; i<lists.size(); i++ ) {
-      indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& currentList = *lists[i];      
-
-      if( indexes[i] >= 0 && currentList[indexes[i]].document == smallestDocument ) {
-        indexes[i]++;
-        
-        if( indexes[i] == currentList.size() ) {
-          indexes[i] = -1;
+  
+    while( true ) {
+      // find the smallest document
+      int smallestDocument = MAX_INT32;
+  
+      for( unsigned int i=0; i<lists.size(); i++ ) {
+        indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& currentList = *lists[i];      
+  
+        if( indexes[i] >= 0 )
+          smallestDocument = lemur_compat::min( smallestDocument, currentList[indexes[i]].document );
+      }
+  
+      if( smallestDocument == MAX_INT32 )
+        break;
+  
+      _candidates.push_back( smallestDocument );
+  
+      // increment indexes
+      for( unsigned int i=0; i<lists.size(); i++ ) {
+        indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& currentList = *lists[i];      
+  
+        if( indexes[i] >= 0 && currentList[indexes[i]].document == smallestDocument ) {
+          indexes[i]++;
+          
+          if( indexes[i] == currentList.size() ) {
+            indexes[i] = -1;
+          }
         }
       }
     }
+  
+    for( int i=0; i<lists.size(); i++ )
+      delete lists[i];
+  
+    // compute quorum
+    _computeQuorum();
   }
-
-  for( int i=0; i<lists.size(); i++ )
-    delete lists[i];
-
-  // compute quorum
-  _computeQuorum();
 }
 
 //
 // setThreshold
 //
 
-void indri::infnet::WeightedAndNode::setThreshold( double threshold ) {
+void indri::infnet::TermFrequencyAccumulator::setThreshold( double threshold ) {
   _threshold = threshold;
 
   if( _threshold >= _recomputeThreshold ) {
@@ -455,6 +488,33 @@ void indri::infnet::TermFrequencyAccumulator::evaluate( int documentID, int docu
 // getName
 //
 
-const std::string& indri::infnet::WeightedAndNode::getName() const {
+const std::string& indri::infnet::TermFrequencyAccumulator::getName() const {
   return _name;
 }
+
+//
+// getResults
+//
+
+const indri::infnet::EvaluatorNode::MResults& indri::infnet::TermFrequencyAccumulator::getResults() {
+  _results.clear();
+
+  if( !_scores.size() )
+    return _results;
+
+  // making a copy of the heap here so the method can be const
+  std::priority_queue<indri::api::ScoredExtentResult> heapCopy = _scores;
+  std::vector<indri::api::ScoredExtentResult>& scoreVec = _results["scores"];
+
+  // puts scores into the vector in descending order
+  scoreVec.reserve( heapCopy.size() );
+  for( int i=(int)heapCopy.size()-1; i>=0; i-- ) {
+    scoreVec.push_back( heapCopy.top() );
+    heapCopy.pop();
+  }
+
+  return _results;
+}
+
+
+

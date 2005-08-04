@@ -233,14 +233,19 @@ private:
 
   // Runs the query, expanding it if necessary.  Will print output as well if verbose is on.
   void _runQuery( std::stringstream& output, const std::string& query ) {
-    if( _printQuery ) output << "# query: " << query << std::endl;
+    try {
+      if( _printQuery ) output << "# query: " << query << std::endl;
 
-    _results = _environment.runQuery( query, _initialRequested );
+      _results = _environment.runQuery( query, _initialRequested );
 
-    if( _expander ) {
-      std::string expandedQuery = _expander->expand( query, _results );
-      if( _printQuery ) output << "# expanded: " << expandedQuery << std::endl;
-      _results = _environment.runQuery( expandedQuery, _requested );
+      if( _expander ) {
+        std::string expandedQuery = _expander->expand( query, _results );
+        if( _printQuery ) output << "# expanded: " << expandedQuery << std::endl;
+        _results = _environment.runQuery( expandedQuery, _requested );
+      }
+    }
+    catch( lemur::api::Exception& e )
+    {
     }
   }
 
@@ -477,23 +482,23 @@ int main(int argc, char * argv[]) {
     while( query < queryCount ) {
       query_t* result = NULL;
       
-      {
-        // wait for something to happen
-        queueEvent.wait( queueLock );
+      // wait for something to happen
+      queueEvent.wait( queueLock );
           
-        if( output.size() && output.top()->index == query ) {
-          result = output.top();
-          output.pop();
-        }
+      while( output.size() && output.top()->index == query ) {
+        result = output.top();
+        output.pop();
 
         queueLock.unlock();
-      }
-
-      if( result ) {
+          
         std::cout << result->text;
         delete result;
         query++;
+
+        queueLock.lock();
       }
+ 
+      queueLock.unlock();
     }
 
     // join all the threads
@@ -511,3 +516,4 @@ int main(int argc, char * argv[]) {
 
   return 0;
 }
+

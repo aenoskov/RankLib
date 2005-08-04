@@ -2767,8 +2767,14 @@ namespace indri {
       }
 
       std::string queryText() const {
-        // anonymous
-        return _scoredNode->queryText();
+        std::stringstream qtext;
+        qtext << "#weight(";
+        for( int i=0; i<_children.size(); i++ ) {
+          if(i>0) qtext << " ";
+          qtext << _children[i].first << " " << _children[i].second->queryText();
+        }
+        qtext << ")";
+        return qtext.str();
       }
 
       UINT64 hashCode() const {
@@ -2776,8 +2782,8 @@ namespace indri {
         return 0;
       }
 
-      ScoredExtentNode* getChild() {
-        return _scoredNode;
+      std::vector<std::pair<double, ScoredExtentNode*> >& getChildren() {
+        return _children; 
       }
 
       void pack( Packer& packer ) {
@@ -2797,28 +2803,28 @@ namespace indri {
       }
 
       void walk( Walker& walker ) {
-        walker.before(ptr);
+        walker.before(this);
         for( unsigned int i=0; i<_children.size(); i++ ) {
           _children[i].second->walk(walker);
         }
-        walker.after(ptr);
+        walker.after(this);
       }
 
       Node* copy( Copier& copier ) {
-        copier.before(ptr);
+        copier.before(this);
 
         std::vector< std::pair< double, ScoredExtentNode* > > children;
         for( unsigned int i=0; i<_children.size(); i++ ) {
           double childWeight = _children[i].first;
-          Node* childCopy = _children[i].second->copy( copier );
+          ScoredExtentNode* childCopy = dynamic_cast<ScoredExtentNode*>(_children[i].second->copy( copier ));
 
-          children.push_back( childWeight, childCopy );
+          children.push_back( std::make_pair(childWeight, childCopy) );
         }
 
         TermFrequencyAccumulatorNode* duplicate = new TermFrequencyAccumulatorNode( children );
         duplicate->setNodeName( nodeName() );
 
-        return copier.after(ptr, duplicate);
+        return copier.after(this, duplicate);
       }
     };
 

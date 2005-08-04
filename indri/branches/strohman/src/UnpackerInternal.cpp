@@ -75,6 +75,8 @@ indri::lang::Node* indri::lang::Unpacker::_unpack( indri::xml::XMLNode* child ) 
     result = new ContextSimpleCounterNode(*this);
   } else if( type == "ScoreAccumulatorNode" ) {
     result = new ScoreAccumulatorNode(*this);
+  } else if( type == "TermFrequencyAccumulatorNode" ) {
+    result = new TermFrequencyAccumulatorNode(*this);
   } else if( type == "AnnotatorNode" ) {
     result = new AnnotatorNode(*this);
   } else {

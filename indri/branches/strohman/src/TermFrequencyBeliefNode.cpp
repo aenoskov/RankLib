@@ -145,3 +145,4 @@ indri::query::TermScoreFunction* indri::infnet::TermFrequencyBeliefNode::scoreFu
 indri::index::TermData* indri::infnet::TermFrequencyBeliefNode::termData() {
   return _list->termData();
 }
+

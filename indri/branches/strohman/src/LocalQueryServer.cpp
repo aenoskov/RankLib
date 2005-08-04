@@ -371,6 +371,8 @@ indri::server::QueryServerResponse* indri::server::LocalQueryServer::runQuery( s
 
   std::vector<indri::lang::Node*>& networkRoots = dag.roots();
 
+  optimize = indri::api::Parameters::instance().get( "optimize", optimize );
+
   if( !optimize ) {
     // we may be asked not to perform optimizations that might
     // drastically change the structure of the tree; for instance,

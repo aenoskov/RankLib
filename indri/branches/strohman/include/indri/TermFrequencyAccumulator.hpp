@@ -56,7 +56,7 @@ namespace indri {
       void _findPotentialMatches( indri::utility::greedy_vector< int >& matches,
                                   const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all,
                                   int nodeCount );
-      void _buildSingleTermMatches( indri::utility::greedy_vector< int >& matches,
+      bool _scoreSingleTerm( indri::utility::greedy_vector< int >& matches,
                                     const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all,
                                     indri::query::TermScoreFunction& function,
                                     int maximumDocumentLength,
@@ -75,15 +75,23 @@ namespace indri {
       void _computeQuorum();
 
       std::priority_queue<indri::api::ScoredExtentResult> _scores;
+      EvaluatorNode::MResults _results;
       std::vector<child_type> _children;
       std::vector<int> _candidates;
       bool _complex;
       int _resultsRequested;
       int _candidatesIndex;
       int _quorumIndex;
-
+      double _recomputeThreshold;
+      double _threshold;
+      std::string _name;
+      
     public:
-      TermFrequencyAccumulator() {}
+      TermFrequencyAccumulator( const std::string& name, int resultsRequested ) :
+        _name(name),
+        _resultsRequested(resultsRequested)
+      {
+      }
 
       bool isComplex();
     
@@ -93,6 +101,7 @@ namespace indri {
       int nextCandidateDocument();
       void evaluate( int documentID, int documentLength );
       const std::string& getName() const;
+      const EvaluatorNode::MResults& getResults();
     };
   }
 }
