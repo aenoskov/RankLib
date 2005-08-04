@@ -68,8 +68,8 @@ static file_class_environment_spec environments[] = {
     html_conflations      // conflations
   },
   { 
-    "xml",               // name
-    "xml",               // parser
+    "xml",                // name
+    "xml",                // parser
     "text",               // iterator
     NULL,                 // startDocTag
     NULL,                 // endDocTag
@@ -85,7 +85,7 @@ static file_class_environment_spec environments[] = {
     "html",               // parser
     "tagged",             // iterator
     "<DOC>",              // startDocTag
-    "</DOC>\n",             // endDocTag
+    "</DOC>\n",           // endDocTag
     "</DOCHDR>",          // endMetadataTag
     NULL,                 // includeTags
     NULL,                 // excludeTags
