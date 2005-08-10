@@ -1729,7 +1729,7 @@ namespace indri {
         _priorName = unpacker.getString( "priorName" );
       }
 
-      std::string nodeType() {
+      std::string typeName() const {
         return "PriorNode";
       }
       
