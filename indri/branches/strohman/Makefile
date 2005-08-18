@@ -2,7 +2,7 @@
 
 INSTALLDIRS = $(bindir) $(includedir) $(pkgincludedir) $(includedir)/lemur $(libdir) $(pkgdatadir)
 
-.PHONY: all dist clean install $(INSTALLDIRS)
+.PHONY: all dist clean install runquery $(INSTALLDIRS)
 
 all: 
 	$(MAKE) -C contrib
@@ -37,6 +37,10 @@ endif
 	$(MAKE) clean -C similarity
 	$(MAKE) clean -C rmodel
 	rm -f depend/*
+
+runquery:
+	$(MAKE) -C obj -f ../src/Makefile
+	$(MAKE) -C runquery
 
 distclean: clean
 	rm -rf autom4te.cache MakeDefns Makefile.app config.log config.status indri.ncb indri.suo

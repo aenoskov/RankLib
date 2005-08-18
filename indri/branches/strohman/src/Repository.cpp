@@ -123,21 +123,17 @@ void indri::collection::Repository::_buildFields() {
 }
 
 //
-// _buildTransientChain
-//
-
-void indri::collection::Repository::_buildTransientChain( indri::api::Parameters& parameters ) {
-  if( parameters.exists("stopper.word") ) {
-    indri::api::Parameters stop = parameters["stopper.word"];
-    _transformations.push_back( new indri::parse::StopperTransformation( stop ) );
-  }
-}
-
-//
 // _buildChain
 //
 
-void indri::collection::Repository::_buildChain( indri::api::Parameters& parameters, indri::api::Parameters *options  ) {
+void indri::collection::Repository::_buildChain( indri::api::Parameters& parameters, indri::api::Parameters* options ) {
+  if( options ) {
+    if( parameters.exists("stopper.word") ) {
+      indri::api::Parameters stop = parameters["stopper.word"];
+      _transformations.push_back( new indri::parse::StopperTransformation( stop ) );
+    }
+  }
+
   bool dontNormalize = parameters.exists( "normalize" ) && ( false == (bool) parameters["normalize"] );
 
   if( dontNormalize == false ) {
@@ -153,13 +149,6 @@ void indri::collection::Repository::_buildChain( indri::api::Parameters& paramet
   if( _parameters.exists("stopper.word") ) {
     indri::api::Parameters stop = _parameters["stopper.word"];
     _transformations.push_back( new indri::parse::StopperTransformation( stop ) );
-  }
-  // the transient chain, needs to precede the stemmer.
-  if (options) {
-    if( options->exists("stopper.word") ) {
-      indri::api::Parameters stop = (*options)["stopper.word"];
-      _transformations.push_back( new indri::parse::StopperTransformation( stop ) );
-    }
   }
 
   if( _parameters.exists("stemmer.name") ) {
@@ -210,13 +199,8 @@ void indri::collection::Repository::_remove( const std::string& indexPath ) {
 //
 
 void indri::collection::Repository::_openIndexes( indri::api::Parameters& params, const std::string& parentPath ) {
-<<<<<<< .working
   try {
     indri::api::Parameters container = params["indexes"];
-=======
-  try {
-  indri::api::Parameters container = params["indexes"];
->>>>>>> .merge-right.r681
 
     _active = new index_vector;
     _states.push_back( _active );
@@ -234,9 +218,6 @@ void indri::collection::Repository::_openIndexes( indri::api::Parameters& params
         _active->push_back( diskIndex );
       }
     }
-  } catch( lemur::api::Exception& e ) {
-    LEMUR_RETHROW( e, "_openIndexes: Couldn't open DiskIndexes because:" );
-  }
   } catch( lemur::api::Exception& e ) {
     LEMUR_RETHROW( e, "_openIndexes: Couldn't open DiskIndexes because:" );
   }
@@ -401,15 +382,9 @@ void indri::collection::Repository::create( const std::string& path, indri::api:
 //
 
 void indri::collection::Repository::openRead( const std::string& path, indri::api::Parameters* options ) {
-<<<<<<< .working
   try {
     _path = path;
     _readOnly = true;
-=======
-  try {
-  _path = path;
-  _readOnly = true;
->>>>>>> .merge-right.r681
 
     _memory = defaultMemory;
     if( options )
@@ -421,18 +396,9 @@ void indri::collection::Repository::openRead( const std::string& path, indri::ap
 
     _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
 
-<<<<<<< .working
     _buildFields();
-    _buildChain( _parameters );
+    _buildChain( _parameters, options );
 
-=======
-  _buildFields();
-  _buildChain( _parameters, options );
-  /*
->>>>>>> .merge-right.r681
-    if( options )
-      _buildTransientChain( *options );
-  */
     std::string indexPath = indri::file::Path::combine( path, "index" );
     std::string collectionPath = indri::file::Path::combine( path, "collection" );
     std::string indexName = indri::file::Path::combine( indexPath, "index" );
@@ -453,11 +419,6 @@ void indri::collection::Repository::openRead( const std::string& path, indri::ap
   } catch( ... ) {
     LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Something unexpected happened while trying to create '" + path + "'" );
   }
-  } catch( lemur::api::Exception& e ) {
-    LEMUR_RETHROW( e, "Couldn't open a repository in read-only mode at '" + path + "' because:" );
-  } catch( ... ) {
-    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Something unexpected happened while trying to create '" + path + "'" );
-  }
 }
 
 //
@@ -465,15 +426,9 @@ void indri::collection::Repository::openRead( const std::string& path, indri::ap
 //
 
 void indri::collection::Repository::open( const std::string& path, indri::api::Parameters* options ) {
-<<<<<<< .working
   try {
     _path = path;
     _readOnly = false;
-=======
-  try {
-  _path = path;
-  _readOnly = false;
->>>>>>> .merge-right.r681
 
     _memory = defaultMemory;
     if( options )
@@ -489,18 +444,9 @@ void indri::collection::Repository::open( const std::string& path, indri::api::P
 
     _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
 
-<<<<<<< .working
     _buildFields();
-    _buildChain( _parameters );
+    _buildChain( _parameters, options );
 
-=======
-  _buildFields();
-  _buildChain( _parameters, options );
-  /*
->>>>>>> .merge-right.r681
-    if( options )
-      _buildTransientChain( *options );
-  */
     // open all indexes, add a memory index
     _openIndexes( _parameters, indexPath );
     _addMemoryIndex();
@@ -520,11 +466,6 @@ void indri::collection::Repository::open( const std::string& path, indri::api::P
     _deletedList.read( deletedName );
 
     _startThreads();
-  } catch( lemur::api::Exception& e ) {
-    LEMUR_RETHROW( e, "Couldn't open a repository at '" + path + "' because:" );
-  } catch( ... ) {
-    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Something unexpected happened while trying to create '" + path + "'" );
-  }
   } catch( lemur::api::Exception& e ) {
     LEMUR_RETHROW( e, "Couldn't open a repository at '" + path + "' because:" );
   } catch( ... ) {

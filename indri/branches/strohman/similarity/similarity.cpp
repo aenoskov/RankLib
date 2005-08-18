@@ -16,6 +16,7 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <queue>
 #include <time.h>
 
 #include "lemur/IndexTypes.hpp"
@@ -23,6 +24,9 @@
 #include "indri/greedy_vector"
 #include "indri/count_iterator"
 #include "lemur/Exception.hpp"
+#include "indri/File.hpp"
+#include "indri/SequentialReadBuffer.hpp"
+#include "indri/SequentialWriteBuffer.hpp"
 
 struct statistics_t {
   ~statistics_t() {
@@ -33,7 +37,74 @@ struct statistics_t {
   indri::utility::greedy_vector<UINT64> counts;
 };
 
-typedef indri::utility::greedy_vector< std::pair< int, int > > VCounts;
+struct pair_second_greater {
+  bool operator () ( const std::pair< int, double >& one, const std::pair< int, double >& two ) const {
+    return one.second > two.second || ( one.second == two.second && one.first > two.first );
+  }
+};
+
+class ScoreAggregator {
+public:
+  virtual void operator () ( int x, int y, double score ) = 0;
+};
+
+class TopKAggregator : public ScoreAggregator {
+private:
+  std::vector< std::vector< std::pair< int, double > > > _scores;
+  int _k;
+  
+public:
+  TopKAggregator( int count, int k ) {
+    _k = k;
+    _scores.resize( count );
+  }
+  
+  void _moveSmallestToFront( int x ) {
+    std::vector< std::pair< int, double > >& data = _scores[x];
+    std::pair< int, double > small = std::make_pair( 0, DBL_MAX );
+  
+    for( int i=0; i<data.size(); i++ ) {
+      if( data[i].second < small.second ) {
+        small.second = data[i].second;
+        small.first = i;
+      }
+    }
+
+    // swap the smallest into the first position
+    int smallDocument = data[ small.first ].first;
+    double smallScore = data[ small.first ].second;
+    
+    data[small.first] = data[0];
+    data[0].first = smallDocument;
+    data[0].second = smallScore;
+  }
+  
+  void _store( int x, int y, double score ) {
+    if( _scores[x].size() < _k ) {
+      _scores[x].push_back( std::make_pair( y, score ) );
+      _moveSmallestToFront( x );
+    } else {
+      if( _scores[x][0].second < score ) {
+        // if this one is bigger than the smallest current score,
+        // replace the smallest score with this one
+        _scores[x][0] = std::make_pair<int, double>( y, score );
+        _moveSmallestToFront( x );
+      }
+    }
+  }
+
+  void operator () ( int x, int y, double score ) {
+    _store( x, y, score );
+    if( x != y )   
+      _store( y, x, score );
+  }
+  
+  const std::vector< std::vector< std::pair< int, double > > >& getScores( ) const {
+    return _scores;
+  }
+};
+
+typedef indri::utility::greedy_vector< std::pair< int, double > > VCounts;
 typedef double (*similarity_function)( VCounts& one, VCounts& two, statistics_t* stats );
 
 //
@@ -45,7 +116,7 @@ typedef double (*similarity_function)( VCounts& one, VCounts& two, statistics_t*
 struct statistics_t* collect_statistics( indri::index::Index* index ) {
   struct statistics_t* stats = new statistics_t;
   indri::index::VocabularyIterator* iter = index->vocabularyIterator();
-  
+
   iter->startIteration();
   
   stats->total = index->termCount();
@@ -73,18 +144,56 @@ struct statistics_t* collect_statistics( indri::index::Index* index ) {
 static void convert_document_vector( VCounts& counts, const indri::index::TermList& termList ) {
   indri::utility::greedy_vector<lemur::api::TERMID_T> termIDs = termList.terms();
   indri::utility::count_iterator<lemur::api::TERMID_T> iter( termIDs.begin(), termIDs.end() );
-
-  // length stored in termID 0
-  counts.push_back( std::make_pair( 0, termIDs.size() ) );
+  double length = 0;
+  counts.clear();
   
+  for( int i=0; i<termIDs.size(); i++ ) {
+    if( termIDs[i] != 0 )
+      length += 1.0;
+  }
+    
   for( ; iter != termIDs.end(); ++iter ) {
     //assert( (*iter).object >= 0 );
     
     if( (*iter).object > 0 ) {
       counts.push_back( std::make_pair( (*iter).object, 
-                                        (*iter).count ) );
+                                        double((*iter).count) / length ) );
     }
   }
+}
+
+//
+// dot_product_sqrt
+//
+
+static double dot_product_sqrt( VCounts& one, VCounts& two, statistics_t* statistics ) {
+  int i=0;
+  int j=0;
+  double dotProduct = 0;
+  
+  while( i < one.size() && j < two.size() ) {
+    int oneTerm = one[i].first;
+    int twoTerm = two[j].first;
+    
+    if( oneTerm > statistics->counts.size() || twoTerm > statistics->counts.size() ) {
+      i++; j++;
+      continue;
+    }
+    
+    assert( oneTerm > 0 && twoTerm > 0 );
+    
+    if( oneTerm == twoTerm ) {
+      // terms match
+      dotProduct += sqrt( one[i].second * two[j].second );
+      i++; j++;
+    } else if ( oneTerm < twoTerm ) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+
+  return dotProduct;
 }
 
 //
@@ -96,10 +205,12 @@ static double fisher_diffusion( VCounts& one, VCounts& two, statistics_t* statis
   int j=1;
   
   double lambda = 0.25;
+  double oneMinusLambda = 1.0 - lambda;
   double oneLength = 1.0 / double(one[0].second);
   double twoLength = 1.0 / double(two[0].second);
   double dotProduct = lambda;
   double collectionLength = statistics->total;
+  double oneOverCollectionLength = 1.0 / collectionLength;
   double oneOverT = 1./10.;
   
   while( i < one.size() && j < two.size() ) {
@@ -117,29 +228,29 @@ static double fisher_diffusion( VCounts& one, VCounts& two, statistics_t* statis
       // terms match
       double oneFraction = double(one[i].second) * oneLength;
       double twoFraction = double(two[j].second) * twoLength;
-      double background = statistics->counts[ oneTerm ] * collectionLength;
+      double background = statistics->counts[ oneTerm ] * oneOverCollectionLength;
       
-      dotProduct += sqrt( ((1. - lambda) * oneFraction + lambda * background) * 
-                          ((1. - lambda) * twoFraction + lambda * background) ) -
+      dotProduct += sqrt( (oneMinusLambda * oneFraction + lambda * background) * 
+                          (oneMinusLambda * twoFraction + lambda * background) ) -
                     lambda * background;
       
       i++;
       j++;
     } else if( oneTerm < twoTerm ) {
       double oneFraction = one[i].second * oneLength;
-      double background = statistics->counts[ oneTerm ] * collectionLength;
+      double background = statistics->counts[ oneTerm ] * oneOverCollectionLength;
 
-      dotProduct += sqrt( ((1. - lambda) * oneFraction + lambda * background) *
+      dotProduct += sqrt( (oneMinusLambda * oneFraction + lambda * background) *
                           (lambda * background) ) -
                     lambda * background;
       
       i++;
     } else /* twoTerm < oneTerm */ {
       double twoFraction = two[j].second * twoLength;
-      double background = statistics->counts[ twoTerm ] * collectionLength;
+      double background = statistics->counts[ twoTerm ] * oneOverCollectionLength;
 
       dotProduct += sqrt( (lambda * background) *
-                          ((1 - lambda) * twoFraction + lambda * background) ) -
+                          (oneMinusLambda * twoFraction + lambda * background) ) -
                     lambda * background;
       
       j++;
@@ -158,7 +269,7 @@ static double fisher_diffusion( VCounts& one, VCounts& two, statistics_t* statis
     double oneFraction = one[i].second * oneLength;
     double background = statistics->counts[ oneTerm ] * collectionLength;
     
-    dotProduct += sqrt( ((1. - lambda) * oneFraction + lambda * background) *
+    dotProduct += sqrt( (oneMinusLambda * oneFraction + lambda * background) *
                         (lambda * background) ) -
                   lambda * background;
   }
@@ -175,7 +286,7 @@ static double fisher_diffusion( VCounts& one, VCounts& two, statistics_t* statis
     double twoFraction = two[j].second * twoLength;
     double background = statistics->counts[ twoTerm ] * collectionLength;
     
-    dotProduct += sqrt( ((1. - lambda) * twoFraction + lambda * background) *
+    dotProduct += sqrt( (oneMinusLambda * twoFraction + lambda * background) *
                         (lambda * background) ) -
                   lambda * background;
   }
@@ -222,7 +333,36 @@ struct document_t {
   std::vector< document_t* > children;
 };
 
+//
+// read_documents
+//
+
+static std::vector< document_t* > read_documents( indri::index::Index* index ) {
+  // docs
+  std::vector< document_t* > documents;
+  document_t* document; 
+  UINT64 length = 0; 
+  
+  for( int i=1; i<index->documentCount(); i++ ) {
+    document = new document_t;
+    documents.push_back( document );
+    document->id = i;
+    
+    const indri::index::TermList* termList = index->termList( document->id );
+    convert_document_vector( document->counts, *termList );
+    length += document->counts.size();
+    
+    delete termList;
+  }
+  
+  return documents;
+}
+
 static std::vector< document_t* > read_documents( indri::index::Index* index, const std::string& documentPath ) {
+  if( documentPath.size() == 0 ) {
+    return read_documents( index );
+  }
+
   // statistics
   statistics_t* stats = collect_statistics( index );
 
@@ -236,8 +376,8 @@ static std::vector< document_t* > read_documents( indri::index::Index* index, co
   document_t* document;  
   
   in.open( documentPath.c_str(), std::iostream::in );
-
-  while( !in.eof() ) {
+  
+  while( !in.eof() && in.good() ) {
     in.getline( line, sizeof line );
     int spaces = count_leading_spaces( line );
     
@@ -245,6 +385,12 @@ static std::vector< document_t* > read_documents( indri::index::Index* index, co
       docStack.pop();
     
     document = new document_t;
+    document->id = atoi( line + spaces );
+    
+    if( document->id == 0 ) {
+      delete document;
+      break;
+    }
     
     if( docStack.size() )
       docStack.top()->children.push_back( document );
@@ -252,8 +398,6 @@ static std::vector< document_t* > read_documents( indri::index::Index* index, co
       documents.push_back( document );
     
     docStack.push( document );
-    
-    document->id = atoi( line + spaces );
     
     const indri::index::TermList* termList = index->termList( document->id );
     convert_document_vector( document->counts, *termList );
@@ -275,20 +419,12 @@ static void partition( const std::string& outputPath,
                        indri::index::Index* index,
                        std::vector< document_t* >& centroids,
                        similarity_function func,
+                       int overlap,
                        int startDocID,
                        int endDocID ) {
   std::ofstream output;
-  output.open( outputPath.c_str(), std::ofstream::out | std::ofstream::binary );
-  
-  // part
-  output << 'P';
-  output << 'A';
-  output << 'R';
-  output << 'T';
-  
-  // documents
-  output << startDocID;
-  output << endDocID;
+  output.open( outputPath.c_str(), std::ofstream::out );
+  int documentID = startDocID;
   
   // centroids
   indri::index::TermListFileIterator* iterator = index->termListFileIterator();
@@ -298,37 +434,36 @@ static void partition( const std::string& outputPath,
   statistics_t* stats = collect_statistics( index );
   
   iterator->startIteration();
+  iterator->nextEntry( startDocID );
   
-  while( !iterator->finished() ) {
+  if( endDocID < 0 )
+    endDocID = index->documentCount();
+  
+  while( !iterator->finished() && documentID <= endDocID ) {
     convert_document_vector( document, *(iterator->currentEntry()) );
     
     document_t* best = 0;
     double bestSimilarity = 0;
-    std::vector< document_t* >& centroidLevel = centroids; 
+    std::priority_queue< std::pair< double, int > > scores;
     
-    do {
-      document_t* bestLevel = 0;
-      double bestLevelSimilarity = 0;
-
-      for( int i=0; i < centroidLevel.size(); i++ ) {
-        double sim = func( document, centroidLevel[i]->counts, stats );
-
-        if( sim > bestLevelSimilarity ) {
-          bestLevel = centroidLevel[i];
-          bestLevelSimilarity = sim;
-          
-          if( sim > bestSimilarity ) {
-            bestSimilarity = sim;
-            best = bestLevel;
-          }
-        }
-      }
-      
-      centroidLevel = bestLevel->children;
+    for( int i=0; i < centroids.size(); i++ ) {
+      double sim = func( document, centroids[i]->counts, stats );
+      scores.push( std::make_pair( sim, centroids[i]->id ) );
     }
-    while( centroidLevel.size() );
     
-    output << best->id;
+    output << documentID << " ";
+
+    for( int i=0; i<overlap; i++ ) {
+      if( scores.size() ) {
+        output << scores.top().second << " ";
+        scores.pop();
+      }
+    }
+
+    output << std::endl;
+  
+    documentID++;
+    iterator->nextEntry();
   }
   
   delete iterator;
@@ -336,39 +471,98 @@ static void partition( const std::string& outputPath,
 }
 
 //
-// full_similarity
+// compute_similarity_matrix
 //
 
-static void full_similarity( const std::string& outputPath, indri::index::Index* index, std::vector< document_t* >& documents, similarity_function func ) {
+static void compute_similarity_matrix( indri::index::Index* index,
+                                       std::vector< document_t* >& documents,
+                                       similarity_function func,
+                                       ScoreAggregator& aggregator )
+{
+  // statistics
+  statistics_t* stats = collect_statistics( index );
+  
+  // for cache purposes, it's best to do this in strides
+  const int stride = 100;
+  int count = 0;
+  
+  for( int i=0; i < documents.size(); i += stride ) {
+    int leftStart = i;
+    int leftEnd = lemur_compat::min<int>( documents.size(), i + stride );
+    
+    for( int j = 0; j < documents.size(); j += stride ) {
+      int rightStart = j;
+      int rightEnd = lemur_compat::min<int>( documents.size(), j + stride );
+      
+      if( rightEnd <= leftStart )
+        continue;
+      
+      for( int k = leftStart; k < leftEnd; k++ ) {
+        for( int l = lemur_compat::max<int>( rightStart, k ); l < rightEnd; l++ ) {
+          double similarity = func( documents[k]->counts, documents[l]->counts, stats );
+          aggregator( k, l, similarity );
+        }
+      }
+      
+      count += stride * stride;
+      std::cout << count << std::endl;
+    }
+  }
+}
+
+//
+// topk_similarity
+//
+
+static void topk_similarity( const std::string& outputPath,
+                             indri::index::Index* index,
+                             std::vector< document_t* >& documents,
+                             similarity_function func,
+                             int k )
+{
+  TopKAggregator aggregator( documents.size(), k );
+  compute_similarity_matrix( index, documents, func, aggregator );
+
   // output file
   indri::file::File out;
   out.create( outputPath );
 
   indri::file::SequentialWriteBuffer* outb = new indri::file::SequentialWriteBuffer( out, 1024*1024 );
 
-  // statistics
-  statistics_t* stats = collect_statistics( index );
-  
   // write full dword
-  outb->write( "FULL", 4 );
+  outb->write( "TOPK", 4 );
   
-  // write docs
-  int size = documents.size();
-  outb->write( &size, sizeof(UINT32) );
+  // write k
+  outb->write( &k, sizeof(UINT32) );
   
-  // write docIDs
+  const std::vector< std::vector< std::pair< int, double > > >& scores = aggregator.getScores();
+  
+  // write data
   for( int i=0; i < documents.size(); i++ ) {
     int docID = documents[i]->id;
     outb->write( &docID, sizeof(lemur::api::DOCID_T) );
-  }
+    std::vector< std::pair< int, double > > docScores = scores[i];
+    
+    std::sort( docScores.begin(), docScores.end(), pair_second_greater() );
 
-  // for cache purposes, it's probably better to do this in strides
-  for( int i=0; i < documents.size(); i++ ) {
-    for( int j=i; j < documents.size(); j++ ) {
-      double similarity = func( documents[i]->counts, documents[j]->counts, stats );
+    for( int j=0; j<k; j++ ) {
+      int otherID;
+      double similarity;
+    
+      if( j < docScores.size() ) {
+        otherID = documents[ docScores[j].first ]->id;
+        similarity = docScores[j].second;
+      } else {
+        otherID = 0;
+        similarity = 0;
+      }
+      
+      outb->write( &otherID, sizeof(lemur::api::DOCID_T) );
       outb->write( &similarity, sizeof(double) );
     }
   }
+
+  // write topk data
   
   outb->flush();
   delete outb;
@@ -421,15 +615,13 @@ static void print_documents( std::vector< document_t* >& documents, int indent )
 
 void hierarchy( std::vector< document_t* >& output, std::vector< document_t* >& input, statistics_t* stats, similarity_function func, int roots ) {
   // random set
-  std::vector<int> rootSet = random_set( roots, input.size() );
-  std::cout << "picked " << rootSet.size() << " roots" << std::endl;
+  std::vector<int> rootSet = random_set( lemur_compat::min<int>( roots, input.size() ), input.size() );
 
   // push the roots into the output set
   for( int i=0; i<rootSet.size(); i++ ) {
     output.push_back( input[ rootSet[i] ] );
   }
   
-  std::cout << "starting to cluster" << std::endl;
   // cluster the rest of inputs into the appropriate output sets
   for( int i=0; i<input.size(); i++ ) {
     double similarity = 0;
@@ -456,13 +648,7 @@ void hierarchy( std::vector< document_t* >& output, std::vector< document_t* >& 
     if( best != document ) {
       best->children.push_back( document );
     }
-
-    std::cout << "#";
-
-    if( (i % 50) == 0 )
-      std::cout << std::endl;
   }
-  std::cout << "finished clustering children of roots" << std::endl;
   
   // now we need to recurse into the children sets, choosing root sets as we go
   for( int i=0; i<output.size(); i++ ) {
@@ -472,7 +658,6 @@ void hierarchy( std::vector< document_t* >& output, std::vector< document_t* >& 
     std::vector< document_t* > cluster = output[i]->children;
     output[i]->children.clear();
     
-    std::cout << "recursing into child" << std::endl;
     hierarchy( output[i]->children, cluster, stats, func, roots );
   }
 }
@@ -487,10 +672,165 @@ void hierarchy( indri::index::Index* index, std::vector< document_t* >& document
   
   // build hierarchy
   std::vector< document_t* > output;
-  hierarchy( output, documents, stats, fisher_diffusion, 10 );
+  hierarchy( output, documents, stats, dot_product_sqrt, 100 );
   
   // print hierarchy
   print_documents( output, 0 );
+}
+
+//
+// combine_topk
+//
+
+struct TopKFile {
+  int _k;
+  UINT64 _length;
+  std::string _fileName;
+  indri::file::File _inFile;
+  indri::file::SequentialReadBuffer* _inBuffer;
+  
+  int document;
+  std::vector< std::pair< int, double > > list;
+  
+  void open( const std::string& filename ) {
+    _fileName = filename;
+    
+    _inFile.openRead( filename );
+    _inBuffer = new indri::file::SequentialReadBuffer( _inFile, 1024*128 );
+    _length = _inFile.size();
+
+    readHeader();
+    read();
+  }
+  
+  ~TopKFile() {
+    close();
+  }
+  
+  void close() {
+    delete _inBuffer;
+    _inBuffer = 0;
+    _inFile.close();
+  }
+  
+  void readHeader() {
+    char text[4];
+    _inBuffer->read( &text, 4 );
+    _inBuffer->read( &_k, sizeof(UINT32) );
+  }
+  
+  void read() {
+    _inBuffer->read( &document, sizeof(UINT32) );
+    list.clear();
+    
+    for( int i=0; i<_k; i++ ) {
+      int otherDocID;
+      double similarity;
+      
+      _inBuffer->read( &otherDocID, sizeof(UINT32) );
+      _inBuffer->read( &similarity, sizeof(double) );
+      
+      list.push_back( std::make_pair( otherDocID, similarity ) );
+    }
+  }
+  
+  bool finished() {
+    return _length <= _inBuffer->position();
+  }
+};
+
+void combine_topk( const std::string& outFilename, const std::vector<std::string>& inFilenames, int k ) { 
+  // open output file
+  indri::file::File out;
+  out.create( outFilename );
+  indri::file::SequentialWriteBuffer* outb = new indri::file::SequentialWriteBuffer( out, 1024*1024 );
+  
+  // open input files
+  std::vector<TopKFile*> files;
+  
+  for( int i=0; i<inFilenames.size(); i++ ) {
+    TopKFile* f = new TopKFile;
+    f->open( inFilenames[i] );
+    files.push_back( f );
+  }
+  
+  // write header
+  outb->write( "TOPK", 4 );
+  outb->write( &k, sizeof(UINT32) );
+
+  while( files.size() ) {
+    std::vector<TopKFile*> current;
+  
+    // find all files that are at the smallest document
+    int smallDocument = MAX_INT32;
+    for( int i=0; i<files.size(); i++ ) {
+      if( files[i]->document < smallDocument ) {
+        current.clear();
+        smallDocument = files[i]->document;
+        current.push_back( files[i] );
+      } else if( files[i]->document == smallDocument ) {
+        current.push_back( files[i] );
+      }
+    }
+    
+    // merge all useful data into one top-k list
+    std::vector< std::pair< int, double > > top;
+    
+    for( int i=0; i<current.size(); i++ ) {
+      std::copy( current[i]->list.begin(), current[i]->list.end(), std::back_inserter(top) );
+    }
+
+    std::sort( top.begin(), top.end(), pair_second_greater() );    
+    
+    // remove duplicates
+    int lastDoc = 0;
+    for( int i=0; i<top.size(); i++ ) {
+      if( top[i].first == lastDoc ) {
+        top.erase( top.begin() + i );
+        i--;
+      } else {
+        lastDoc = top[i].first;
+      }
+    }
+ 
+    // write that data out to disk
+    outb->write( &smallDocument, sizeof(UINT32) );
+    
+    for( int i=0; i<k; i++ ) {
+      int doc = 0;
+      double similarity = 0;
+        
+      if( i < top.size() ) {
+        doc = top[i].first;
+        similarity = top[i].second;
+      }
+      
+      outb->write( &doc, sizeof(UINT32) );
+      outb->write( &similarity, sizeof(double) );
+    }
+    
+    // move to the next document
+    for( int i=0; i<current.size(); i++ ) {
+      if( current[i]->finished() ) {
+        // file is finished, erase it from the files array
+        for( int j=0; j<files.size(); j++ ) {
+          if( files[j] == current[i] ) {
+            files[j]->close();
+            delete files[j];
+            files.erase( files.begin() + j );
+            break;
+          }
+        }
+      } else {
+        // read more data
+        current[i]->read();
+      }
+    }
+  }
+   
+  outb->flush();
+  delete outb;
+  out.close();
 }
 
 //
@@ -506,17 +846,21 @@ int main( int argc, char** argv ) {
   
   char ch;
   
-  int startDocID = 0;
+  int startDocID = 1;
   int endDocID = -1;
+  int k = 10;
+  int overlap = 1;
   std::string repositoryPath;
   std::string documentsPath;
   std::string outputPath;
+  std::vector<std::string> inputFiles;
   
   bool hierarchyMode = false;
   bool partitionMode = false;
   bool fullSimilarityMode = false;
+  bool combineMode = false;
   
-  while( (ch = getopt( argc, argv, "hpfd:s:e:r:o:" )) != -1 ) {
+  while( (ch = getopt( argc, argv, "hpfcd:i:s:e:r:o:k:v:" )) != -1 ) {
     switch(ch) {
       case 'r': // repository path
         repositoryPath = optarg; break;
@@ -526,6 +870,9 @@ int main( int argc, char** argv ) {
         
       case 'e': // end docID
         endDocID = atoi(optarg); break;
+        
+      case 'k':
+        k = atoi(optarg); break;
         
       case 's': // start docID
         startDocID = atoi(optarg); break;
@@ -541,10 +888,21 @@ int main( int argc, char** argv ) {
         
       case 'o':
         outputPath = optarg; break;
+        
+      case 'c':
+        combineMode = true; break;
+
+      case 'v':
+        overlap = atoi(optarg); break;
+        
+      case 'i':
+        std::string filename = optarg;
+        inputFiles.push_back( filename );
+        break;
     }
   }
   
-  if( !( hierarchyMode || partitionMode || fullSimilarityMode ) )
+  if( !( hierarchyMode || partitionMode || fullSimilarityMode || combineMode ) )
     std::cout << "Must pick at least one mode (hierarchy, partition, full)" << std::endl;
   
   indri::collection::Repository repository;
@@ -552,14 +910,20 @@ int main( int argc, char** argv ) {
   
   try {
     // open repository
-    repository.openRead( repositoryPath );
+    if( !combineMode )
+      repository.openRead( repositoryPath );
   
-    // fetch index 
-    indri::collection::Repository::index_state state = repository.indexes();
-    indri::index::Index* index = (*state)[0];
-
+    // fetch index
+    indri::index::Index* index = 0; 
+    
+    if( !combineMode ) {
+      indri::collection::Repository::index_state state = repository.indexes();
+      index = (*state)[0];
+    }
+      
     // read documents
-    documents = read_documents( index, documentsPath );
+    if( !combineMode )
+      documents = read_documents( index, documentsPath );
     
     if( hierarchyMode ) {
       hierarchy( index, 
@@ -568,17 +932,22 @@ int main( int argc, char** argv ) {
       partition( outputPath,
                  index,
                  documents,
-                 fisher_diffusion,
+                 dot_product_sqrt,
+                 overlap,
                  startDocID,
                  endDocID );
+    } else if( combineMode ) {
+      combine_topk( outputPath, inputFiles, k );
     } else {
-      full_similarity( outputPath,
+      topk_similarity( outputPath,
                        index,
                        documents,
-                       fisher_diffusion );
+                       dot_product_sqrt,
+                       k );
     }
   
-    repository.close();
+    if( !combineMode )
+      repository.close();
   } catch( lemur::api::Exception& e ) {
     LEMUR_ABORT(e);
   }

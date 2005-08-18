@@ -42,8 +42,8 @@ namespace indri {
             // #wand.  What is the threshold of each ordering?  Sort by
             // the lowest threshold.
 
-        return (one.backgroundWeightedScore) > 
-               (two.backgroundWeightedScore);
+            return (one.backgroundWeightedScore) > 
+                   (two.backgroundWeightedScore);
           }
         };
 
@@ -54,6 +54,7 @@ namespace indri {
       };
 
       void _findPotentialMatches( indri::utility::greedy_vector< int >& matches,
+                                  indri::utility::greedy_vector< int >& leftOut,
                                   const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all,
                                   int nodeCount );
       bool _scoreSingleTerm( indri::utility::greedy_vector< int >& matches,
@@ -67,7 +68,8 @@ namespace indri {
                                    const indri::utility::greedy_vector< double >& weights );
       void _buildCandidatesList( const indri::utility::greedy_vector<indri::index::DocListIterator::TopDocument>& all );
       bool _topdocsScoresAreSufficient( const indri::utility::greedy_vector< indri::infnet::TermFrequencyBeliefNode* >& nodes,
-                                        const indri::utility::greedy_vector< double >& weights );
+                                        const indri::utility::greedy_vector< double >& weights, 
+                                        const indri::utility::greedy_vector< int >& leftOut );
 
       void _precomputeQuery();
 
