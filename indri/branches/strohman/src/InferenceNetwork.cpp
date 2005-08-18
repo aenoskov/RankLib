@@ -315,6 +315,8 @@ void indri::infnet::InferenceNetwork::_evaluateIndex( indri::index::Index& index
     }
   }
 
+  std::cout << "Scored: " << scoredDocuments << std::endl;
+
   delete deleted;
 }
 

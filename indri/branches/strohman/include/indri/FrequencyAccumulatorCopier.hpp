@@ -40,21 +40,38 @@ namespace indri
 
       indri::lang::Node* after( indri::lang::ScoreAccumulatorNode* oldAccumulatorNode, indri::lang::ScoreAccumulatorNode* newAccumulatorNode ) {
         // if we have a WeightNode child, and it has children that are only TermFrequencyNodes, we should swap in the TermFrequencyAccumulatorNode
-        indri::lang::WeightNode* child = dynamic_cast<indri::lang::WeightNode*>( newAccumulatorNode->getChild() );
+        indri::lang::WeightNode* childWeight = dynamic_cast<indri::lang::WeightNode*>( newAccumulatorNode->getChild() );
+        indri::lang::CombineNode* childCombine = dynamic_cast<indri::lang::CombineNode*>( newAccumulatorNode->getChild() );
+        indri::lang::TermFrequencyScorerNode* childTermFrequency = dynamic_cast<indri::lang::TermFrequencyScorerNode*>( newAccumulatorNode->getChild() );
         
-        if( !child ) {
+        if( !childWeight && !childCombine && !childTermFrequency ) {
           // child isn't a WeightNode, so we can't replace it
+          std::cout << "not weight, combine, or tf: " << newAccumulatorNode->getChild()->typeName() << std::endl;
           _nodes.push_back( newAccumulatorNode );
           return newAccumulatorNode;
         }
 
-        const std::vector< std::pair<double, indri::lang::ScoredExtentNode*> >& children = child->getChildren();
+        std::vector< std::pair<double, indri::lang::ScoredExtentNode*> > children;
+
+        if( childWeight ) {
+          children = childWeight->getChildren();
+        } else if( childCombine ) {
+          // child is a combine node
+          const std::vector< indri::lang::ScoredExtentNode* >& kids = childCombine->getChildren();
+
+          for( int i=0; i<kids.size(); i++ ) {
+            children.push_back( std::make_pair( 1.0 / double(kids.size()), kids[i] ) );
+          }
+        } else if( childTermFrequency ) {
+          children.push_back( std::make_pair( 1.0, childTermFrequency ) );
+        }
 
         for( int i=0; i<children.size(); i++ ) {
           indri::lang::TermFrequencyScorerNode* tfs = dynamic_cast<indri::lang::TermFrequencyScorerNode*>( children[i].second );
 
           if( !tfs ) {
             // found a node that's not a term frequency node, so we can't continue;
+            std::cout << "found non-tfs" << std::endl;
             _nodes.push_back( newAccumulatorNode );
             return newAccumulatorNode;
           }
