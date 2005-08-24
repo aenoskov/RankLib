@@ -44,8 +44,10 @@ namespace indri
       ListIteratorNode* _matches; 
 
       std::string _name;
-  double _occurrences;
-  double _contextSize;
+      double _occurrences;
+      double _contextSize;
+      int _documentOccurrences;
+      int _documentCount;
 
       EvaluatorNode::MResults _results;
 
@@ -53,8 +55,10 @@ public:
       ContextCountAccumulator( const std::string& name, ListIteratorNode* matches, ListIteratorNode* context );
       ~ContextCountAccumulator();
 
-  double getOccurrences() const;
-  double getContextSize() const;
+      double getOccurrences() const;
+      double getContextSize() const;
+      int getDocumentOccurrences() const;
+      int getDocumentCount() const;
 
       const ListIteratorNode* getContextNode() const;
       const ListIteratorNode* getMatchesNode() const;
@@ -64,6 +68,7 @@ public:
       void evaluate( int documentID, int documentLength );
       int nextCandidateDocument();
       void indexChanged( indri::index::Index& index );
+      bool isComplex();
     };
   }
 }

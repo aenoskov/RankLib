@@ -39,6 +39,7 @@ namespace indri
       // May be called for documents other than those returned by nextCandidateDocument().
       virtual void evaluate( int documentID, int documentLength ) = 0;
       virtual const MResults& getResults() = 0;
+      virtual bool isComplex() = 0;
     };
   }
 }

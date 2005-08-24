@@ -36,6 +36,8 @@ namespace indri
       UINT64 _occurrences;
       UINT64 _size;
       int _maximumDocument;
+      int _documentOccurrences;
+      int _documentCount;
 
       EvaluatorNode::MResults _results;
 
@@ -52,6 +54,7 @@ namespace indri
       void indexChanged( indri::index::Index& index );
       void evaluate( int documentID, int documentLength );
       int nextCandidateDocument();
+      bool isComplex();
     };
   }
 }

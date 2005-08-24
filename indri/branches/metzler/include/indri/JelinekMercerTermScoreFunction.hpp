@@ -44,7 +44,7 @@ namespace indri
         _collectionFrequency = collectionFrequency;
         _collectionLambda = collectionLambda;
         _documentLambda = documentLambda;
-        _foregroundLambda = _collectionLambda + _documentLambda;
+        _foregroundLambda = (1 - _collectionLambda);
 
         assert( _documentLambda >= 0.0 && _documentLambda <= 1.0 );
         assert( _collectionLambda >= 0.0 && _collectionLambda <= 1.0 );
@@ -61,7 +61,7 @@ namespace indri
         //
 
         double contextFrequency = contextSize ? occurrences / double(contextSize) : 0.0;
-        return log( _foregroundLambda * contextFrequency + _collectionComponent );
+	return log( _foregroundLambda * contextFrequency + _collectionComponent );
       }
 
       double scoreOccurrence( double occurrences, int contextSize, double documentOccurrences, int documentLength ) {

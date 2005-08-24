@@ -28,7 +28,9 @@ indri::infnet::ContextCountAccumulator::ContextCountAccumulator( const std::stri
   _matches(matches),
   _context(context),
   _occurrences(0),
-  _contextSize(0)
+  _contextSize(0),
+  _documentOccurrences(0),
+  _documentCount(0)
 {
 }
 
@@ -47,12 +49,22 @@ double indri::infnet::ContextCountAccumulator::getContextSize() const {
   return _contextSize;
 }
 
+int indri::infnet::ContextCountAccumulator::getDocumentOccurrences() const {
+  return _documentOccurrences;  
+}
+
+int indri::infnet::ContextCountAccumulator::getDocumentCount() const {
+  return _documentCount;
+}
+
 const indri::infnet::EvaluatorNode::MResults& indri::infnet::ContextCountAccumulator::getResults() {
   // we must be finished, so now is a good time to add our results to the ListCache
   _results.clear();
 
   _results[ "occurrences" ].push_back( indri::api::ScoredExtentResult( _occurrences, 0 ) );
   _results[ "contextSize" ].push_back( indri::api::ScoredExtentResult( _contextSize, 0 ) );
+  _results[ "documentOccurrences" ].push_back( indri::api::ScoredExtentResult( UINT64(_documentOccurrences), 0 ) );
+  _results[ "documentCount" ].push_back( indri::api::ScoredExtentResult( UINT64(_documentCount), 0 ) );
 
   return _results;
 }
@@ -68,12 +80,14 @@ const indri::infnet::ListIteratorNode* indri::infnet::ContextCountAccumulator::g
 void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int documentLength ) {
   double documentOccurrences = 0; 
   double documentContextSize = 0;
-
+  
   if( !_context ) {
     for( size_t i=0; i<_matches->extents().size(); i++ ) {
       const indri::index::Extent& extent = _matches->extents()[i];
       documentOccurrences += extent.weight;
     }
+    if( _matches->extents().size() > 0 )
+      _documentOccurrences++;
     _occurrences += documentOccurrences;
   } else {
 
@@ -98,7 +112,8 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
       //   but it's not the first one such that d>=a, then that context
       //   extent must overlap the first extent such that d>=a (which
       //   is not allowed).
-      while( extents[ex].end < matches[i].begin ) {
+      while( extents[ex].end < matches[i].begin ||
+	     ( extents[ex].end == matches[i].begin && matches[i].end > matches[i].begin ) ) {
         ex++;
 
         if( ex >= extents.size() ) break;
@@ -114,7 +129,10 @@ void indri::infnet::ContextCountAccumulator::evaluate( int documentID, int docum
     for( unsigned int i=0; i<extents.size(); i++ ) {
       documentContextSize += extents[i].end - extents[i].begin;
     }
-
+    
+    if( documentOccurrences > 0 )
+      _documentOccurrences++;
+    
     _occurrences += documentOccurrences;
     _contextSize += documentContextSize;
   }
@@ -139,8 +157,13 @@ void indri::infnet::ContextCountAccumulator::indexChanged( indri::index::Index& 
   if( ! _context ) {
     _contextSize += index.termCount();
   }
+  _documentCount += index.documentCount();
 }
 
+//
+// isComplex
+//
 
-
-
+bool indri::infnet::ContextCountAccumulator::isComplex() {
+  return true;
+}

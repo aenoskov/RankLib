@@ -49,7 +49,7 @@ namespace indri
         return translation;
       }
 
-      indri::query::TermScoreFunction* _buildTermScoreFunction( const std::string& smoothing, double occurrences, double contextSize ) const;
+      indri::query::TermScoreFunction* _buildTermScoreFunction( const std::string& smoothing, double occurrences, double contextSize, int documentOccurrences, int documentCount ) const;
 
     public:
       InferenceNetworkBuilder( indri::collection::Repository& repository, indri::lang::ListCache& cache, int resultsRequested );

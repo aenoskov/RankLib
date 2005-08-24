@@ -76,3 +76,8 @@ const indri::infnet::EvaluatorNode::MResults& indri::infnet::Annotator::getResul
 void indri::infnet::Annotator::indexChanged( indri::index::Index& index ) {
   // do nothing
 }
+
+bool indri::infnet::Annotator::isComplex() {
+  return true;
+}
+

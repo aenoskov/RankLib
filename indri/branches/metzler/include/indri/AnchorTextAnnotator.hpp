@@ -79,7 +79,7 @@ namespace indri
           int textLen = strlen(line+6);
           strcpy( _buffer.write(textLen+1), line+6 );
           _buffer.unwrite(1);
-
+	  
           assert( *(_buffer.front()+_buffer.position()-1) == '\"' && "Last character should be a quote" );
         }
         *(_buffer.write(1)) = 0;
@@ -98,9 +98,9 @@ namespace indri
             if(!beginIndex)
               beginIndex = terms.size();
           } else if( isspace(buffer[i]) ) {
+            buffer[i] = 0;
             if( beginWord )
               terms.push_back( beginWord );
-            buffer[i] = 0;
             beginWord = 0;
           } else if( buffer[i] == '\"' ) {
             buffer[i] = 0;
@@ -116,12 +116,18 @@ namespace indri
 
             assert( extent.begin <= extent.end );
 
-            if( beginIndex )
+            if( beginIndex ) {
               tags.push_back(extent);
+	      if( terms.size() > 125000 )
+		break;
+	    }
+
 
             beginIndex = 0;
           }
+
         }
+
       }
 
       bool _matchingDocno( indri::api::ParsedDocument* document ) {

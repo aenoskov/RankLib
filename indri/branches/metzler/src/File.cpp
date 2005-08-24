@@ -91,7 +91,7 @@ bool indri::file::File::open( const std::string& filename ) {
   
   return true;
 #else 
-#ifdef __APPLE__
+#ifndef O_LARGEFILE
   _handle = ::open( filename.c_str(), O_RDWR );
 #else
   _handle = ::open( filename.c_str(), O_LARGEFILE | O_RDWR );
@@ -119,7 +119,7 @@ bool indri::file::File::openRead( const std::string& filename ) {
 
   return true;
 #else 
-#ifdef __APPLE__
+#ifndef O_LARGEFILE
   _handle = ::open( filename.c_str(), O_RDONLY );
 #else
   _handle = ::open( filename.c_str(), O_LARGEFILE | O_RDONLY );
@@ -130,6 +130,22 @@ bool indri::file::File::openRead( const std::string& filename ) {
   
   return true;
 #endif
+}
+
+bool indri::file::File::openTemporary( std::string& fileName ) {
+#ifdef HAVE_MKSTEMP
+  char name[] = "/tmp/indriXXXXXX";
+  _handle = ::mkstemp( name );
+  fileName = name;
+
+  if( _handle < 0 )
+    LEMUR_THROW( LEMUR_IO_ERROR, "Couldn't create temporary file." );
+#else
+  fileName = tmpnam();
+  open( filename );
+#endif
+
+  return true;
 }
 
 size_t indri::file::File::read( void* buffer, UINT64 position, size_t length ) {

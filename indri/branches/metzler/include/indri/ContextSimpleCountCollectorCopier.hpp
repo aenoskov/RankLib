@@ -36,6 +36,8 @@
 #include "indri/QuerySpec.hpp"
 #include "indri/Copier.hpp"
 #include "indri/delete_range.hpp"
+#include "indri/Repository.hpp"
+
 namespace indri
 {
   namespace lang
@@ -48,7 +50,7 @@ namespace indri
       class SubtreeWalker : public indri::lang::Walker {
       private:
         bool _computable;
-        int _extentOrs;
+        //int _extentOrs;
         bool _hasContext;
 
         std::vector<indri::lang::IndexTerm*> _terms;
@@ -57,7 +59,7 @@ namespace indri
       public:
         SubtreeWalker() :
           _computable(true),
-          _extentOrs(0),
+          //_extentOrs(0),
           _field(0)
         {
         }
@@ -92,13 +94,13 @@ namespace indri
           _hasContext = contextNode->getContext() ? true : false;
         }
     
-        void before( indri::lang::ExtentOr* extentOrNode ) {
+        /*void before( indri::lang::ExtentOr* extentOrNode ) {
           _extentOrs++;
         }
 
         void after( indri::lang::ExtentOr* extentOrNode ) {
           _extentOrs--;
-        }
+	  }*/
 
         void before( indri::lang::ExtentAnd* extentAndNode ) {
           // we definitely can't deal with any "true" extentAnds
@@ -109,8 +111,8 @@ namespace indri
         }
 
         void before( indri::lang::Field* fieldNode ) {
-          if( _extentOrs || _field ) {
-            // fields can't be or-ed together; only terms can (_extentOr)
+          //if( _extentOrs || _field ) {
+          if( _field ) {
             // If we already saw a field, then this one proves that the tree isn't computable (_field)
             _computable = false;
           }
