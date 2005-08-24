@@ -106,6 +106,7 @@ namespace indri
         indri::lang::Node* context = scorer->getContext();
         indri::lang::Field* contextField = dynamic_cast<indri::lang::Field*>(context);
         indri::lang::ExtentOr* contextExtOr = dynamic_cast<indri::lang::ExtentOr*>(context);
+
         std::string fieldName;
 
         // there may be an ExtentOr around the field, so descend into it if necessary
@@ -119,16 +120,17 @@ namespace indri
         } else {
           fieldName = "?";
         }
-    
+
         indri::lang::Node* raw = scorer->getRawExtent();
         indri::lang::Node* rawTerm = dynamic_cast<indri::lang::IndexTerm*>(raw);
         indri::lang::Node* rawODNode = dynamic_cast<indri::lang::ODNode*>(raw);
         indri::lang::Node* rawUWNode = dynamic_cast<indri::lang::UWNode*>(raw);
+        indri::lang::Node* rawWeightedExtentOr = dynamic_cast<indri::lang::WeightedExtentOr*>(raw);
         std::string op;
 
         if( rawODNode || rawUWNode ) {
           op = "window";
-        } else if( rawTerm ) {
+        } else if( rawTerm || rawWeightedExtentOr ) {
           op = "term";
         } else {
           op = "?";

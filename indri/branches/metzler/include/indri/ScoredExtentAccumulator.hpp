@@ -43,7 +43,7 @@ namespace indri
         _name(name),
         _skipping(0)
       {
-        if( indri::api::Parameters::instance().get( "skipping", 1 ) )
+        if( indri::api::Parameters::instance().get( "skipping", 1 ) && false )
           _skipping = dynamic_cast<SkippingCapableNode*>(belief);
       }
 
@@ -95,6 +95,10 @@ namespace indri
 
       void indexChanged( indri::index::Index& index ) {
         // do nothing
+      }
+      
+      bool isComplex() {
+        return true;
       }
     };
   }

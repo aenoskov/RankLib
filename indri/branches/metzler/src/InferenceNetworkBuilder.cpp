@@ -56,19 +56,10 @@
 
 #include <stdexcept>
 
-indri::query::TermScoreFunction* indri::infnet::InferenceNetworkBuilder::_buildTermScoreFunction( const std::string& smoothing, double occurrences, double contextSize ) const {
+indri::query::TermScoreFunction* indri::infnet::InferenceNetworkBuilder::_buildTermScoreFunction( const std::string& smoothing, double occurrences, double contextSize, int documentOccurrences, int documentCount ) const {
   double collectionFrequency;
 
-  if( occurrences ) {
-    collectionFrequency = double(occurrences) / double(contextSize);
-  } else {
-    // this is something that never happens in our collection, so we assume that it
-    // happens somewhat less often than 1./collectionSize.  I picked 1/(2*collectionSize)
-    // because it seemed most appropriate
-    collectionFrequency = 1.0 / double(contextSize*2.);
-  }
-
-  return indri::query::TermScoreFunctionFactory::get( smoothing, collectionFrequency );
+  return indri::query::TermScoreFunctionFactory::get( smoothing, occurrences, contextSize, documentOccurrences, documentCount );
 }
 
 indri::infnet::InferenceNetworkBuilder::InferenceNetworkBuilder( indri::collection::Repository& repository, indri::lang::ListCache& cache, int resultsRequested ) :
@@ -582,7 +573,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ContextCounterN
                                                 dynamic_cast<ListIteratorNode*>(untypedContext) );
 
     _network->addEvaluatorNode( contextCount );
-    _network->addComplexEvaluatorNode( contextCount );
     _nodeMap[ contextCounterNode ] = contextCount;
   }
 }
@@ -608,7 +598,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ScoreAccumulato
     ScoredExtentAccumulator* accumulator = new ScoredExtentAccumulator( scoreAccumulatorNode->nodeName(), child, _resultsRequested );
 
     _network->addEvaluatorNode( accumulator );
-    _network->addComplexEvaluatorNode( accumulator );
     _nodeMap[ scoreAccumulatorNode ] = accumulator;
   }
 }
@@ -620,7 +609,6 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::AnnotatorNode* 
     Annotator* annotator = new Annotator( annotatorNode->nodeName(), child );
 
     _network->addEvaluatorNode( annotator );
-    _network->addComplexEvaluatorNode( annotator );
     _nodeMap[ annotatorNode ] = annotator;
   }
 }
@@ -637,7 +625,9 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::TermFrequencySc
 
     function = _buildTermScoreFunction( termScorerNode->getSmoothing(),
                                         termScorerNode->getOccurrences(),
-                                        termScorerNode->getContextSize() );
+                                        termScorerNode->getContextSize(),
+					termScorerNode->getDocumentOccurrences(),
+					termScorerNode->getDocumentCount());
 
     if( termScorerNode->getOccurrences() > 0 ) {
       bool stopword = false;
@@ -680,7 +670,9 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::RawScorerNode* 
 
     function = _buildTermScoreFunction( rawScorerNode->getSmoothing(),
                                         rawScorerNode->getOccurrences(),
-                                        rawScorerNode->getContextSize() );
+                                        rawScorerNode->getContextSize(),
+					rawScorerNode->getDocumentOccurrences(),
+					rawScorerNode->getDocumentCount());
 
     if( rawScorerNode->getOccurrences() > 0 && iterator != 0 ) {
       ListIteratorNode* rawIterator = 0;
@@ -710,9 +702,8 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::RawScorerNode* 
 
 void indri::infnet::InferenceNetworkBuilder::after( indri::lang::PriorNode* pNode ) {
   if( _nodeMap.find( pNode ) == _nodeMap.end() ) {
-    FieldIteratorNode* field = dynamic_cast<FieldIteratorNode*>(_nodeMap[pNode->getField()]);
-    PriorNode* priorNode = new PriorNode( pNode->nodeName(), field, pNode->getTable() );
-
+    PriorNode* priorNode = new PriorNode( pNode->nodeName(), *_network, _network->addPriorIterator( pNode->getPriorName() ) );
+    
     _network->addBeliefNode( priorNode );
     _nodeMap[pNode] = priorNode;
   }

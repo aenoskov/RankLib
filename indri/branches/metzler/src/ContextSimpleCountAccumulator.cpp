@@ -31,10 +31,18 @@ void indri::infnet::ContextSimpleCountAccumulator::_computeCounts( indri::index:
 
   if( _context.size() ) {
     _size += index.fieldTermCount( _context );
+    _documentCount += index.fieldDocumentCount( _context );
   } else {
     _size += index.termCount();
+    _documentCount += index.documentCount();
   }
 
+  if( _terms.size() == 1 )
+    _documentOccurrences += index.documentCount( _terms[0] );
+  else {
+    // TODO: implement this case!
+  }
+  
   for( unsigned int i=0; i<_terms.size(); i++ ) {
     if( _terms[i].length() != 0 ) {
       if( _field.size() ) {
@@ -57,7 +65,9 @@ indri::infnet::ContextSimpleCountAccumulator::ContextSimpleCountAccumulator( con
   _field(field),
   _context(context),
   _occurrences(0),
-  _size(0)
+  _size(0),
+  _documentOccurrences(0),
+  _documentCount(0)
 {
 }
 
@@ -70,6 +80,8 @@ const indri::infnet::EvaluatorNode::MResults& indri::infnet::ContextSimpleCountA
 
   _results[ "occurrences" ].push_back( indri::api::ScoredExtentResult( _occurrences, 0 ) );
   _results[ "contextSize" ].push_back( indri::api::ScoredExtentResult( _size, 0 ) );
+  _results[ "documentOccurrences" ].push_back( indri::api::ScoredExtentResult( UINT64(_documentOccurrences), 0 ) );
+  _results[ "documentCount" ].push_back( indri::api::ScoredExtentResult( UINT64(_documentCount), 0 ) );
 
   return _results;
 }
@@ -86,3 +98,8 @@ void indri::infnet::ContextSimpleCountAccumulator::evaluate( int documentID, int
 int indri::infnet::ContextSimpleCountAccumulator::nextCandidateDocument() {
   return MAX_INT32;
 }
+
+bool indri::infnet::ContextSimpleCountAccumulator::isComplex() {
+  return false;
+}
+

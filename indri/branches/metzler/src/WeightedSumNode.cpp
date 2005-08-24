@@ -62,12 +62,16 @@ const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infn
     const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& childResults = _children[i]->score( documentID, begin, end, documentLength );
 
     for( unsigned int j=0; j<childResults.size(); j++ ) {
-      s += _weights[i] * exp( childResults[j].score );
+      if( childResults[j].score != 0.0 )
+	s += _weights[i] * exp( childResults[j].score );
     }
   }
 
   _scores.clear();
-  _scores.push_back( indri::api::ScoredExtentResult( log(s), documentID, begin, end) );
+  if( s == 0.0 )
+    _scores.push_back( indri::api::ScoredExtentResult( 0.0, documentID, begin, end) );
+  else
+    _scores.push_back( indri::api::ScoredExtentResult( log(s), documentID, begin, end) );
 
   return _scores;
 }

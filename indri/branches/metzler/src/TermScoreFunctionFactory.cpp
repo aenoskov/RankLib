@@ -21,6 +21,8 @@
 #include "indri/JelinekMercerTermScoreFunction.hpp"
 #include "indri/DirichletTermScoreFunction.hpp"
 #include "indri/TwoStageTermScoreFunction.hpp"
+#include "indri/FeatureBasedScoreFunction.hpp"
+#include "indri/BernoulliTermScoreFunction.hpp"
 #include "indri/Parameters.hpp"
 
 static void termscorefunctionfactory_parse( indri::api::Parameters& converted, const std::string& spec );
@@ -39,11 +41,13 @@ static void termscorefunctionfactory_parse( indri::api::Parameters& converted, c
 // it is finished with it.
 //
 
-indri::query::TermScoreFunction* indri::query::TermScoreFunctionFactory::get( const std::string& stringSpec, double collectionFrequency ) {
+indri::query::TermScoreFunction* indri::query::TermScoreFunctionFactory::get( const std::string& stringSpec, double occurrences, double contextSize, int documentOccurrences, int documentCount ) {
   indri::api::Parameters spec;
   termscorefunctionfactory_parse( spec, stringSpec );
   std::string method = spec.get( "method", "dirichlet" );
 
+  double collectionFrequency = occurrences/contextSize;
+  
   if( method == "dirichlet" || method == "d" || method == "dir" ) {
     // dirichlet -- takes parameter "mu"
     double mu = spec.get( "mu", 2500 );
@@ -65,6 +69,29 @@ indri::query::TermScoreFunction* indri::query::TermScoreFunctionFactory::get( co
     double lambda = spec.get( "lambda", 0.4 );
     
     return new indri::query::TwoStageTermScoreFunction( mu, lambda, collectionFrequency );
+  } else if( method == "tfidf" || method == "okapi" ) {
+    double k1 = spec.get( "k1", 1.5 );
+    double b = spec.get( "b", 0.75 );
+    double idf = log( ( documentCount - documentOccurrences + 0.5 ) / ( documentOccurrences + 0.5 ) );
+    double avgDocLength = contextSize / double(documentCount);
+
+    return new indri::query::TFIDFTermScoreFunction( idf, avgDocLength, k1, b );
+  }
+  else if( method == "feature" ) {
+    double weights[ 6 ];
+    weights[ 0 ] = spec.get( "0", 0.0 );
+    weights[ 1 ] = spec.get( "1", 0.0 );
+    weights[ 2 ] = spec.get( "2", 0.0 );
+    weights[ 3 ] = spec.get( "3", 0.0 );
+    weights[ 4 ] = spec.get( "4", 0.0 );
+    weights[ 5 ] = spec.get( "5", 0.0 );
+    
+    return new indri::query::FeatureBasedScoreFunction( weights, occurrences, contextSize, documentOccurrences, documentCount );
+  }
+  else if( method == "bernoulli" ) {
+    double mu = spec.get( "mu", 10 );
+
+    return new indri::query::BernoulliTermScoreFunction( mu, double(documentOccurrences) / double(documentCount) );
   }
 
   // if nothing else worked, we'll use dirichlet with mu=2500

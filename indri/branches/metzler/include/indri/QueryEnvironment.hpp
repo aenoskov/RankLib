@@ -25,7 +25,6 @@
 #include "indri/NetworkStream.hpp"
 #include "indri/NetworkMessageStream.hpp"
 #include "indri/Parameters.hpp"
-#include "indri/PriorFactory.hpp"
 #include "indri/ParsedDocument.hpp"
 #include "indri/Repository.hpp"
 #include "indri/QueryAnnotation.hpp"
@@ -57,7 +56,6 @@ namespace indri
       std::vector<indri::net::NetworkMessageStream*> _messageStreams;
 
       Parameters _parameters;
-      indri::query::PriorFactory _priorFactory;
 
       void _mergeQueryResults( indri::infnet::InferenceNetwork::MAllResults& results, std::vector<indri::server::QueryServerResponse*>& responses );
       void _copyStatistics( std::vector<indri::lang::RawScorerNode*>& scorerNodes, indri::infnet::InferenceNetwork::MAllResults& statisticsResults );
@@ -77,6 +75,13 @@ namespace indri
       QueryEnvironment( QueryEnvironment& other ) {}
 
     public:
+      struct ExpressionStatistics {
+	// number of times the expression occurs in the collection
+	double occurrences;
+	// number of documents the expression occurs in
+	int documentOccurrences;
+      };
+      
       QueryEnvironment();
       ~QueryEnvironment();
       /// \brief Set the amount of memory to use.
@@ -180,6 +185,10 @@ namespace indri
       /// @return total frequency of this stem within this field in the 
       /// aggregated collection
       INT64 stemFieldCount( const std::string& term, const std::string& field );
+      /// \brief Returns an ExpressionStatistics object, which contains the total number of times this
+      /// expression appears in the collection and the number of documents it appears in.
+      /// @param expression The expression to evaluate, probably an ordered or unordered window expression
+      ExpressionStatistics* expressionStatistics( const std::string& expression );
       /// \brief Return the list of fields.
       /// @return vector of field names.
       std::vector<std::string> fieldList();

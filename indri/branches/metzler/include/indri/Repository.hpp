@@ -25,6 +25,7 @@
 #include "indri/DiskIndex.hpp"
 #include "indri/ref_ptr.hpp"
 #include "indri/DeletedDocumentList.hpp"
+#include "indri/PriorListIterator.hpp"
 
 #include <string>
 namespace indri
@@ -82,6 +83,7 @@ namespace indri
       std::vector<indri::parse::Transformation*> _transformations;
       std::vector<Field> _fields;
       std::vector<indri::index::Index::FieldDescription> _indexFields;
+      std::map<std::string, indri::file::File*> _priorFiles;
 
       std::string _path;
       bool _readOnly;
@@ -101,9 +103,13 @@ namespace indri
       void _incrementLoad();
       void _countDocumentAdd();
       Load _computeLoad( indri::atomic::value_type* loadArray );
+      
+      void _openPriors( const std::string& path );
+      void _closePriors();
 
       void _buildFields();
-      void _buildChain( indri::api::Parameters& parameters );
+      void _buildChain( indri::api::Parameters& parameters,
+                        indri::api::Parameters *options );
       void _buildTransientChain( indri::api::Parameters& parameters );
 
       void _copyParameters( indri::api::Parameters& options );
@@ -186,6 +192,9 @@ namespace indri
 
       /// Indexes in this repository
       index_state indexes();
+      
+      /// Return a prior iterator
+      indri::collection::PriorListIterator* priorListIterator( const std::string& priorName );
 
       /// Notify the repository that a query has happened
       void countQuery();

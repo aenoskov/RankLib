@@ -1362,6 +1362,8 @@ namespace indri {
     private:
       double _occurrences; // number of occurrences within this context
       double _contextSize; // number of terms that occur within this context
+      int _documentOccurrences; // number of documents we occur in
+      int _documentCount; // total number of documents
       double _maximumContextFraction;
 
       RawExtentNode* _raw;
@@ -1375,6 +1377,8 @@ namespace indri {
 
         _occurrences = 0;
         _contextSize = 0;
+	_documentOccurrences = 0;
+	_documentCount = 0;
         _smoothing = smoothing;
       }
 
@@ -1384,6 +1388,8 @@ namespace indri {
 
         _occurrences = unpacker.getDouble( "occurrences" );
         _contextSize = unpacker.getDouble( "contextSize" );
+	_documentOccurrences = unpacker.getInteger( "documentOccurrences" );
+	_documentCount = unpacker.getInteger( "documentCount" );
         _smoothing = unpacker.getString( "smoothing" );
       }
 
@@ -1431,13 +1437,23 @@ namespace indri {
         return _contextSize;
       }
 
+      int getDocumentOccurrences() const {
+	return _documentOccurrences;
+      }
+
+      int getDocumentCount() const {
+	return _documentCount;
+      }
+
       const std::string& getSmoothing() const {
         return _smoothing;
       }
 
-      void setStatistics( double occurrences, double contextSize ) {
+      void setStatistics( double occurrences, double contextSize, int documentOccurrences, int documentCount ) {
         _occurrences = occurrences;
         _contextSize = contextSize;
+	_documentOccurrences = documentOccurrences;
+	_documentCount = documentCount;
       }
 
       void setContext( RawExtentNode* context ) {
@@ -1467,6 +1483,8 @@ namespace indri {
 
         packer.put( "occurrences", _occurrences );
         packer.put( "contextSize", _contextSize );
+	packer.put( "documentOccurrences", _documentOccurrences );
+	packer.put( "documentCount", _documentCount );
         packer.put( "smoothing", _smoothing );
         packer.after(this);
       }
@@ -1497,6 +1515,8 @@ namespace indri {
     private:
       double _occurrences; // number of occurrences within this context
       double _contextSize; // number of terms that occur within this context
+      int _documentOccurrences; // number of documents we occur in
+      int _documentCount; // total number of documents
 
       std::string _text;
       std::string _smoothing;
@@ -1506,6 +1526,8 @@ namespace indri {
       TermFrequencyScorerNode( const std::string& text, bool stemmed ) {
         _occurrences = 0;
         _contextSize = 0;
+	_documentOccurrences = 0;
+	_documentCount = 0;
         _smoothing = "";
         _text = text;
         _stemmed = stemmed;
@@ -1514,6 +1536,8 @@ namespace indri {
       TermFrequencyScorerNode( Unpacker& unpacker ) {
         _occurrences = unpacker.getDouble( "occurrences" );
         _contextSize = unpacker.getDouble( "contextSize" );
+	_documentOccurrences = unpacker.getInteger( "documentOccurrences" );
+	_documentCount = unpacker.getInteger( "documentCount" );
         _smoothing = unpacker.getString( "smoothing" );
         _text = unpacker.getString( "text" );
         _stemmed = unpacker.getBoolean( "stemmed" );
@@ -1560,13 +1584,23 @@ namespace indri {
         return _contextSize;
       }
 
+      int getDocumentOccurrences() const {
+	return _documentOccurrences;
+      }
+
+      int getDocumentCount() const {
+	return _documentCount;
+      }
+      
       const std::string& getSmoothing() const {
         return _smoothing;
       }
 
-      void setStatistics( double occurrences, double contextSize ) {
+      void setStatistics( double occurrences, double contextSize, int documentOccurrences, int documentCount ) {
         _occurrences = occurrences;
         _contextSize = contextSize;
+	_documentOccurrences = documentOccurrences;
+	_documentCount = documentCount;
       }
 
       void setSmoothing( const std::string& smoothing ) {
@@ -1577,6 +1611,8 @@ namespace indri {
         packer.before(this);
         packer.put( "occurrences", _occurrences );
         packer.put( "contextSize", _contextSize );
+	packer.put( "documentOccurrences", _documentOccurrences );
+	packer.put( "documentCount", _documentCount );
         packer.put( "text", _text );
         packer.put( "stemmed", _stemmed );
         packer.put( "smoothing", _smoothing );
@@ -1710,122 +1746,53 @@ namespace indri {
     };
 
     class PriorNode : public ScoredExtentNode {
-    public:
-      struct tuple_type {
-        int begin;
-        int end;
-        double score;
-      };
-
     private:
-      std::map<int,tuple_type> _table;
-      Field* _field;
-      std::string _fieldName;
+      std::string _priorName;
 
     public:
-      PriorNode() :
-        _field(0)
+      PriorNode( const std::string& priorName ) :
+        _priorName( priorName )
       {
-      }
-
-      PriorNode( indri::lang::Field* field, const std::map<int, tuple_type>& table ) :
-        _table(table),
-        _field(field)
-      {
-        _fieldName = _field->getFieldName();  
-      }
-
-      PriorNode( std::string& fieldName, const std::map<int, tuple_type>& table ) :
-        _fieldName(fieldName),
-        _field(0),
-        _table(table)
-      {
-      }
+      } 
 
       std::string queryText() const {
         std::stringstream qtext;
-        // with the definition of priors somewhat in flux, it's
-        // hard to know what would be good to put here.
-        qtext << "#prior(" << _fieldName << ")";
+        qtext << "#prior(" << _priorName << ")";
         return qtext.str();
       }
 
       PriorNode( Unpacker& unpacker ) {
-        std::vector<int> beginList = unpacker.getIntVector( "begin" );
-        std::vector<int> endList = unpacker.getIntVector( "end" );
-        std::vector<double> scoreList = unpacker.getDoubleVector( "score" );
-        assert( beginList.size() == endList.size() );
-        assert( scoreList.size() == endList.size() );
-
-        for( size_t i=0; i<beginList.size(); i++ ) {
-          tuple_type t;
-          t.begin = beginList[i];
-          t.end = endList[i];
-          t.score = scoreList[i];
-
-          _table[ beginList[i] ] = t;
-        }
- 
-        _field = dynamic_cast<Field*>(unpacker.getRawExtentNode( "field" ));
+        _priorName = unpacker.getString( "priorName" );
       }
 
-      std::string nodeType() {
+      std::string typeName() const {
         return "PriorNode";
       }
       
       UINT64 hashCode() const {
-        return 0;
+        indri::utility::GenericHash<const char*> hash;
+        return hash( _priorName.c_str() ) + 9;
       }
-
-      const std::map<int,tuple_type>& getTable() const {
-        return _table;
-      }
-
-      const std::string& getFieldName() const {
-        return _fieldName;
-      }
-
-      indri::lang::Field* getField() const {
-        return _field;
-      }
-
-      void setField( indri::lang::Field* field ) {
-        _field = field;
+      
+      const std::string& getPriorName() const {
+        return _priorName;
       }
 
       void walk( Walker& walker ) {
         walker.before(this);
-        _field->walk(walker);
         walker.after(this);
       }
 
       indri::lang::Node* copy( Copier& copier ) {
         copier.before(this);
-        Field* duplicateField = dynamic_cast<Field*>(_field->copy(copier));
-        PriorNode* duplicate = new PriorNode( duplicateField, getTable() );
+        PriorNode* duplicate = new PriorNode( this->_priorName );
+        duplicate->setNodeName( nodeName() );
         return copier.after(this, duplicate);
       }
 
       void pack( Packer& packer ) {
         packer.before(this);
-
-        std::vector<int> beginList;
-        std::vector<int> endList;
-        std::vector<double> scoreList;
-
-        for( std::map<int,tuple_type>::iterator iter;
-             iter != _table.end();
-             iter++ )
-          {
-            beginList.push_back( (*iter).second.begin );
-            endList.push_back( (*iter).second.end );
-            scoreList.push_back( (*iter).second.score );
-          }
-
-        packer.put( "begin", beginList );
-        packer.put( "end", endList );
-        packer.put( "score", scoreList );
-        packer.put( "field", _field );
+        packer.put( "priorName", _priorName );
         packer.after(this);
       }
     };
@@ -2521,13 +2488,17 @@ namespace indri {
       bool _hasContextSize;
       double _occurrences;
       double _contextSize;
+      int _documentOccurrences;
+      int _documentCount;
 
     public:
       ContextCounterNode( RawExtentNode* raw, RawExtentNode* context ) :
         _hasCounts(false),
         _hasContextSize(false),
         _occurrences(0),
-        _contextSize(0)
+        _contextSize(0),
+	_documentOccurrences(0),
+	_documentCount(0)
       {
         _raw = raw;
         _context = context;
@@ -2538,6 +2509,8 @@ namespace indri {
         _context = unpacker.getRawExtentNode( "context" );
         _occurrences = unpacker.getDouble( "occurrences" );
         _contextSize = unpacker.getDouble( "contextSize" );
+	_documentOccurrences = unpacker.getInteger( "documentOccurrences" );
+	_documentCount = unpacker.getInteger( "documentCount" );
 
         _hasCounts = unpacker.getBoolean( "hasCounts" );
         _hasContextSize = unpacker.getBoolean( "hasContextSize" );
@@ -2592,6 +2565,8 @@ namespace indri {
         packer.put( "context", _context );
         packer.put( "occurrences", _occurrences );
         packer.put( "contextSize", _contextSize );
+	packer.put( "documentOccurrences", _documentOccurrences );
+	packer.put( "documentCount", _documentCount );
 
         packer.put( "hasCounts", _hasCounts );
         packer.put( "hasContextSize", _hasContextSize );
@@ -2631,16 +2606,28 @@ namespace indri {
         return _contextSize;
       }
 
+      int getDocumentOccurrences() const {
+	return _documentOccurrences;
+      }
+
+      int getDocumentCount() const {
+	return _documentCount;
+      }
+      
       void setContextSize( double contextSize ) {
         _contextSize = contextSize;
         _hasContextSize = true;
       }
 
       void setCounts( double occurrences,
-                      double contextSize ) {
+                      double contextSize,
+		      int documentOccurrences,
+		      int documentCount ) {
         _hasCounts = true;
         _occurrences = occurrences;
         setContextSize( contextSize );
+	_documentOccurrences = documentOccurrences;
+	_documentCount = documentCount;
       }
     };
 
@@ -2654,6 +2641,8 @@ namespace indri {
       bool _hasContextSize;
       double _occurrences;
       double _contextSize;
+      int _documentOccurrences;
+      int _documentCount;
 
     public:
       ContextSimpleCounterNode( const std::vector<std::string>& terms, const std::string& field, const std::string& context ) :
@@ -2661,6 +2650,8 @@ namespace indri {
         _hasContextSize(false),
         _occurrences(0),
         _contextSize(0),
+	_documentOccurrences(0),
+	_documentCount(0),
         _terms(terms),
         _field(field),
         _context(context)
@@ -2670,6 +2661,8 @@ namespace indri {
       ContextSimpleCounterNode( Unpacker& unpacker ) {
         _occurrences = unpacker.getDouble( "occurrences" );
         _contextSize = unpacker.getDouble( "contextSize" );
+	_documentOccurrences = unpacker.getInteger( "documentOccurrences" );
+	_documentCount = unpacker.getInteger( "documentCount" );
 
         _terms = unpacker.getStringVector( "terms" );
         _field = unpacker.getString( "field" );
@@ -2697,6 +2690,8 @@ namespace indri {
         packer.before(this);
         packer.put( "occurrences", _occurrences );
         packer.put( "contextSize", _contextSize );
+	packer.put( "documentOccurrences", _documentOccurrences );
+	packer.put( "documentCount", _documentCount );
 
         packer.put( "terms", _terms );
         packer.put( "field", _field );
@@ -2734,6 +2729,14 @@ namespace indri {
         return _contextSize;
       }
 
+      int getDocumentOccurrences() const {
+	return _documentOccurrences;
+      }
+
+      int getDocumentCount() const {
+	return _documentCount;
+      }
+      
       const std::vector<std::string>& terms() const {
         return _terms;
       }
@@ -2752,10 +2755,14 @@ namespace indri {
       }
 
       void setCounts( double occurrences,
-                      double contextSize ) {
+                      double contextSize,
+		      int documentOccurrences,
+		      int documentCount ) {
         _hasCounts = true;
         _occurrences = occurrences;
         setContextSize( contextSize );
+	_documentOccurrences = documentOccurrences;
+	_documentCount = documentCount;
       }
     };
 

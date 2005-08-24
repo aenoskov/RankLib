@@ -170,11 +170,15 @@ void indri::api::QueryEnvironment::_copyStatistics( std::vector<indri::lang::Raw
   for( unsigned int i=0; i<scorerNodes.size(); i++ ) {
     std::vector<ScoredExtentResult>& occurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "occurrences" ];
     std::vector<ScoredExtentResult>& contextSizeList = statisticsResults[ scorerNodes[i]->nodeName() ][ "contextSize" ];
+    std::vector<ScoredExtentResult>& documentOccurrencesList = statisticsResults[ scorerNodes[i]->nodeName() ][ "documentOccurrences" ];
+    std::vector<ScoredExtentResult>& documentCountList = statisticsResults[ scorerNodes[i]->nodeName() ][ "documentCount" ];
 
     double occurrences = occurrencesList[0].score;
     double contextSize = contextSizeList[0].score;
+    int documentOccurrences = int(documentOccurrencesList[0].score);
+    int documentCount = int(documentCountList[0].score);
 
-    scorerNodes[i]->setStatistics( occurrences, contextSize );
+    scorerNodes[i]->setStatistics( occurrences, contextSize, documentOccurrences, documentCount );
   }
 }
 
@@ -699,6 +703,55 @@ void indri::api::QueryEnvironment::_annotateQuery( indri::infnet::InferenceNetwo
     annotatorName = annotatorNodes[0]->nodeName();
 }
 
+//
+// expressionStatistics
+//
+
+indri::api::QueryEnvironment::ExpressionStatistics* indri::api::QueryEnvironment::expressionStatistics( const std::string& expression ) {
+  std::istringstream query(expression);
+  indri::lang::QueryLexer lexer( query );
+  indri::lang::QueryParser parser( lexer );
+  
+  // this step is required to initialize some internal
+  // parser variables, since ANTLR grammars can't add things
+  // to the constructor
+  parser.init( &lexer );
+  lexer.init();
+
+  indri::lang::ScoredExtentNode* rootNode;
+
+  try {
+    rootNode = parser.query();
+  } catch( antlr::ANTLRException e ) {
+    LEMUR_THROW( LEMUR_PARSE_ERROR, "Couldn't understand this query: " + e.getMessage() );
+  }
+
+  indri::lang::RawScorerNode* rootScorer = dynamic_cast<indri::lang::RawScorerNode*>(rootNode);
+  
+  if( rootScorer == 0 ) {
+    LEMUR_THROW( LEMUR_PARSE_ERROR, "This query does not appear to be a proximity expression" );
+  }
+
+  // replace the raw scorer node with a context counter node
+  indri::lang::ContextCounterNode* contextCounter = new indri::lang::ContextCounterNode( rootScorer->getRawExtent(),
+                                                                                         rootScorer->getContext() );
+  contextCounter->setNodeName( rootScorer->nodeName() );
+  
+  std::vector<indri::lang::Node*> roots;
+  roots.push_back( contextCounter );
+
+  indri::infnet::InferenceNetwork::MAllResults statisticsResults;
+  _sumServerQuery( statisticsResults, roots, 1000 );
+  
+  std::vector<ScoredExtentResult>& occurrencesList = statisticsResults[ contextCounter->nodeName() ][ "occurrences" ];
+  std::vector<ScoredExtentResult>& documentOccurrencesList = statisticsResults[ contextCounter->nodeName() ][ "docOccurrences" ];
+
+  ExpressionStatistics* stats = new ExpressionStatistics;
+  stats->occurrences = occurrencesList[0].score;
+  stats->documentOccurrences = int( documentOccurrencesList[0].score );
+  
+  return stats;
+}
 
 // run a query (Indri query language)
 std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::_runQuery( indri::infnet::InferenceNetwork::MAllResults& results,
@@ -715,7 +768,7 @@ std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::_runQu
   // this step is required to initialize some internal
   // parser variables, since ANTLR grammars can't add things
   // to the constructor
-  parser.init( &_priorFactory, &lexer );
+  parser.init( &lexer );
   lexer.init();
 
   PRINT_TIMER( "Initialization complete" );
@@ -760,8 +813,7 @@ std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::_runQu
   std::string accumulatorName;
   _scoredQuery( results, rootNode, accumulatorName, resultsRequested, documentSet );
   std::vector<indri::api::ScoredExtentResult> queryResults = results[accumulatorName]["scores"];
-  // use stable sort to minimize differences across platforms.
-  std::stable_sort( queryResults.begin(), queryResults.end() );
+  std::stable_sort( queryResults.begin(), queryResults.end(), indri::api::ScoredExtentResult::score_greater() );
   if( queryResults.size() > resultsRequested )
     queryResults.resize( resultsRequested );
 
