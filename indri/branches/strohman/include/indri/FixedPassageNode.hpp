@@ -38,6 +38,10 @@ namespace indri
       int _windowSize;
       int _increment;
 
+      void _addSubextents( const indri::index::Extent& extent );
+      void _buildSubextents( const indri::index::Extent& extent );
+      void _buildSubextents( const indri::utility::greedy_vector<indri::index::Extent>& extents );
+
     public:
       FixedPassageNode( const std::string& name, BeliefNode* child, int windowSize, int increment );
 
