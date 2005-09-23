@@ -66,10 +66,6 @@ namespace indri
       index_state _active;
       int _indexCount;
 
-      // maintenance and load threads
-      indri::thread::ConditionVariable _quitLoadThread;
-      indri::thread::ConditionVariable _quitMaintenanceThread;
-
       // running flags
       volatile bool _maintenanceRunning;
       volatile bool _loadThreadRunning;
@@ -110,7 +106,6 @@ namespace indri
       void _buildFields();
       void _buildChain( indri::api::Parameters& parameters,
                         indri::api::Parameters *options );
-      void _buildTransientChain( indri::api::Parameters& parameters );
 
       void _copyParameters( indri::api::Parameters& options );
 
@@ -126,6 +121,7 @@ namespace indri
       void _merge( index_state& state );
       indri::index::Index* _mergeStage( index_state& state );
       UINT64 _mergeMemory( const std::vector<indri::index::Index*>& indexes );
+      unsigned int _mergeFiles( const std::vector<indri::index::Index*>& indexes );
 
       // these methods should only be called by the maintenance thread
       /// merge all known indexes together
@@ -165,6 +161,8 @@ namespace indri
       const std::vector<Field>& fields() const;
       /// @return the tags for this collection
       std::vector<std::string> tags() const;
+      /// @return the named priors list for this collection
+      std::vector<std::string> priors() const;
       /// Process, possibly transforming, the given term
       /// @param term the term to process
       /// @return the processed term

@@ -16,6 +16,8 @@ endif
 	$(MAKE) -C dumpindex
 	$(MAKE) -C rmodel
 	$(MAKE) -C stemclass
+	$(MAKE) -C rmodel
+	$(MAKE) -C makeprior
 
 $(INSTALLDIRS):
 	$(INSTALL_DIR) $@
@@ -32,6 +34,8 @@ endif
 	$(MAKE) clean -C dumpindex
 	$(MAKE) clean -C stemclass
 	$(MAKE) clean -C rmodel
+	$(MAKE) clean -C rmodel
+	$(MAKE) clean -C makeprior
 	rm -f depend/*
 
 distclean: clean
@@ -51,5 +55,7 @@ endif
 	$(MAKE) install -C runquery
 	$(MAKE) install -C indrid
 	$(MAKE) install -C dumpindex
+	$(MAKE) install -C rmodel
+	$(MAKE) install -C makeprior
 #	$(MAKE) install -C doc
 	$(INSTALL_DATA) Makefile.app $(pkgdatadir)

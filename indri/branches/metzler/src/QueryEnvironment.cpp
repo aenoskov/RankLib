@@ -160,8 +160,6 @@ void indri::api::QueryEnvironment::setStopwords( const std::vector<std::string>&
   _parameters.set("stopper","");
   Parameters p = _parameters.get("stopper");
   for( unsigned int i=0; i<stopwords.size(); i++ ) {
-    //    _parameters.append("word").set(stopwords[i]);
-    // should be the slice.
     p.append("word").set(stopwords[i]);
   }
 }
@@ -295,7 +293,6 @@ void indri::api::QueryEnvironment::_mergeServerQuery( indri::infnet::InferenceNe
   for( nodeIter = results.begin(); nodeIter != results.end(); nodeIter++ ) {
     for( listIter = nodeIter->second.begin(); listIter != nodeIter->second.end(); listIter++ ) {
       std::vector<indri::api::ScoredExtentResult>& listResults = listIter->second;
-      // use stable sort to minimize differences across platforms.
       std::stable_sort( listResults.begin(), listResults.end(), indri::api::ScoredExtentResult::score_greater() );
 
       if( int(listResults.size()) > resultsRequested )
@@ -761,7 +758,7 @@ std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::_runQu
                                                                                      indri::api::QueryAnnotation** annotation ) {
   INIT_TIMER
 
-    std::istringstream query(q);
+  std::istringstream query(q);
   indri::lang::QueryLexer lexer( query );
   indri::lang::QueryParser parser( lexer );
   
