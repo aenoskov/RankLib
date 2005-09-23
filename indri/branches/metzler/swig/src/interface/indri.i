@@ -35,15 +35,15 @@ typedef long long UINT64;
   try {
     $action
   } catch( lemur::api::Exception& e ) {
-    SWIG_exception( SWIG_RuntimeError, e.what().c_str() );
-    // control does not leave method when thrown.
-    return $null;
+    SWIG_exception(SWIG_RuntimeError, e.what().c_str() );
+    // control does not leave method when thrown. (fixed in 1.3.25
+    // return $null;
   }
 }
 
 %pragma(java) jniclasscode=%{
   static {
-    System.loadLibrary("indri");
+    System.loadLibrary("indri_jni");
   }
 %}
 
@@ -81,6 +81,9 @@ public:
 
   std::vector<std::string> documentMetadata( const std::vector<int>& documentIDs, const std::string& attributeName );
   std::vector<std::string> documentMetadata( const std::vector<indri::api::ScoredExtentResult>& documentIDs, const std::string& attributeName );
+
+  std::vector<int> documentIDsFromMetadata( const std::string& attributeName, const std::vector<std::string>& attributeValue );
+  std::vector<indri::api::ParsedDocument*> documentsFromMetadata( const std::string& attributeName, const std::vector<std::string>& attributeValue );
 
   INT64 termCount();
   INT64 termCount( const std::string& term );

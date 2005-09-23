@@ -40,6 +40,7 @@
 #include <string>
 #include <algorithm>
 
+#define MERGE_FILE_LIMIT 512
 const static int defaultMemory = 100*1024*1024;
 
 //
@@ -123,21 +124,10 @@ void indri::collection::Repository::_buildFields() {
 }
 
 //
-// _buildTransientChain
-//
-
-void indri::collection::Repository::_buildTransientChain( indri::api::Parameters& parameters ) {
-  if( parameters.exists("stopper.word") ) {
-    indri::api::Parameters stop = parameters["stopper.word"];
-    _transformations.push_back( new indri::parse::StopperTransformation( stop ) );
-  }
-}
-
-//
 // _buildChain
 //
 
-void indri::collection::Repository::_buildChain( indri::api::Parameters& parameters, indri::api::Parameters *options  ) {
+void indri::collection::Repository::_buildChain( indri::api::Parameters& parameters, indri::api::Parameters* options ) {
   bool dontNormalize = parameters.exists( "normalize" ) && ( false == (bool) parameters["normalize"] );
 
   if( dontNormalize == false ) {
@@ -154,7 +144,7 @@ void indri::collection::Repository::_buildChain( indri::api::Parameters& paramet
     indri::api::Parameters stop = _parameters["stopper.word"];
     _transformations.push_back( new indri::parse::StopperTransformation( stop ) );
   }
-  // the transient chain, needs to precede the stemmer.
+  // the transient chain stopwords need to precede the stemmer.
   if (options) {
     if( options->exists("stopper.word") ) {
       indri::api::Parameters stop = (*options)["stopper.word"];
@@ -211,24 +201,24 @@ void indri::collection::Repository::_remove( const std::string& indexPath ) {
 
 void indri::collection::Repository::_openIndexes( indri::api::Parameters& params, const std::string& parentPath ) {
   try {
-  indri::api::Parameters container = params["indexes"];
+    indri::api::Parameters container = params["indexes"];
 
-  _active = new index_vector;
-  _states.push_back( _active );
-  _indexCount = params.get( "indexCount", 0 );
+    _active = new index_vector;
+    _states.push_back( _active );
+    _indexCount = params.get( "indexCount", 0 );
 
-  if( container.exists( "index" ) ) {
-    indri::api::Parameters indexes = container["index"];
+    if( container.exists( "index" ) ) {
+      indri::api::Parameters indexes = container["index"];
 
-    for( int i=0; i<indexes.size(); i++ ) {
-      indri::api::Parameters indexSpec = indexes[i];
-      indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
-      std::string indexName = (std::string) indexSpec;
+      for( int i=0; i<indexes.size(); i++ ) {
+        indri::api::Parameters indexSpec = indexes[i];
+        indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
+        std::string indexName = (std::string) indexSpec;
 
-      diskIndex->open( parentPath, indexName );
-      _active->push_back( diskIndex );
+        diskIndex->open( parentPath, indexName );
+        _active->push_back( diskIndex );
+      }
     }
-  }
   } catch( lemur::api::Exception& e ) {
     LEMUR_RETHROW( e, "_openIndexes: Couldn't open DiskIndexes because:" );
   }
@@ -394,40 +384,37 @@ void indri::collection::Repository::create( const std::string& path, indri::api:
 
 void indri::collection::Repository::openRead( const std::string& path, indri::api::Parameters* options ) {
   try {
-  _path = path;
-  _readOnly = true;
+    _path = path;
+    _readOnly = true;
 
-  _memory = defaultMemory;
-  if( options )
-    _memory = options->get( "memory", _memory );
+    _memory = defaultMemory;
+    if( options )
+      _memory = options->get( "memory", _memory );
 
-  float queryProportion = 1;
-  if( options )
-    queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
+    float queryProportion = 1;
+    if( options )
+      queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
-  _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
+    _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
 
-  _buildFields();
-  _buildChain( _parameters, options );
-  /*
-  if( options )
-    _buildTransientChain( *options );
-  */
-  std::string indexPath = indri::file::Path::combine( path, "index" );
-  std::string collectionPath = indri::file::Path::combine( path, "collection" );
-  std::string indexName = indri::file::Path::combine( indexPath, "index" );
-  std::string deletedName = indri::file::Path::combine( path, "deleted" );
+    _buildFields();
+    _buildChain( _parameters, options );
 
-  _openIndexes( _parameters, indexPath );
+    std::string indexPath = indri::file::Path::combine( path, "index" );
+    std::string collectionPath = indri::file::Path::combine( path, "collection" );
+    std::string indexName = indri::file::Path::combine( indexPath, "index" );
+    std::string deletedName = indri::file::Path::combine( path, "deleted" );
 
-  _collection = new CompressedCollection();
-  _collection->openRead( collectionPath );
-  _deletedList.read( deletedName );
+    _openIndexes( _parameters, indexPath );
+
+    _collection = new CompressedCollection();
+    _collection->openRead( collectionPath );
+    _deletedList.read( deletedName );
     
     // open priors
     _openPriors( path );
 
-  _startThreads();
+    _startThreads();
   } catch( lemur::api::Exception& e ) {
     LEMUR_RETHROW( e, "Couldn't open a repository in read-only mode at '" + path + "' because:" );
   } catch( ... ) {
@@ -441,48 +428,45 @@ void indri::collection::Repository::openRead( const std::string& path, indri::ap
 
 void indri::collection::Repository::open( const std::string& path, indri::api::Parameters* options ) {
   try {
-  _path = path;
-  _readOnly = false;
+    _path = path;
+    _readOnly = false;
 
-  _memory = defaultMemory;
-  if( options )
-    _memory = options->get( "memory", _memory );
+    _memory = defaultMemory;
+    if( options )
+      _memory = options->get( "memory", _memory );
 
-  float queryProportion = 0.75;
-  if( options )
-    queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
+    float queryProportion = 0.75;
+    if( options )
+      queryProportion = static_cast<float>(options->get( "queryProportion", queryProportion ));
 
-  std::string indexPath = indri::file::Path::combine( path, "index" );
-  std::string collectionPath = indri::file::Path::combine( path, "collection" );
-  std::string indexName = indri::file::Path::combine( indexPath, "index" );
+    std::string indexPath = indri::file::Path::combine( path, "index" );
+    std::string collectionPath = indri::file::Path::combine( path, "collection" );
+    std::string indexName = indri::file::Path::combine( indexPath, "index" );
 
-  _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
+    _parameters.loadFile( indri::file::Path::combine( path, "manifest" ) );
 
-  _buildFields();
-  _buildChain( _parameters, options );
-  /*
-  if( options )
-    _buildTransientChain( *options );
-  */
-  // open all indexes, add a memory index
-  _openIndexes( _parameters, indexPath );
-  _addMemoryIndex();
+    _buildFields();
+    _buildChain( _parameters, options );
 
-  // remove that initial state (only disk indexes)
-  _states.erase( _states.begin() );
+    // open all indexes, add a memory index
+    _openIndexes( _parameters, indexPath );
+    _addMemoryIndex();
 
-  // open compressed collection
-  _collection = new CompressedCollection();
-  _collection->open( collectionPath );
-  
-  // open priors
-  _openPriors( path );
-  
-  // read deleted documents in
-  std::string deletedName = indri::file::Path::combine( path, "deleted" );
-  _deletedList.read( deletedName );
+    // remove that initial state (only disk indexes)
+    _states.erase( _states.begin() );
 
-  _startThreads();
+    // open compressed collection
+    _collection = new CompressedCollection();
+    _collection->open( collectionPath );
+    
+    // open priors
+    _openPriors( path );
+    
+    // read deleted documents in
+    std::string deletedName = indri::file::Path::combine( path, "deleted" );
+    _deletedList.read( deletedName );
+
+    _startThreads();
   } catch( lemur::api::Exception& e ) {
     LEMUR_RETHROW( e, "Couldn't open a repository at '" + path + "' because:" );
   } catch( ... ) {
@@ -851,6 +835,21 @@ UINT64 indri::collection::Repository::_mergeMemory( const std::vector<indri::ind
   return newlyFrequent * 500 + expectedBitmapSize * indexes.size();
 }
 
+// _mergeFiles
+//
+// Calculate the expected number of open files used while merging
+// this set of indexes,
+// 
+
+unsigned int indri::collection::Repository::_mergeFiles( const std::vector<indri::index::Index*>& indexes ) {
+  // collection 5 + metadata files
+  // repository 2
+  // index/n/ 10 + num fields
+  // so call it (20 + num fields) * (number of indexes.+ 1)
+  unsigned int totalFiles = (20 +  _indexFields.size()) * (indexes.size() + 1);
+  return totalFiles;
+}
+
 //
 // _mergeStage
 //
@@ -951,7 +950,9 @@ void indri::collection::Repository::_merge( index_state& state ) {
   size_t memoryBound = (size_t) (0.75 * _memory);
   std::vector<indri::index::Index*>* result = new std::vector<indri::index::Index*>;
 
-  if( state->size() <= 2 || _mergeMemory( *state ) < memoryBound ) {
+  if( state->size() <= 2 || 
+      ( _mergeMemory( *state ) < memoryBound && 
+        _mergeFiles(*state) < MERGE_FILE_LIMIT ) ) {
     indri::index::Index* index = _mergeStage( state );
     result->push_back( index );
   } else {
@@ -1016,6 +1017,20 @@ void indri::collection::Repository::_merge() {
       (mergers->size() == 1 && dynamic_cast<indri::index::MemoryIndex*>((*mergers)[0]));
 
   }
+}
+
+//
+// priors
+//
+
+std::vector<std::string> indri::collection::Repository::priors() const {
+  std::vector<std::string> t;
+  std::map< std::string, indri::file::File* >::const_iterator iter;
+  
+  for( iter = _priorFiles.begin(); iter != _priorFiles.end(); iter++ ) {
+    t.push_back(iter->first);
+  }
+  return t;
 }
 
 //

@@ -536,7 +536,7 @@ int indri::index::MemoryIndex::addDocument( indri::api::ParsedDocument& document
 
     // update our open tag knowledge
     _addOpenTags( indexedTags, openTags, document.tags, extentIndex, position );
-
+    _removeClosedTags( openTags, position );
     _removeClosedTags( openTags, position );
 
     // for every open tag, we want to record that we've seen the 

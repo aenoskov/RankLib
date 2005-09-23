@@ -16,4 +16,3 @@
 // 4 May 2004 -- tds
 //
 
-// Removed all code with intent to eventually delete this file

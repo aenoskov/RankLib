@@ -212,6 +212,7 @@ struct query_t {
 class QueryThread : public indri::thread::UtilityThread {
 private:
   indri::thread::Lockable& _queueLock;
+  indri::thread::ConditionVariable& _queueEvent;
   std::queue< query_t* >& _queries;
   std::priority_queue< query_t*, std::vector< query_t* >, query_t::greater >& _output;
 
@@ -224,24 +225,29 @@ private:
   bool _printPassages;
   bool _printQuery;
 
-  std::string _prefix;
-  
   std::string _runID;
   bool _trecFormat;
-    
+
   indri::query::QueryExpander* _expander;
   std::vector<indri::api::ScoredExtentResult> _results;
 
   // Runs the query, expanding it if necessary.  Will print output as well if verbose is on.
   void _runQuery( std::stringstream& output, const std::string& query ) {
-    if( _printQuery ) output << "# query: " << query << std::endl;
+    try {
+      if( _printQuery ) output << "# query: " << query << std::endl;
 
-    _results = _environment.runQuery( query, _initialRequested );
+      _results = _environment.runQuery( query, _initialRequested );
 
-    if( _expander ) {
-      std::string expandedQuery = _expander->expand( query, _results );
-      if( _printQuery ) output << "# expanded: " << expandedQuery << std::endl;
-      _results = _environment.runQuery( expandedQuery, _requested );
+      if( _expander ) {
+        std::string expandedQuery = _expander->expand( query, _results );
+        if( _printQuery ) output << "# expanded: " << expandedQuery << std::endl;
+        _results = _environment.runQuery( expandedQuery, _requested );
+      }
+    }
+    catch( lemur::api::Exception& e )
+    {
+      _results.clear();
+      LEMUR_RETHROW(e, "QueryThread::_runQuery Exception");
     }
   }
 
@@ -260,8 +266,8 @@ private:
         std::string documentName;
 
         indri::utility::greedy_vector<indri::parse::MetadataPair>::iterator iter = std::find_if( documents[i]->metadata.begin(),
-                                                                                                 documents[i]->metadata.end(),
-                                                                                                 indri::parse::MetadataPair::key_equal( "docno" ) );
+          documents[i]->metadata.end(),
+          indri::parse::MetadataPair::key_equal( "docno" ) );
 
         if( iter != documents[i]->metadata.end() )
           documentName = (char*) iter->value;
@@ -273,7 +279,7 @@ private:
       // We only want document names, so the documentMetadata call may be faster
       documentNames = _environment.documentMetadata( _results, "docno" );
     }
-
+    
     // Print results
     for( unsigned int i=0; i < _results.size(); i++ ) {
       int rank = i+1;
@@ -281,19 +287,19 @@ private:
 
       if( _trecFormat ) {
         // TREC formatted output: queryNumber, Q0, documentName, rank, score, runID
-        output << _prefix << queryNumber << " "
-               << "Q0 "
-               << documentNames[i] << " "
-               << rank << " "
-               << _results[ i ].score << " "
-               << _runID << std::endl;
+        output << queryNumber << " "
+                << "Q0 "
+                << documentNames[i] << " "
+                << rank << " "
+                << _results[ i ].score << " "
+                << _runID << std::endl;
       }
       else {
         // score, documentName, firstWord, lastWord
         output << _results[i].score << "\t"
-               << documentNames[i] << "\t"
-               << _results[i].begin << "\t"
-               << _results[i].end << std::endl;
+                << documentNames[i] << "\t"
+                << _results[i].begin << "\t"
+                << _results[i].end << std::endl;
       }
 
       if( _printDocuments ) {
@@ -317,10 +323,12 @@ public:
   QueryThread( std::queue< query_t* >& queries,
                std::priority_queue< query_t*, std::vector< query_t* >, query_t::greater >& output,
                indri::thread::Lockable& queueLock,
+               indri::thread::ConditionVariable& queueEvent,
                indri::api::Parameters& params ) :
     _queries(queries),
     _output(output),
     _queueLock(queueLock),
+    _queueEvent(queueEvent),
     _parameters(params),
     _expander(0)
   {
@@ -340,7 +348,7 @@ public:
     if( copy_parameters_to_string_vector( smoothingRules, _parameters, "rule" ) )
       _environment.setScoringRules( smoothingRules );
 
-    if( _parameters.exists( "index" ) ) {
+   if( _parameters.exists( "index" ) ) {
       indri::api::Parameters indexes = _parameters["index"];
 
       for( unsigned int i=0; i < indexes.size(); i++ ) {
@@ -363,7 +371,6 @@ public:
     _printQuery = _parameters.get( "printQuery", false );
     _printDocuments = _parameters.get( "printDocuments", false );
     _printPassages = _parameters.get( "printPassages", false );
-    _prefix = _parameters.get( "prefix", "" );
 
     if( _parameters.get( "fbDocs", 0 ) != 0 ) {
       _expander = new indri::query::RMExpander( &_environment, _parameters );
@@ -398,7 +405,11 @@ public:
     }
 
     // run the query
-    _runQuery( output, query->text );
+    try {
+      _runQuery( output, query->text );
+    } catch( lemur::api::Exception& e ) {
+      output << "# EXCEPTION in query " << query->number << ": " << e.what() << std::endl;
+    }
 
     // print the results to the output stream
     _printResults( output, query->number );
@@ -407,6 +418,7 @@ public:
     {
       indri::thread::ScopedLock sl( &_queueLock );
       _output.push( new query_t( query->index, query->number, output.str() ) );
+      _queueEvent.notifyAll();
     }
 
     delete query;
@@ -453,6 +465,7 @@ int main(int argc, char * argv[]) {
     std::priority_queue< query_t*, std::vector< query_t* >, query_t::greater > output;
     std::vector< QueryThread* > threads;
     indri::thread::Mutex queueLock;
+    indri::thread::ConditionVariable queueEvent;
 
     // push all queries onto a queue
     indri::api::Parameters parameterQueries = param[ "query" ];
@@ -462,33 +475,36 @@ int main(int argc, char * argv[]) {
 
     // launch threads
     for( int i=0; i<threadCount; i++ ) {
-      threads.push_back( new QueryThread( queries, output, queueLock, param ) );
+      threads.push_back( new QueryThread( queries, output, queueLock, queueEvent, param ) );
       threads.back()->start();
     }
 
     int query = 0;
 
+    // acquire the lock.
+	queueLock.lock();
+
     // process output as it appears on the queue
     while( query < queryCount ) {
       query_t* result = NULL;
       
-      {
-        indri::thread::ScopedLock sl( queueLock );
+      // wait for something to happen
+      queueEvent.wait( queueLock );
           
-        if( output.size() && output.top()->index == query ) {
-          result = output.top();
-          output.pop();
-        }
-      }
+      while( output.size() && output.top()->index == query ) {
+        result = output.top();
+        output.pop();
 
-      if( result ) {
+        queueLock.unlock();
+          
         std::cout << result->text;
         delete result;
         query++;
-      } else {
-        indri::thread::Thread::yield();
+
+        queueLock.lock();
       }
     }
+    queueLock.unlock();
 
     // join all the threads
     for( int i=0; i<threads.size(); i++ )
@@ -505,3 +521,4 @@ int main(int argc, char * argv[]) {
 
   return 0;
 }
+

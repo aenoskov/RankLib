@@ -251,6 +251,9 @@
 				RelativePath=".\InferenceNetworkBuilder.cpp">
 			</File>
 			<File
+				RelativePath=".\KrovetzStemmer.cpp">
+			</File>
+			<File
 				RelativePath=".\KrovetzStemmerTransformation.cpp">
 			</File>
 			<File
@@ -317,6 +320,9 @@
 				RelativePath=".\PonteExpander.cpp">
 			</File>
 			<File
+				RelativePath=".\Porter_Stemmer.cpp">
+			</File>
+			<File
 				RelativePath=".\PorterStemmerTransformation.cpp">
 			</File>
 			<File
@@ -324,6 +330,9 @@
 			</File>
 			<File
 				RelativePath=".\PriorFactory.cpp">
+			</File>
+			<File
+				RelativePath=".\PriorListIterator.cpp">
 			</File>
 			<File
 				RelativePath=".\PriorNode.cpp">
@@ -697,6 +706,9 @@
 				RelativePath="..\include\indri\JelinekMercerTermScoreFunction.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\KrovetzStemmer.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\KrovetzStemmerTransformation.hpp">
 			</File>
 			<File
@@ -808,6 +820,9 @@
 				RelativePath="..\include\indri\PonteExpander.hpp">
 			</File>
 			<File
+				RelativePath="..\include\indri\Porter_Stemmer.hpp">
+			</File>
+			<File
 				RelativePath="..\include\indri\PorterStemmerTransformation.hpp">
 			</File>
 			<File
@@ -815,6 +830,9 @@
 			</File>
 			<File
 				RelativePath="..\include\indri\PriorFactory.hpp">
+			</File>
+			<File
+				RelativePath="..\include\indri\PriorListIterator.hpp">
 			</File>
 			<File
 				RelativePath="..\include\indri\PriorNode.hpp">
