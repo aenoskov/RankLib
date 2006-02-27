@@ -18,6 +18,10 @@ endif
 	$(MAKE) -C stemclass
 	$(MAKE) -C rmodel
 	$(MAKE) -C makeprior
+	$(MAKE) -C queryweight
+	$(MAKE) -C conceptdensity
+	$(MAKE) -C pagerank
+	$(MAKE) -C webfeatures
 
 $(INSTALLDIRS):
 	$(INSTALL_DIR) $@
@@ -36,6 +40,10 @@ endif
 	$(MAKE) clean -C rmodel
 	$(MAKE) clean -C rmodel
 	$(MAKE) clean -C makeprior
+	$(MAKE) clean -C queryweight
+	$(MAKE) clean -C conceptdensity
+	$(MAKE) clean -C pagerank
+	$(MAKE) clean -C webfeatures
 	rm -f depend/*
 
 distclean: clean
