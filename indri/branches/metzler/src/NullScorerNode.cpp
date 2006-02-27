@@ -17,6 +17,7 @@
 //
 
 #include "indri/NullScorerNode.hpp"
+#include "indri/Annotator.hpp"
 #include "lemur/lemur-compat.hpp"
 
 indri::infnet::NullScorerNode::NullScorerNode( const std::string& name, indri::query::TermScoreFunction& scoreFunction ) :
@@ -56,6 +57,7 @@ const indri::utility::greedy_vector<indri::api::ScoredExtentResult>& indri::infn
 
 void indri::infnet::NullScorerNode::annotate( indri::infnet::Annotator& annotator, int documentID, int begin, int end ) {
   // no need to annotate; there will never be any matches
+  annotator.getResults()[_name].clear();
 }
 
 const std::string& indri::infnet::NullScorerNode::getName() const {

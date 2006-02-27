@@ -11,13 +11,17 @@
 
 
 //
-// TFIDFScoreFunction
+// F2EXPTermScoreFunction
 //
-// 23 January 2004 -- tds
+// F2-EXP score function based on
+// Fang, et. al.'s axiomatic approach
+// to information retrieval
+//
+// 30 November 2005 -- dam
 //
 
-#ifndef INDRI_TFIDFTERMSCOREFUNCTION_HPP
-#define INDRI_TFIDFTERMSCOREFUNCTION_HPP
+#ifndef INDRI_F2EXPTERMSCOREFUNCTION_HPP
+#define INDRI_F2EXPTERMSCOREFUNCTION_HPP
 
 #include "indri/TermScoreFunction.hpp"
 #include <math.h>
@@ -26,7 +30,7 @@ namespace indri
   namespace query
   {
     
-    class TFIDFTermScoreFunction : public TermScoreFunction {
+    class F2EXPTermScoreFunction : public TermScoreFunction {
     private:
       /// inverse document frequency (IDF) for this term
       double _inverseDocumentFrequency; 
@@ -35,30 +39,24 @@ namespace indri
 
       double _termWeight;
 
-      // These are BM25 parameters
-      double _k1;
-      double _b;
+      // These are F2-EXP parameters
+      double _s;
 
       // The following values are precomputed so that score computation will go faster
-      double _bOverAvgDocLength;
-      double _k1TimesOneMinusB;
-      double _k1TimesBOverAvgDocLength;
-      double _termWeightTimesIDFTimesK1PlusOne;
+      double _sOverAvgDocLength;
+      double _termWeightTimesIDF;
 
       void _precomputeConstants() {
-        _k1TimesOneMinusB = _k1 * (1-_b);
-        _bOverAvgDocLength = _b / _averageDocumentLength;
-        _k1TimesBOverAvgDocLength = _k1 * _bOverAvgDocLength;
-        _termWeightTimesIDFTimesK1PlusOne = _termWeight * _inverseDocumentFrequency * ( _k1 + 1 );
+        _sOverAvgDocLength = _s / _averageDocumentLength;
+        _termWeightTimesIDF = _termWeight * _inverseDocumentFrequency;
       }
 
     public:
-      TFIDFTermScoreFunction( double idf, double averageDocumentLength, double k1 = 1.2, double b = 0.75 ) {
+      F2EXPTermScoreFunction( double idf, double averageDocumentLength, double s = 0.5 ) {
         _inverseDocumentFrequency = idf;
         _averageDocumentLength = averageDocumentLength;
 
-        _k1 = k1;
-        _b = b;
+        _s = s;
 
         _termWeight = 1.0;
         _precomputeConstants();
@@ -67,18 +65,13 @@ namespace indri
       double scoreOccurrence( double occurrences, int documentLength ) {
         //
         // Score function is:
-        //                                                   ( K1 + 1 ) * occurrences
-        // score = termWeight * IDF * ------------------------------------------------------------------
-        //                             occurrences + K1 * ( (1-B) + B * ( documentLength / avgDocLength) )
-        //
-        // Factored for constants:
-        //                        (termWeight * IDF * ( K1 + 1 ) ) * occurrences
-        // score = ------------------------------------------------------------------------
-        //          occurrences + (K1 * (1-B)) + (K1 * B * 1/avgDocLength) * documentLength
+        //                                                 occurrences
+        // score = termWeight * IDF * ---------------------------------------------------------
+        //                             occurrences + s + documentLength * ( s / avgDocLength )
         //
 
-        double numerator = _termWeightTimesIDFTimesK1PlusOne * occurrences;
-        double denominator = occurrences + _k1TimesOneMinusB + _k1TimesBOverAvgDocLength * documentLength;
+        double numerator = _termWeightTimesIDF * occurrences;
+        double denominator = occurrences + _s + documentLength * _sOverAvgDocLength;
 
         return numerator / denominator;
       }
@@ -94,5 +87,5 @@ namespace indri
   }
 }
 
-#endif // TFIDF_TERMSCOREFUNCTION_HPP
+#endif // INDRI_F2EXPTERMSCOREFUNCTION_HPP
 
