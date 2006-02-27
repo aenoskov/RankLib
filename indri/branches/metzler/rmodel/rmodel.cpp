@@ -59,8 +59,8 @@ static void open_indexes( indri::api::QueryEnvironment& environment, indri::api:
     environment.setScoringRules( smoothingRules );
 }
 
-static void printGrams( const std::string& query, const std::vector<indri::query::RelevanceModel::Gram*>& grams ) {
-  std::cout << "# query: " << query << std::endl;
+static void printGrams( const std::string& query, const std::string& qid, const std::vector<indri::query::RelevanceModel::Gram*>& grams ) {
+  std::cout << "# qid: " << qid << " query: " << query << std::endl;
   for( int j=0; j<grams.size(); j++ ) {
     std::cout << std::setw(15)
               << std::setprecision(15)
@@ -98,12 +98,23 @@ int main( int argc, char** argv ) {
     int maxGrams = (int) param.get( "maxGrams", 1 ); // unigram is default
 
     for( int i=0; i<parameterQueries.size(); i++ ) {
-      std::string query = parameterQueries[i];
-      indri::query::RelevanceModel model( environment, rmSmoothing, maxGrams, documents );
+      std::string query;
+      std::string qid;
+      
+      if( parameterQueries[i].exists( "number" ) ) {
+	query = (std::string)parameterQueries[i]["text"];
+	qid = (std::string)parameterQueries[i]["number"];
+      }
+      else {
+	query = (std::string)parameterQueries[i];
+	qid = "";
+      }
+
+      indri::query::RelevanceModel model( environment, rmSmoothing, maxGrams, documents );      
       model.generate( query );
 
       const std::vector<indri::query::RelevanceModel::Gram*>& grams = model.getGrams();
-      printGrams( query, grams );
+      printGrams( query, qid, grams );
     }
   } catch( lemur::api::Exception& e ) {
     LEMUR_ABORT(e);
