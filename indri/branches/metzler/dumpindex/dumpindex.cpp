@@ -18,6 +18,7 @@
 #include "indri/Repository.hpp"
 #include "indri/CompressedCollection.hpp"
 #include "indri/LocalQueryServer.hpp"
+#include "indri/QueryEnvironment.hpp"
 #include "indri/ScopedLock.hpp"
 #include <iostream>
 
@@ -362,6 +363,16 @@ void print_document_id( indri::collection::Repository& r, const char* an, const 
   }
 }
 
+void print_expression_stats( const char* repName, std::string& expression ) {
+  indri::api::QueryEnvironment qe;
+  qe.addIndex( repName );
+
+  indri::api::QueryEnvironment::ExpressionStatistics *e = qe.expressionStatistics( expression );
+  std::cout << expression << " " << e->occurrences << " " << e->documentOccurrences << std::endl;
+  
+  qe.close();
+}
+
 void print_repository_stats( indri::collection::Repository& r ) {
   indri::server::LocalQueryServer local(r);
   UINT64 termCount = local.termCount();
@@ -390,6 +401,7 @@ void usage() {
   std::cout << "    Command              Argument       Description" << std::endl;
   std::cout << "    term (t)             Term text      Print inverted list for a term" << std::endl;
   std::cout << "    termpositions (tp)   Term text      Print inverted list for a term, with positions" << std::endl;
+  std::cout << "    expressionstats (es) Expression     Print statistics for indri expression" << std::endl;
   std::cout << "    fieldpositions (fp)  Field name     Print inverted list for a field, with positions" << std::endl;
   std::cout << "    documentid (di)      Field, Value   Print the document IDs of documents having a metadata field matching this value" << std::endl;
   std::cout << "    documentname (dn)    Document ID    Print the text representation of a document ID" << std::endl;
@@ -421,6 +433,10 @@ int main( int argc, char** argv ) {
       REQUIRE_ARGS(4);
       std::string term = argv[3];
       print_term_positions( r, term );
+    } else if( command == "es" || command == "expressionstats" ) {
+      REQUIRE_ARGS(4);
+      std::string expression = argv[3];
+      print_expression_stats( repName, expression );
     } else if( command == "fp" || command == "fieldpositions" ) { 
       REQUIRE_ARGS(4);
       std::string field = argv[3];
