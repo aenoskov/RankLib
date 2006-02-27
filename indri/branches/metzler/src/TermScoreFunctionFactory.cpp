@@ -22,7 +22,9 @@
 #include "indri/DirichletTermScoreFunction.hpp"
 #include "indri/TwoStageTermScoreFunction.hpp"
 #include "indri/FeatureBasedScoreFunction.hpp"
+#include "indri/SimpleFeatureScoreFunction.hpp"
 #include "indri/BernoulliTermScoreFunction.hpp"
+#include "indri/F2EXPTermScoreFunction.hpp"
 #include "indri/Parameters.hpp"
 
 static void termscorefunctionfactory_parse( indri::api::Parameters& converted, const std::string& spec );
@@ -70,14 +72,20 @@ indri::query::TermScoreFunction* indri::query::TermScoreFunctionFactory::get( co
     
     return new indri::query::TwoStageTermScoreFunction( mu, lambda, collectionFrequency );
   } else if( method == "tfidf" || method == "okapi" ) {
-    double k1 = spec.get( "k1", 1.5 );
+    double k1 = spec.get( "k1", 1.2 );
     double b = spec.get( "b", 0.75 );
     double idf = log( ( documentCount - documentOccurrences + 0.5 ) / ( documentOccurrences + 0.5 ) );
     double avgDocLength = contextSize / double(documentCount);
 
     return new indri::query::TFIDFTermScoreFunction( idf, avgDocLength, k1, b );
-  }
-  else if( method == "feature" ) {
+  } else if( method == "f2exp" || method == "axiom" ) {
+    double s = spec.get( "s", 0.5 );
+    double k = spec.get( "k", 0.5 );
+    double idf = pow( documentCount / ( documentOccurrences + 1.0 ), k );
+    double avgDocLength = contextSize / double(documentCount);
+
+    return new indri::query::F2EXPTermScoreFunction( idf, avgDocLength, s );
+  } else if( method == "feature" ) {
     double weights[ 6 ];
     weights[ 0 ] = spec.get( "0", 0.0 );
     weights[ 1 ] = spec.get( "1", 0.0 );
@@ -87,8 +95,15 @@ indri::query::TermScoreFunction* indri::query::TermScoreFunctionFactory::get( co
     weights[ 5 ] = spec.get( "5", 0.0 );
     
     return new indri::query::FeatureBasedScoreFunction( weights, occurrences, contextSize, documentOccurrences, documentCount );
-  }
-  else if( method == "bernoulli" ) {
+  } else if( method == "simpfeature" ) {
+    double weights[ 3 ];
+    weights[ 0 ] = spec.get( "0", 0.0 );
+    weights[ 1 ] = spec.get( "1", 0.0 );
+    weights[ 2 ] = spec.get( "2", 0.0 );
+    double avgDocLength = contextSize / double(documentCount);
+    
+    return new indri::query::SimpleFeatureScoreFunction( weights, documentOccurrences, documentCount, avgDocLength );
+  } else if( method == "bernoulli" ) {
     double mu = spec.get( "mu", 10 );
 
     return new indri::query::BernoulliTermScoreFunction( mu, double(documentOccurrences) / double(documentCount) );

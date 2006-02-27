@@ -50,6 +50,11 @@ namespace indri
         // can't two-level smooth with dirichlet
         return scoreOccurrence( occurrences, contextSize );
       }
+
+      // shut max score off for these nodes
+      //double maximumScore( int minimumDocumentLength, int maximumOccurrences ) {
+      //return INDRI_HUGE_SCORE;
+      //}
     };
   }
 }

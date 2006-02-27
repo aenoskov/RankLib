@@ -741,7 +741,7 @@ indri::api::QueryEnvironment::ExpressionStatistics* indri::api::QueryEnvironment
   _sumServerQuery( statisticsResults, roots, 1000 );
   
   std::vector<ScoredExtentResult>& occurrencesList = statisticsResults[ contextCounter->nodeName() ][ "occurrences" ];
-  std::vector<ScoredExtentResult>& documentOccurrencesList = statisticsResults[ contextCounter->nodeName() ][ "docOccurrences" ];
+  std::vector<ScoredExtentResult>& documentOccurrencesList = statisticsResults[ contextCounter->nodeName() ][ "documentOccurrences" ];
 
   ExpressionStatistics* stats = new ExpressionStatistics;
   stats->occurrences = occurrencesList[0].score;
