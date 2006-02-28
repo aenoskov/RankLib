@@ -175,6 +175,9 @@
 #include "indri/ScopedLock.hpp"
 #include "indri/delete_range.hpp"
 
+#include "indri/QueryFormulator.hpp"
+#include "indri/QueryFormulatorFactory.hpp"
+
 #include <queue>
 
 static bool copy_parameters_to_string_vector( std::vector<std::string>& vec, indri::api::Parameters p, const std::string& parameterName ) {
@@ -229,17 +232,22 @@ private:
   bool _trecFormat;
 
   indri::query::QueryExpander* _expander;
+  indri::query::QueryFormulator* _formulator;
   std::vector<indri::api::ScoredExtentResult> _results;
 
   // Runs the query, expanding it if necessary.  Will print output as well if verbose is on.
   void _runQuery( std::stringstream& output, const std::string& query ) {
     try {
-      if( _printQuery ) output << "# query: " << query << std::endl;
+      std::string theQuery = query;
+      if( _formulator )
+	theQuery = _formulator->formulate( query );
+      
+      if( _printQuery ) output << "# query: " << theQuery << std::endl;
 
-      _results = _environment.runQuery( query, _initialRequested );
+      _results = _environment.runQuery( theQuery, _initialRequested );
 
       if( _expander ) {
-        std::string expandedQuery = _expander->expand( query, _results );
+        std::string expandedQuery = _expander->expand( theQuery, _results );
         if( _printQuery ) output << "# expanded: " << expandedQuery << std::endl;
         _results = _environment.runQuery( expandedQuery, _requested );
       }
@@ -330,7 +338,8 @@ public:
     _queueLock(queueLock),
     _queueEvent(queueEvent),
     _parameters(params),
-    _expander(0)
+    _expander(0),
+    _formulator(0)
   {
   }
 
@@ -374,6 +383,10 @@ public:
 
     if( _parameters.get( "fbDocs", 0 ) != 0 ) {
       _expander = new indri::query::RMExpander( &_environment, _parameters );
+    }
+
+    if( _parameters.exists( "formulator" ) ) {
+      _formulator = indri::query::QueryFormulatorFactory::get( _parameters[ "formulator" ] );
     }
 
     return 0;

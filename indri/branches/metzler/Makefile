@@ -16,7 +16,6 @@ endif
 	$(MAKE) -C dumpindex
 	$(MAKE) -C rmodel
 	$(MAKE) -C stemclass
-	$(MAKE) -C rmodel
 	$(MAKE) -C makeprior
 	$(MAKE) -C queryweight
 	$(MAKE) -C conceptdensity
@@ -36,9 +35,8 @@ endif
 	$(MAKE) clean -C runquery
 	$(MAKE) clean -C indrid
 	$(MAKE) clean -C dumpindex
+	$(MAKE) clean -C rmodel
 	$(MAKE) clean -C stemclass
-	$(MAKE) clean -C rmodel
-	$(MAKE) clean -C rmodel
 	$(MAKE) clean -C makeprior
 	$(MAKE) clean -C queryweight
 	$(MAKE) clean -C conceptdensity
