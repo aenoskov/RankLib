@@ -10,6 +10,7 @@ all:
 ifeq ($(WITH_SWIG), 1)
 	$(MAKE) -C swig/src
 endif
+	$(MAKE) -C similarity
 	$(MAKE) -C buildindex
 	$(MAKE) -C runquery
 	$(MAKE) -C indrid
