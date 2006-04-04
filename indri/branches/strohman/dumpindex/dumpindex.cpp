@@ -19,7 +19,46 @@
 #include "indri/CompressedCollection.hpp"
 #include "indri/LocalQueryServer.hpp"
 #include "indri/ScopedLock.hpp"
+#include "indri/IndriTermInfoList.hpp"
 #include <iostream>
+#include <math.h>
+
+void print_tfidf_vectors( indri::collection::Repository& r ) {
+  indri::collection::Repository::index_state state = r.indexes();
+  indri::collection::CompressedCollection* collection = r.collection();
+  indri::index::Index* index = (*state)[0];
+  double averageLength = double(index->termCount()) / double(index->documentCount());
+  
+  indri::index::TermListFileIterator* iter = index->termListFileIterator();
+  iter->startIteration();
+  int number = 1;
+
+  while( !iter->finished() ) {
+    indri::index::BagList* list = new indri::index::BagList( iter->currentEntry() );
+    std::string documentName = collection->retrieveMetadatum( number, "docno" );
+    std::cout << documentName << " ";
+
+    lemur::api::TermInfoList::iterator bagIter;
+    for( bagIter = list->begin(); bagIter != list->end(); bagIter++ ) {
+      lemur::api::TermInfo& ti = *bagIter;
+      int id = ti.termID();
+      int count = ti.count();
+
+      double dc = double(index->documentCount());
+      double df = double(index->documentCount( index->term(id) ));
+      double tf = double(count) / (double(count) + 0.5 + 1.5 * double(iter->currentEntry()->terms().size()) / averageLength);
+      double idf = log((dc + 0.5) / df) / log(dc + 1);
+
+      std::cout << id << ":" << count << "," << tf * idf << " " ;
+    }
+    std::cout << std::endl;
+
+    //delete list;
+    iter->nextEntry();
+    number++;
+  }
+  delete iter;
+}
 
 //
 // Attempts to validate the index.  Right now it only checks
@@ -261,9 +300,19 @@ void print_term_counts( indri::collection::Repository& r, const std::string& ter
 
 void print_document_name( indri::collection::Repository& r, const char* number ) {
   indri::collection::CompressedCollection* collection = r.collection();
-  //  std::string documentName = collection->retrieveMetadatum( atoi( number ), "docid" );
   std::string documentName = collection->retrieveMetadatum( atoi( number ), "docno" );
   std::cout << documentName << std::endl;
+}
+
+void print_document_names( indri::collection::Repository& r ) {
+  indri::collection::CompressedCollection* collection = r.collection();
+  int documentCount = (*r.indexes())[0]->documentCount();
+
+  for( int i=1; i <= documentCount; i++ ) {
+    int number = i;
+    std::string documentName = collection->retrieveMetadatum( number, "docno" );
+    std::cout << number << " " << documentName << std::endl;
+  }
 }
 
 void print_document_text( indri::collection::Repository& r, const char* number ) {
@@ -393,6 +442,7 @@ void usage() {
   std::cout << "    fieldpositions (fp)  Field name     Print inverted list for a field, with positions" << std::endl;
   std::cout << "    documentid (di)      Field, Value   Print the document IDs of documents having a metadata field matching this value" << std::endl;
   std::cout << "    documentname (dn)    Document ID    Print the text representation of a document ID" << std::endl;
+  std::cout << "    documentnames (dns)  None           Print the text representation of all document IDs" << std::endl;
   std::cout << "    documenttext (dt)    Document ID    Print the text of a document" << std::endl;
   std::cout << "    documenttext (dd)    Document ID    Print the full representation of a document" << std::endl;
   std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
@@ -428,6 +478,9 @@ int main( int argc, char** argv ) {
     } else if( command == "dn" || command == "documentname" ) {
       REQUIRE_ARGS(4);
       print_document_name( r, argv[3] );
+    } else if( command == "dns" || command == "documentnames" ) {
+      REQUIRE_ARGS(3);
+      print_document_names( r );
     } else if( command == "dt" || command == "documenttext" ) {
       REQUIRE_ARGS(4);
       print_document_text( r, argv[3] );
@@ -452,6 +505,9 @@ int main( int argc, char** argv ) {
     } else if( command == "s" || command == "stats" ) {
       REQUIRE_ARGS(3);
       print_repository_stats( r );
+    } else if( command == "vs" ) {
+      REQUIRE_ARGS(3);
+      print_tfidf_vectors( r );
     } else {
       r.close();
       usage();

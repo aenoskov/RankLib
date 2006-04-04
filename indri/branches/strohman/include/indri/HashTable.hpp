@@ -21,6 +21,8 @@
 
 #include <utility>
 #include "indri/RegionAllocator.hpp"
+#include "indri/greedy_vector"
+
 namespace indri
 {
   namespace utility
@@ -73,6 +75,22 @@ namespace indri
     public:
       int operator () ( const char* const& one, const char* const& two ) const {
         return strcmp( one, two );
+      }
+    };
+
+    template<>
+    class GenericComparator< indri::utility::greedy_vector<char*> > {
+    public:
+      int operator() ( const indri::utility::greedy_vector<char*>& one, const indri::utility::greedy_vector<char*>& two ) const {
+        int minLength = lemur_compat::min( one.size(), two.size() );
+
+        for( int i=0; i<minLength; i++ ) {
+          int comparison = strcmp( one[i], two[i] );
+          if( comparison != 0 )
+            return comparison;
+        }
+
+        return int(one.size()) - int(two.size());
       }
     };
 

@@ -696,9 +696,12 @@ int main(int argc, char * argv[]) {
         indri::file::FileTreeIterator files( corpusPath );
 
         for( ; files != indri::file::FileTreeIterator::end(); files++ ) {
-          if( fileClass.length() )
+          if( fileClass.length() ) {
             env.addFile( *files, fileClass );
-          else
+            // BUGBUG!!! TODO!!!
+            env.close();
+            env.open( repositoryPath, &monitor );
+          } else
             env.addFile( *files );
         }
       } else {

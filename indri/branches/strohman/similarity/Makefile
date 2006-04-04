@@ -7,7 +7,9 @@ LIBS=-lindri $(patsubst %, -l%, $(DEPENDENCIES))
 APP=similarity
 
 all:
-	$(CXX) $(CXXFLAGS) $(APP).cpp -o $(APP) $(LIBPATH) $(LIBS) $(CPPLDFLAGS)
+	$(CXX) $(CXXFLAGS) -c ClusterEnvironment.cpp -o ClusterEnvironment.o
+	$(CXX) $(CXXFLAGS) -c $(APP).cpp -o $(APP).o
+	$(CXX) $(CXXFLAGS) *.o -o $(APP) $(LIBPATH) $(LIBS) $(CPPLDFLAGS)
 
 install:
 	$(INSTALL_PROGRAM) $(APP) $(bindir)

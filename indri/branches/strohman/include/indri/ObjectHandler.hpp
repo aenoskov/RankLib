@@ -28,6 +28,7 @@ namespace indri
     public:
       virtual ~ObjectHandler() {};
       virtual void handle( _Type* object ) = 0;
+      virtual void done() {};
     };
   }
 }

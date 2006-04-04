@@ -32,6 +32,13 @@ indri::file::FileTreeIterator::FileTreeIterator( const std::string& path ) {
   while( indri::file::Path::isDirectory( *(*_stack.top()) ) ) {
     _stack.push( new indri::file::DirectoryIterator( **_stack.top() ) );
   }
+
+  indri::file::DirectoryIterator& top = (*_stack.top());
+  if( _stack.size() && top == indri::file::DirectoryIterator::end() ) {
+    delete _stack.top();
+    _stack.pop();
+    _nextCandidate();
+  }
 }
 
 indri::file::FileTreeIterator::~FileTreeIterator() {
