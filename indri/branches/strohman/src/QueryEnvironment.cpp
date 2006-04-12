@@ -700,6 +700,49 @@ void indri::api::QueryEnvironment::_annotateQuery( indri::infnet::InferenceNetwo
 // expressionCount
 //
 
+std::vector<indri::api::ScoredExtentResult> indri::api::QueryEnvironment::expressionList( const std::string& expression ) {
+  std::istringstream query(expression);
+  indri::lang::QueryLexer lexer( query );
+  indri::lang::QueryParser parser( lexer );
+  
+  // this step is required to initialize some internal
+  // parser variables, since ANTLR grammars can't add things
+  // to the constructor
+  parser.init( &lexer );
+  lexer.init();
+
+  indri::lang::ScoredExtentNode* rootNode;
+
+  try {
+    rootNode = parser.query();
+  } catch( antlr::ANTLRException e ) {
+    LEMUR_THROW( LEMUR_PARSE_ERROR, "Couldn't understand this query: " + e.getMessage() );
+  }
+
+  indri::lang::RawScorerNode* rootScorer = dynamic_cast<indri::lang::RawScorerNode*>(rootNode);
+  
+  if( rootScorer == 0 ) {
+    LEMUR_THROW( LEMUR_PARSE_ERROR, "This query does not appear to be a proximity expression" );
+  }
+
+  // replace the raw scorer node with a listAccumulator
+  indri::lang::ListAccumulator* listAccumulator = new indri::lang::ListAccumulator( rootScorer->getRawExtent() );
+  listAccumulator->setNodeName( rootScorer->nodeName() );
+  
+  std::vector<indri::lang::Node*> roots;
+  roots.push_back( listAccumulator );
+
+  indri::infnet::InferenceNetwork::MAllResults statisticsResults;
+  _sumServerQuery( statisticsResults, roots, MAX_INT32 );
+  
+  std::vector<ScoredExtentResult>& occurrencesList = statisticsResults[ listAccumulator->nodeName() ][ "occurrences" ];
+  return occurrencesList;
+}
+
+//
+// expressionCount
+//
+
 double indri::api::QueryEnvironment::expressionCount( const std::string& expression ) {
   std::istringstream query(expression);
   indri::lang::QueryLexer lexer( query );
