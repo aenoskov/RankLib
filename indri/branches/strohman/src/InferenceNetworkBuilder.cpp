@@ -20,6 +20,7 @@
 
 #include "indri/ContextCountAccumulator.hpp"
 #include "indri/ContextSimpleCountAccumulator.hpp"
+#include "indri/ListAccumulator.hpp"
 
 #include "indri/DocListIteratorNode.hpp"
 #include "indri/ExtentInsideNode.hpp"
@@ -598,6 +599,20 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ContextSimpleCo
 
     _network->addEvaluatorNode( contextCount );
     _nodeMap[ contextSimpleCounterNode ] = contextCount;
+  }
+}
+
+void indri::infnet::InferenceNetworkBuilder::after( indri::lang::ListAccumulator* accumulator ) {
+  if( _nodeMap.find( accumulator ) == _nodeMap.end() ) {
+    ListAccumulator* accumulatorNode = 0;
+    InferenceNetworkNode* untypedRawExtent = _nodeMap[ accumulator->getRawExtent() ];
+
+    accumulatorNode = new ListAccumulator( accumulator->nodeName(),
+                                           *dynamic_cast<ListIteratorNode*>(untypedRawExtent) );
+
+    _network->addEvaluatorNode( accumulatorNode );
+    _network->addComplexEvaluatorNode( accumulatorNode );
+    _nodeMap[ accumulator ] = accumulatorNode;
   }
 }
 
