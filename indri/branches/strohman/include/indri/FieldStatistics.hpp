@@ -29,18 +29,21 @@ namespace indri {
         totalCount(0),
         documentCount(0),
         lastDocument(0),
-        lastCount(0)
+        lastCount(0),
+        byteOffset(0)
       {
       }
 
-      FieldStatistics( const std::string& _name, bool numeric, UINT64 _totalCount, unsigned int _documentCount )
+      FieldStatistics( const std::string& _name, bool numeric, UINT64 _totalCount, unsigned int _documentCount, UINT64 _byteOffset )
         :
         name(_name),
         isNumeric(numeric),
         totalCount(_totalCount),
         documentCount(_documentCount),
         lastDocument(0),
-        lastCount(0) {
+        lastCount(0), 
+        byteOffset(_byteOffset)
+      {
       }
 
       void addOccurrence( int documentID ) {
@@ -58,6 +61,7 @@ namespace indri {
       bool isNumeric;
       UINT64 totalCount;
       unsigned int documentCount;
+      UINT64 byteOffset;
 
       int lastDocument;
       int lastCount;
