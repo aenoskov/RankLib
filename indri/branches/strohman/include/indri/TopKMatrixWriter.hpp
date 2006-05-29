@@ -43,6 +43,9 @@ namespace indri {
 
         _file.create( fileName );
         _buffer = new indri::file::SequentialWriteBuffer( _file, 1024*128 );
+        _buffer->write( "TOPK", 4 );
+        int k = ntohl( _k );
+        _buffer->write( &k, 4 );
         _initRowBuffer();
       }
 
@@ -68,7 +71,8 @@ namespace indri {
       void push( int document, double score ) {
         assert( _rowBuffer.size() > 0 );
         if( (*_rowBuffer.begin()).first < score ) {
-          (*_rowBuffer.begin()) = std::make_pair( score, document );
+          std::pop_heap( _rowBuffer.begin(), _rowBuffer.end(), pair_greater<double,int>() );
+          _rowBuffer.back() = std::make_pair( score, document );
           std::push_heap( _rowBuffer.begin(), _rowBuffer.end(), pair_greater<double,int>() );
         }
       }
