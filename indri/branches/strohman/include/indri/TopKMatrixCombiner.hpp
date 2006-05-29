@@ -23,7 +23,7 @@ namespace indri {
       class reader_small_document {
       public:
         bool operator() ( const TopKMatrixReader* one, const TopKMatrixReader* two ) const {
-          return one->currentDocument() < two->currentDocument();
+          return one->currentDocument() > two->currentDocument();
         }
       };
 
@@ -61,7 +61,8 @@ namespace indri {
           if( currentDocument && currentDocument != reader->currentDocument() ) {
             _writer.writeRow( currentDocument );
           }
-          
+
+          currentDocument = reader->currentDocument();
           const indri::utility::greedy_vector< std::pair< int, double > >& row = reader->currentRow();
 
           for( int i=0; i<row.size(); i++ ) {
@@ -72,6 +73,7 @@ namespace indri {
             _readers.erase( _readers.end()-1 );
             delete reader;
           } else {
+            reader->readRow();
             std::push_heap( _readers.begin(), _readers.end(), reader_small_document() );
           }
         }
