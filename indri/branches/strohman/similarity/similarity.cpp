@@ -41,15 +41,6 @@ static std::vector<int> document_list( indri::api::Parameters parameters ) {
   return result;
 }
 
-//
-// require_parameter
-//
-
-static void require( indri::api::Parameters p, const std::string& n ) {
-  if( ! p.exists(n) ) {
-    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Couldn't find required parameter: " + n );
-  }
-}
 
 //
 // text_topk_matrix
@@ -97,6 +88,7 @@ static void text_matrix( const std::string& filename ) {
 static void topk_combine( indri::api::Parameters& p ) {
   std::vector<indri::similarity::TopKMatrixReader*> readers;
   indri::api::Parameters inputs = p["input"];
+  std::string outputName = (std::string) p["output"];
   int k = p.get( "k", 10 );
 
   for( int i=0; i<inputs.size(); i++ ) {
@@ -108,8 +100,29 @@ static void topk_combine( indri::api::Parameters& p ) {
   }
 
   indri::similarity::TopKMatrixCombiner combiner( readers, k );
+  combiner.open( outputName );
   combiner.combine();
   combiner.close();
+}
+
+//
+// topk_matrix
+//
+
+static void topk_matrix( indri::api::Parameters& parameters, indri::similarity::ClusterEnvironment& env ) {
+  std::vector<indri::similarity::TopKMatrixReader*> readers;
+  int k = parameters.get( "k", 10 );
+
+  std::vector<int> src = document_list( parameters["source"] );
+  std::vector<int> dest = document_list( parameters["dest"] );
+  indri::similarity::Matrix* matrix = env.compareDocuments( src, dest );
+
+  indri::similarity::TopKMatrixWriter mw(k);
+  mw.open( parameters["output"] );
+  mw.write( matrix, src, dest );
+  mw.close();
+  
+  delete matrix;
 }
 
 //
@@ -144,13 +157,25 @@ static void assign_documents_to_centers( indri::api::Parameters p, indri::simila
 //    compute new centroid for a cluster
 //
 
+void require( indri::api::Parameters param, const std::string& p ) {
+  if( !param.exists(p) )
+    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "similarity requires parameter '" + p + "'." );
+}
+
 int main( int argc, char** argv ) {
   try {
     indri::api::Parameters& parameters = indri::api::Parameters::instance();
     parameters.loadCommandLine( argc, argv );
     indri::similarity::ClusterEnvironment* env = new indri::similarity::ClusterEnvironment();
+    require( parameters, "index" );
+    require( parameters, "operation" );
+
     std::string indexName = parameters["index"];
     std::string operation = parameters["operation"];
+
+    if( parameters.exists( "comparison" ) ) {
+      env->setComparisonMethod( parameters["comparison"] );
+    }
 
     env->openRead( indexName );
 
@@ -176,6 +201,8 @@ int main( int argc, char** argv ) {
       mw.close();
 
       delete matrix;
+    } else if( operation == "topkmatrix" ) {
+      topk_matrix( parameters, *env );
     } else if( operation == "combine" ) {
       topk_combine( parameters );
     } else if( operation == "textmatrix" ) {
