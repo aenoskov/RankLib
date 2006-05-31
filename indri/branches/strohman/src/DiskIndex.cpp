@@ -95,7 +95,11 @@ void indri::index::DiskIndex::open( const std::string& base, const std::string& 
 
   _invertedFile.openRead( invertedFilePath );
   _directFile.openRead( directFilePath );
+
+  // DEBUG!!! remove this eventually
+  try {
   _fieldsFile.openRead( fieldsFilePath );
+  } catch( ... ) {}
 
   _lengthsBuffer.cache( 0, _documentLengths.size() );
 }
