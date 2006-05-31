@@ -79,6 +79,7 @@ namespace indri {
 
       void writeRow( int sourceDocument ) {
         assert( _rowBuffer.size() == _k );
+        // BUGBUG: need to byte flip this
         _buffer->write( &sourceDocument, sizeof(UINT32) );
         for( int i=0; i<_rowBuffer.size(); i++ ) {
           UINT32 document = ntohl(_rowBuffer[i].second);
