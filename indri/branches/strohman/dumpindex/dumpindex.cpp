@@ -471,6 +471,9 @@ void print_disk_usage( indri::collection::Repository& r ) {
     indri::index::TermData* termData = entry->termData;
       
     entry->iterator->startIteration();
+
+    while( !entry->iterator->finished() )
+      entry->iterator->nextEntry();
       
     std::cout << termData->term << " "
               << termData->corpus.totalCount << " "
