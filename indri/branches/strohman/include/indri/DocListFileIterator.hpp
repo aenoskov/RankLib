@@ -65,6 +65,8 @@ namespace indri {
       virtual bool nextEntry() = 0;
       virtual DocListData* currentEntry() = 0;
       virtual const DocListData* currentEntry() const = 0;
+      
+      virtual UINT64 position() const = 0;
     };
   }
 }

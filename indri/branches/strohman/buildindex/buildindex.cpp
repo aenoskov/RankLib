@@ -698,9 +698,6 @@ int main(int argc, char * argv[]) {
         for( ; files != indri::file::FileTreeIterator::end(); files++ ) {
           if( fileClass.length() ) {
             env.addFile( *files, fileClass );
-            // BUGBUG!!! TODO!!!
-            env.close();
-            env.open( repositoryPath, &monitor );
           } else
             env.addFile( *files );
         }

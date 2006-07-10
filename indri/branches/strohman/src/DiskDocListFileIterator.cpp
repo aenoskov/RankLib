@@ -116,3 +116,11 @@ const indri::index::DocListFileIterator::DocListData* indri::index::DiskDocListF
 bool indri::index::DiskDocListFileIterator::finished() const {
   return _finished;
 }
+
+//
+// position
+//
+
+UINT64 indri::index::DiskDocListFileIterator::position() const {
+  return _file->position();
+}

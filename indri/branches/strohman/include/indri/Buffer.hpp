@@ -96,8 +96,10 @@ namespace indri
           }
 
           char* newBuffer = (char*) malloc( newSize );
-          memcpy( newBuffer, _buffer, _position );
-          free( _buffer );
+          if( _buffer ) {
+            memcpy( newBuffer, _buffer, _position );
+            free( _buffer );
+          }
           _buffer = newBuffer;
           _size = newSize;
         }

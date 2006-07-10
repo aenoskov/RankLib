@@ -51,8 +51,9 @@ namespace indri {
           _alphabetical.push_back( _termData[i] );
         }
 
-        std::sort( _alphabetical.begin(), _alphabetical.end(), MemoryIndex::term_entry::term_less() );\
-                                                                                                        _currentTerm = _alphabetical.begin();
+        std::sort( _alphabetical.begin(), _alphabetical.end(), MemoryIndex::term_entry::term_less() );
+        
+        _currentTerm = _alphabetical.begin();
         _data.termData = 0;
         _data.iterator = 0;
 
@@ -102,6 +103,11 @@ namespace indri {
         assert( (*_currentTerm)->list.documentFrequency() == _data.termData->corpus.documentCount );
         assert( (*_currentTerm)->list.termFrequency() == _data.termData->corpus.totalCount );
         return true;
+      }
+      
+      // memory indexes don't use disk space, so this aways returns 0
+      UINT64 position() const {
+        return 0;
       }
     };
   }
