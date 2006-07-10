@@ -459,6 +459,31 @@ void print_repository_stats( indri::collection::Repository& r ) {
   std::cout << std::endl;
 }
 
+void print_disk_usage( indri::collection::Repository& r ) {
+  indri::index::Index* index = (*r.indexes())[0];
+  indri::index::DocListFileIterator* iter = index->docListFileIterator();
+  UINT64 lastPosition = 0;
+  
+  iter->startIteration();
+  
+  while( !iter->finished() ) {
+    indri::index::DocListFileIterator::DocListData* entry = iter->currentEntry();
+    indri::index::TermData* termData = entry->termData;
+      
+    entry->iterator->startIteration();
+      
+    std::cout << termData->term << " "
+              << termData->corpus.totalCount << " "
+              << termData->corpus.documentCount << " "
+              << iter->position() - lastPosition << std::endl;
+    
+    lastPosition = iter->position();
+    iter->nextEntry();
+  }
+  
+  delete iter;
+}
+
 void usage() {
   std::cout << "dumpindex <repository> <command> [ <argument> ]*" << std::endl;
   std::cout << "Valid commands are: " << std::endl;
@@ -475,6 +500,7 @@ void usage() {
   std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
   std::cout << "    invlist (il)         None           Print the contents of all inverted lists" << std::endl;
   std::cout << "    vocabulary (v)       None           Print the vocabulary of the index" << std::endl;
+  std::cout << "    diskusage (du)       None           Print disk space statistics for terms in the inverted list" << std::endl;
   std::cout << "    stats (s)                           Print statistics for the Repository" << std::endl;
 }
 
@@ -533,6 +559,9 @@ int main( int argc, char** argv ) {
     } else if( command == "vtl" || command == "validate" ) {
       REQUIRE_ARGS(3);
       validate(r);
+    } else if( command == "du" || command == "diskusage" ) {
+      REQUIRE_ARGS(3);
+      print_disk_usage( r );
     } else if( command == "s" || command == "stats" ) {
       REQUIRE_ARGS(3);
       print_repository_stats( r );

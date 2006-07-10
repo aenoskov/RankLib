@@ -53,6 +53,7 @@ namespace indri {
       bool nextEntry();
       DocListData* currentEntry();
       const DocListData* currentEntry() const;
+      UINT64 position() const;
     };
   }
 }

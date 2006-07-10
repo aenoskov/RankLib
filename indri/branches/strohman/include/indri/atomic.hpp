@@ -35,18 +35,10 @@ namespace indri {
     inline void decrement( value_type& variable ) {
       ::InterlockedDecrement( &variable );
     }
-#elif defined(__APPLE__)
-    typedef _Atomic_word value_type;
-
-    inline void increment( value_type& variable ) {
-      __atomic_add( &variable, 1 );
-    }
-
-    inline void decrement( value_type& variable ) {
-      __atomic_add( &variable, -1 );
-    }
 #else
-    // GCC 3.4+ declares these in the __gnu_cxx namespace, 3.3- does not.
+  #ifdef NEEDS_GNU_CXX_NAMESPACE
+    using namespace __gnu_cxx;
+  #endif
     using namespace __gnu_cxx;
     typedef _Atomic_word value_type;
 
