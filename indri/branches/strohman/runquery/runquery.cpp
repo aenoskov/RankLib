@@ -418,17 +418,6 @@ public:
     query_t* query;
     std::stringstream output;
     
-    
-    // DEBUG DEBUG:
-    indri::api::QueryAnnotation* annotation = _environment.runAnnotatedQuery( "george bush", 20 );
-    std::vector<indri::api::ParsedDocument*> documents = _environment.documents( annotation->getResults() );
-    
-    for( int i=0; i<documents.size(); i++ ) {
-      indri::api::SnippetBuilder builder(false);
-      std::cout << builder.build( annotation->getResults()[i].document, documents[i], annotation ) << std::endl;
-    }
-    
-    
     // pop a query off the queue
     {
       indri::thread::ScopedLock sl( &_queueLock );
