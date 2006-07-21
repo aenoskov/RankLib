@@ -326,7 +326,7 @@ private:
       
       if( _printSnippets ) {
         indri::api::SnippetBuilder builder(false);
-        output << builder.build( resultSubset[i].document, documents[i], _annotation );
+        output << builder.build( resultSubset[i].document, documents[i], _annotation ) << std::endl;
       }
       
       if( documents.size() )

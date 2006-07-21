@@ -301,6 +301,9 @@ std::string indri::api::SnippetBuilder::build( int documentID, const indri::api:
     for( int j=0; j<region.extents.size(); j++ ) {
       int regionBegin = region.extents[j].begin;
       int regionEnd = region.extents[j].end;
+	  
+	  if( regionEnd > document->positions.size() )
+		continue;
       
       int beginMatch = document->positions[regionBegin].begin;
       int endMatch = document->positions[regionEnd-1].end;
