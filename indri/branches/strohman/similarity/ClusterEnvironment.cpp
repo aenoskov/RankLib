@@ -39,6 +39,7 @@ bool indri::similarity::ClusterEnvironment::openRead( const std::string & indexN
     _collection.load( index );
 
     setComparisonMethod( "compare=kl:smoothing=dirichlet:mu=2500" );
+    return true;
 }
 
 //
@@ -384,9 +385,12 @@ int indri::similarity::ClusterEnvironment::medoid( const std::vector<int>& docum
   for( int i=0; i<matrix->rows(); i++ ) {
     double s = matrix->rowSum( i );
     
-    if( s > bestSum )
-      bestSum = s, bestRow = i;
+    if( s > bestSum ) {
+      bestSum = s;
+      bestRow = i;
+    }
   }
 
-
+  delete matrix;
+  return bestRow;
 }

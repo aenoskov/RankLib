@@ -141,29 +141,58 @@ static void assign_documents_to_centers( indri::api::Parameters p, indri::simila
 }
 
 //
-// main
+// usage
 //
 
+void usage() {
+  std::cerr << "similarity (" << INDRI_DISTRIBUTION << ")" << std::endl
+            << "   usage: similarity -index=myindex -operation=op [-comparison=comp] [arguments]" << std::endl << std::endl
+            << "   myindex: A valid Indri index                                                 " << std::endl
+            << "   comp: A comparison method string, such as \"compare=kl:smoothing=dirichlet:mu=2500\"" << std::endl
+            << "       compare = kl (KL-divergence)                            " << std::endl
+            << "                 diffusion (diffusion kernel with parameter t) " << std::endl
+            << "       smoothing = dirichlet (with parameter mu)               " << std::endl
+            << "                   jm (Jelinek-Mercer, with parameter lambda)  " << std::endl
+            << "                   none                                        " << std::endl
+            << "                   null (equivalent to none)                   " << std::endl
+            << "   op: One of the following operations:" << std::endl
+            << "       (Note: most operations requre a document list as input, which can either be a range, " << std::endl
+            << "              specified as <start>m</start><end>n</end> for document numbers m to n, or     " << std::endl
+            << "              as a list of individual documents, specified as <doc>k</doc>.)                " << std::endl
+            << "       medoid:  Find the 'center' document of a group of documents, defined as the        " << std::endl
+            << "                document with the shortest average distance to all the others.            " << std::endl
+            << "                a list of documents as input.                                             " << std::endl
+            << "       assign:  Assign each document in 'src' to the most similar document in 'centers'.  " << std::endl
+            << "                This is equivalent to the assignment step in the K-Means algorithm.       " << std::endl
+            << "       matrix:  Build a matrix of document similarity scores between the documents in     " << std::endl
+            << "                'source' and those in 'dest'.  The matrix is written in binary form to    " << std::endl
+            << "                the file specified as 'output'.                                           " << std::endl
+            << "       textmatrix:  Convert the binary matrix 'input' to text, output to stdout.          " << std::endl
+            << "       topkmatrix:  Same as matrix, but only retain the top k most similar documents      " << std::endl
+            << "                to each document.  Requires parameters 'k', 'source', 'dest' and 'output'." << std::endl
+            << "       texttopk:    Convery a binary top-k matrix to text, output to stdout.              " << std::endl
+            << "       combine:  Combine many binary top-k matrices (specified as 'input', you can specify" << std::endl
+            << "                 more than one by using -input more than once) into one larger            " << std::endl
+            << "                 top-k matrix (specified as 'output').  Also requires a parameter 'k'.    " << std::endl;
+  exit(-1);
+}
+
 //
-// Stuff main should do:
-//    compute the similarity matrix of source to dest
-//    output that dest matrix as text or binary
-//    read a binary matrix, convert to text
-//    
-//    compute a top-k matrix (source to dest)
-//    print matrix as text or binary (text assignment is a special case)
-//    combine binary top-k matrices
-//
-//    compute new centroid for a cluster
+// require
 //
 
 void require( indri::api::Parameters param, const std::string& p ) {
   if( !param.exists(p) )
-    LEMUR_THROW( LEMUR_RUNTIME_ERROR, "similarity requires parameter '" + p + "'." );
+    usage();
 }
+
+//
+// main
+//
 
 int main( int argc, char** argv ) {
   try {
+    usage();
     indri::api::Parameters& parameters = indri::api::Parameters::instance();
     parameters.loadCommandLine( argc, argv );
     indri::similarity::ClusterEnvironment* env = new indri::similarity::ClusterEnvironment();
