@@ -51,7 +51,7 @@ namespace indri {
                     double collectionProbability = _collection[termID] * oneOverCollectionLength;
                     double background = collectionProbability * lambdaOverCollectionLength;
 
-                    double foreground = (1 - _lambda) * double(count) * oneOverDocumentLength;
+                    double foreground = oneMinusLambda * double(count) * oneOverDocumentLength;
                     
                     smoothed.terms.push_back( termID );
                     smoothed.probabilities.push_back( foreground + background );
