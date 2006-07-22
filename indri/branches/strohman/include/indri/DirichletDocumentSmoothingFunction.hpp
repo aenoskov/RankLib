@@ -34,7 +34,6 @@ namespace indri {
             }
 
             void operator() ( SmoothedUnigramDocument& smoothed, const UnigramDocument& input ) const {
-                double oneOverDocumentLength = 1.0 / double(input.length);
                 double oneOverDenominator = 1.0 / (_mu + double(input.length));
 
                 for( int i=0; i<input.terms.size(); i++ ) {

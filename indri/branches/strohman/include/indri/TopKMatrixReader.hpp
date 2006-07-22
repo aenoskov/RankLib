@@ -56,8 +56,8 @@ namespace indri {
       }
 
       const indri::utility::greedy_vector< std::pair< int, double > >& readRow() {
-        // BUGBUG: need to byte swap this
         _inBuffer->read( &_document, sizeof(UINT32) );
+        _document = htonl(_document);
         _list.clear();
 
         for( int i=0; i<_k; i++ ) {

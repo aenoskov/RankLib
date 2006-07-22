@@ -22,64 +22,10 @@
 #include "indri/DocumentSmoothingFunction.hpp"
 #include "indri/DocumentSimilarityFunction.hpp"
 #include "indri/DocumentComparator.hpp"
+#include "indri/Matrix.hpp"
 
 namespace indri {
     namespace similarity {
-        // what documents are in a cluster?
-        // what is the center of the cluster, and/or how would I find out?
-        // want a normalized version of the document vector
-        // how do the documents in this cluster relate to one another?
-
-        class Matrix {
-        private:
-            double* _v;
-            int _rows;
-            int _columns;
-
-        public:
-            Matrix( int rows, int columns ) {
-                _v = new double[ rows * columns ];
-                _rows = rows;
-                _columns = columns;
-            }
-
-            inline double get( int i, int j ) {
-                assert( i < _rows && j < _columns );
-                assert( i >= 0 && j >= 0 );
-
-                return _v[i*_columns+j];
-            } 
-
-            inline void set( int i, int j, double value ) {
-                assert( i < _rows && j < _columns );
-                assert( i >= 0 && j >= 0 );
-
-                _v[i*_columns+j] = value;
-            }
-
-            inline int rows() {
-                return _rows;
-            }
-
-            inline int columns() {
-                return _columns;
-            }
-
-            inline double rowSum( int i ) {
-              double total = 0;
-              for( int k=0; k<_columns; k++ )
-                total += get( i, k );
-              return total;
-            }
-  
-            inline double columnSum( int j ) {
-              double total = 0;
-              for( int k=0; k<_rows; k++ )
-                total += get( k, j );
-              return total;
-            }
-        };
-
         class ClusterEnvironment {
         private:
             /** Number of documents to compare in one block.  We want this to be small enough 

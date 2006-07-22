@@ -54,7 +54,23 @@ namespace indri {
         columns = lemur_compat::ntohll( columns );
 
         indri::similarity::Matrix* m = new indri::similarity::Matrix( rows, columns );
-
+        
+        // now, read in the row and column indexes
+        for( int i=0; i<rows; i++ ) {
+          int value;
+          _buffer->read( &value, 4 );
+          value = ntohl( value );
+          m->rowDocuments().push_back( value );
+        }
+        
+        for( int i=0; i<columns; i++ ) {
+          int value;
+          _buffer->read( &value, 4 );
+          value = ntohl( value );
+          m->columnDocuments().push_back( value );
+        }
+        
+        // read in the matrix data
         for( int i=0; i<rows; i++ ) {
           for( int j=0; j<columns; j++ ) {
             double value;

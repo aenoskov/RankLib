@@ -8,6 +8,9 @@
 #ifndef INDRI_MATRIXWRITER_HPP
 #define INDRI_MATRIXWRITER_HPP
 
+#include "indri/File.hpp"
+#include "indri/SequentialWriteBuffer.hpp"
+
 namespace indri {
   namespace similarity {
     class MatrixWriter {
@@ -30,6 +33,18 @@ namespace indri {
 
         _buffer->write( &rows, 8 );
         _buffer->write( &columns, 8 );
+        
+        for( int i=0; i<m->rows(); i++ ) {
+          int value = m->rowDocuments()[i];
+          value = htonl(value);
+          _buffer->write( &value, 4 );
+        }
+
+        for( int i=0; i<m->columns(); i++ ) {
+          int value = m->columnDocuments()[i];
+          value = htonl(value);
+          _buffer->write( &value, 4 );
+        }
 
         for( int i=0; i<m->rows(); i++ ) {
           for( int j=0; j<m->columns(); j++ ) {
