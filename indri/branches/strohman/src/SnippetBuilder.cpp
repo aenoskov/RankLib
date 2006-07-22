@@ -292,6 +292,9 @@ std::string indri::api::SnippetBuilder::build( int documentID, const indri::api:
     if( region.begin != 0 && i == 0 ) {
       _addEllipsis( snippet );
     }
+	
+	if( region.end > document->positions.size() )
+	  continue;
     
     int beginByte = document->positions[region.begin].begin;
     int endByte = document->positions[region.end-1].end;
