@@ -20,8 +20,9 @@
 #include "indri/Path.hpp"
 #include "lemur/Exception.hpp"
 #include "indri/Combiner.hpp"
+#include "indri/MD5Writer.hpp"
 
-static void harvest_anchor_text_file( const std::string& path, const std::string& harvestPath, indri::parse::HTMLParser& parser ) {
+static void harvest_anchor_text_file( const std::string& path, const std::string& harvestPath, const std::string& md5Path, indri::parse::HTMLParser& parser ) {
   indri::parse::TaggedDocumentIterator iterator;
   iterator.open( path );
   iterator.setTags( 
@@ -32,17 +33,20 @@ static void harvest_anchor_text_file( const std::string& path, const std::string
 
   indri::parse::UnparsedDocument* unparsed;
   indri::parse::AnchorTextWriter writer( harvestPath );
+  indri::parse::MD5Writer md5writer( md5Path );
 
   while( (unparsed = iterator.nextDocument()) != 0 ) {
+    // build MD5: unparsed->text; write MD5s out to files
     indri::api::ParsedDocument* parsed = parser.parse( unparsed );
     writer.handle(parsed);
+    md5writer.handle(unparsed);
   }
   
   // close up everything
   iterator.close();
 }
 
-static void harvest_anchor_text( const std::string& corpusPath, const std::string& harvestPath ) {
+static void harvest_anchor_text( const std::string& corpusPath, const std::string& harvestPath, const std::string& md5Path ) {
   std::vector<std::string> include;
   include.push_back( "absolute-url" );
   include.push_back( "a" );
@@ -58,18 +62,19 @@ static void harvest_anchor_text( const std::string& corpusPath, const std::strin
     for( ; files != indri::file::FileTreeIterator::end(); files++ ) {
       std::string filePath = *files;
       std::string relative = indri::file::Path::relative( corpusPath, filePath );
-      std::string anchorText = indri::file::Path::combine( harvestPath, relative );      
+      std::string anchorText = indri::file::Path::combine( harvestPath, relative ); 
+      std::string md5SubPath = indri::file::Path::combine( md5Path, relative );
       std::cout << "harvesting " << filePath << std::endl;
 
       try {
-        harvest_anchor_text_file( *files, anchorText, parser );
+        harvest_anchor_text_file( *files, anchorText, md5SubPath, parser );
       } catch( lemur::api::Exception& e ) {
         std::cout << e.what() << std::endl;
       }
     }
   } else {
     std::string anchorText = indri::file::Path::combine( harvestPath, "data" );
-    harvest_anchor_text_file( corpusPath, anchorText, parser );
+    harvest_anchor_text_file( corpusPath, anchorText, md5Path, parser );
   }
 }
 
@@ -91,6 +96,7 @@ int main(int argc, char * argv[]) {
     std::string bucketPath = indri::file::Path::combine( outputPath, "buckets" );
     std::string preSortPath = indri::file::Path::combine( outputPath, "presort" );
     std::string sortedPath = indri::file::Path::combine( outputPath, "sorted" );
+    std::string md5Path = indri::file::Path::combine( outputPath, "md5" );
 
     if( parameters.get( "delete", 1 ) ) {
       if( indri::file::Path::isDirectory( harvestPath ) )
@@ -110,7 +116,7 @@ int main(int argc, char * argv[]) {
 
     // step 1: harvest text
     if( parameters.get( "harvest", 1 ) )
-      harvest_anchor_text( corpusPath, harvestPath );
+      harvest_anchor_text( corpusPath, harvestPath, md5Path );
    
     indri::parse::Combiner combiner( bins );
     
