@@ -518,8 +518,8 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::ODNode* odNode ) {
 
     std::vector<int> dind;
     std::vector<int> pind;
-    dind.resize( 0, lists.size() );
-    pind.resize( 0, lists.size() );
+    dind.resize( lists.size(), 0 );
+    pind.resize( lists.size(), 0 );
     
     InvertedList* output = new InvertedList;
     int doc = 0;
@@ -726,7 +726,7 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::ExtentInside* exte
     InvertedList* outer = _listMap[extentInside->getOuter()];
     
     std::vector<int> indexes;
-    indexes.resize( 0, 2 );
+    indexes.resize( 2, 0 );
     std::vector<int> posindexes;
     
     std::vector<InvertedList*> lists;
