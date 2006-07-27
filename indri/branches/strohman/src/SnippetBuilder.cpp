@@ -9,7 +9,7 @@
 // 17 July 2006 -- tds
 //            
 
-#include "SnippetBuilder.hpp"
+#include "indri/SnippetBuilder.hpp"
 #include <algorithm>
 
 //
@@ -147,26 +147,26 @@ char* indri::api::SnippetBuilder::_sanitizeText( const char* text, int begin, in
       // skip past any whitespace
       i += strspn( text + i, " \t\n\r" );
       
-      if( !strncmp( "!--", text + i, 3 ) ) {
+      if( !::strncmp( "!--", text + i, 3 ) ) {
         // in comment, search for end of it:
         i += 3;
-        char* endp = strstr( "-->", text + i );
+        const char* endp = strstr( "-->", text + i );
         if( endp )
           i = endp - text + 2;
         else
           i = end;
-      } else if( i < length-5 && !strncasecmp( "style", text + i, 5 ) ) {
+      } else if( i < length-5 && !lemur_compat::strncasecmp( "style", text + i, 5 ) ) {
         // style tag
-        char* endp = strcasestr( "</style", text + i );
+        const char* endp = lemur_compat::strcasestr( "</style", text + i );
         if( endp )
           endp = strchr( endp, '>' );
         if( endp )
           i = endp - text;
         else 
           i = end;
-      } else if( i < length-6 && !strncasecmp( "script", text + i, 6 ) ) {
+      } else if( i < length-6 && !lemur_compat::strncasecmp( "script", text + i, 6 ) ) {
         // script tag
-        char* endp = strcasestr( "</script", text + i );
+        const char* endp = lemur_compat::strcasestr( "</script", text + i );
         if( endp )
           endp = strchr( endp, '>' );
         if( endp )
@@ -175,7 +175,7 @@ char* indri::api::SnippetBuilder::_sanitizeText( const char* text, int begin, in
           i = end;
       } else {
         // regular old everyday tag, skip it
-        char* endp = strchr( text + i, '>' );
+        const char* endp = strchr( text + i, '>' );
         if( endp )
           i = endp - text;
         else
