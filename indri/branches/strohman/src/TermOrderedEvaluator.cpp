@@ -18,6 +18,74 @@
 #include <map>
 #include <math.h>
 
+class WSumTermScoreFunction : public indri::query::TermScoreFunction {
+private:
+  std::vector< std::pair<double, indri::query::TermScoreFunction*> > _functions;
+
+public:
+  void addFunction( double weight, TermScoreFunction* function ) {
+    _functions.push_back( std::make_pair(weight, function) );
+  }
+
+  double scoreOccurrence( double occurrences, int contextLength ) {
+    double result = 0;
+
+    for( int i=0; i<_functions.size(); i++ ) {
+      TermScoreFunction* f = _functions[i].second;
+      double w = _functions[i].first;
+      result += w * exp( f->scoreOccurrence( occurrences, contextLength ) );
+    }
+
+    return log(result);
+  }
+
+  double scoreOccurrence( double occurrences, int contextLength, double documentOccurrences, int documentLength ) {
+    double result = 0;
+
+    for( int i=0; i<_functions.size(); i++ ) {
+      TermScoreFunction* f = _functions[i].second;
+      double w = _functions[i].first;
+      result += w * exp(f->scoreOccurrence( occurrences, contextLength, documentOccurrences, documentLength ));
+    }
+
+    return log(result);
+  }
+};
+
+class WeightTermScoreFunction : public indri::query::TermScoreFunction {
+private:
+  std::vector< std::pair<double, indri::query::TermScoreFunction*> > _functions;
+
+public:
+  void addFunction( double weight, TermScoreFunction* function ) {
+    _functions.push_back( std::make_pair(weight, function) );
+  }
+
+  double scoreOccurrence( double occurrences, int contextLength ) {
+    double result = 0;
+
+    for( int i=0; i<_functions.size(); i++ ) {
+      TermScoreFunction* f = _functions[i].second;
+      double w = _functions[i].first;
+      result += w * f->scoreOccurrence( occurrences, contextLength );
+    }
+
+    return result;
+  }
+
+  double scoreOccurrence( double occurrences, int contextLength, double documentOccurrences, int documentLength ) {
+    double result = 0;
+
+    for( int i=0; i<_functions.size(); i++ ) {
+      TermScoreFunction* f = _functions[i].second;
+      double w = _functions[i].first;
+      result += w * f->scoreOccurrence( occurrences, contextLength, documentOccurrences, documentLength );
+    }
+
+    return result;
+  }
+};
+
 indri::query::TermScoreFunction* indri::infnet::TermOrderedEvaluator::_buildTermScoreFunction( const std::string& smoothing, double occurrences, double contextSize ) const {
   double collectionFrequency;
 
@@ -29,8 +97,13 @@ indri::query::TermScoreFunction* indri::infnet::TermOrderedEvaluator::_buildTerm
     // because it seemed most appropriate
     collectionFrequency = 1.0 / double(contextSize*2.);
   }
+  
+  indri::query::TermScoreFunction* function = indri::query::TermScoreFunctionFactory::get( smoothing, collectionFrequency );
 
-  return indri::query::TermScoreFunctionFactory::get( smoothing, collectionFrequency );
+  if( function == 0 )
+    return 0;
+
+  return function;
 }
 
 indri::infnet::TermOrderedEvaluator::~TermOrderedEvaluator() {
@@ -204,11 +277,11 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::ContextCounterNode
       if( j > context->documents.size() )
         break;
 
-      int startContextPos = j;
-      int endContextPos = j + context->counts[j];
+      int startContextPos = contextDocPos;
+      int endContextPos = contextDocPos + context->counts[j];
 
       int startDocumentPos = countPos;
-      int endDocumentPos = context->counts[i];
+      int endDocumentPos = countPos + raw->counts[i];
 
       int ex = 0;
       int lastEnd = 0;
@@ -231,7 +304,7 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::ContextCounterNode
         }
       }
 
-      countPos += context->counts[i];
+      countPos += raw->counts[i];
     }
   }
 
@@ -282,10 +355,14 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::CombineNode* combi
   if( _scoreMap.find(combine) == _scoreMap.end() ) {
       std::vector<ScoredList*> lists;
       std::vector<double> weights;
+      WeightTermScoreFunction* function = new WeightTermScoreFunction();
       
       for( int i=0; i<combine->getChildren().size(); i++ ) {
-        lists.push_back( _scoreMap[combine->getChildren()[i]] );
-        weights.push_back( 1.0 / combine->getChildren().size() );
+        double normalizedWeight = 1.0 / combine->getChildren().size();
+        ScoredList* list = _scoreMap[combine->getChildren()[i]];
+        lists.push_back( list );
+        weights.push_back( normalizedWeight );
+        function->addFunction( normalizedWeight, list->function );
       }
       
       ScoredList* result = new ScoredList;
@@ -329,6 +406,7 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::CombineNode* combi
         result->results.push_back( indri::api::ScoredExtentResult( score, minDocument, 0, length ) );
       }
       
+      result->function = function;
       _scoreMap[combine] = result;
   }
 }
@@ -350,9 +428,14 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::WeightNode* weight
         total += weight->getChildren()[i].first;
       }
       
+      WeightTermScoreFunction* function = new WeightTermScoreFunction;
+
       for( int i=0; i<weight->getChildren().size(); i++ ) {
-        lists.push_back( _scoreMap[weight->getChildren()[i].second] );
-        weights.push_back( weight->getChildren()[i].first / total );
+        double normalizedWeight = weight->getChildren()[i].first / total;
+        ScoredList* list = _scoreMap[weight->getChildren()[i].second];
+        lists.push_back( list );
+        weights.push_back( normalizedWeight );
+        function->addFunction( normalizedWeight, list->function );
       }
       
       ScoredList* result = new ScoredList;
@@ -363,7 +446,10 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::WeightNode* weight
       int length;
       
       for( int j=0; j<lists.size(); j++ ) {
-        indexes.push_back(0);
+        if( lists[j]->results.size() == 0 )
+          indexes.push_back(-1);
+        else
+          indexes.push_back(0);
       }
 
       while(true) {
@@ -396,6 +482,7 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::WeightNode* weight
         result->results.push_back( indri::api::ScoredExtentResult( score, minDocument, 0, length ) );
       }
       
+      result->function = function;
       _scoreMap[weight] = result;
   }
 }
@@ -410,14 +497,18 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::WSumNode* weight )
       std::vector<double> weights;
       
       double total = 0;
+      WSumTermScoreFunction* function = new WSumTermScoreFunction();
       
       for( int i=0; i<weight->getChildren().size(); i++ ) {
         total += weight->getChildren()[i].first;
       }
       
       for( int i=0; i<weight->getChildren().size(); i++ ) {
-        lists.push_back( _scoreMap[weight->getChildren()[i].second] );
-        weights.push_back( weight->getChildren()[i].first / total );
+        double normalizedWeight = weight->getChildren()[i].first / total;
+        ScoredList* list = _scoreMap[weight->getChildren()[i].second];
+        lists.push_back( list );
+        weights.push_back( normalizedWeight );
+        function->addFunction( normalizedWeight, list->function );
       }
       
       ScoredList* result = new ScoredList;
@@ -428,7 +519,10 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::WSumNode* weight )
       int length;
       
       for( int j=0; j<lists.size(); j++ ) {
-        indexes.push_back(0);
+        if (lists[j]->results.size() > 0)
+          indexes.push_back(0);
+        else
+          indexes.push_back(-1);
       }
 
       while(true) {
@@ -462,9 +556,14 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::WSumNode* weight )
         result->results.push_back( indri::api::ScoredExtentResult( score, minDocument, 0, length ) );
       }
       
+      result->function = function;
       _scoreMap[weight] = result;
   }
 }
+
+//
+// _listMaxDocument
+//
 
  int indri::infnet::TermOrderedEvaluator::_listMaxDocument( std::vector<TermOrderedEvaluator::InvertedList*>& lists, std::vector<int>& indexes ) {
   int maxDocument = 0;
@@ -480,6 +579,10 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::WSumNode* weight )
   return maxDocument;
 }
 
+//
+// _allSameDocument
+//
+
 bool indri::infnet::TermOrderedEvaluator::_allSameDocument( std::vector<TermOrderedEvaluator::InvertedList*>& lists, std::vector<int>& indexes ) {
   int firstDoc = lists[0]->documents[indexes[0]];
   
@@ -490,6 +593,10 @@ bool indri::infnet::TermOrderedEvaluator::_allSameDocument( std::vector<TermOrde
 
   return true;
 }
+
+//
+// _advanceToDocument
+//
 
 void indri::infnet::TermOrderedEvaluator::_advanceToDocument( const std::vector<TermOrderedEvaluator::InvertedList*>& lists, std::vector<int>& dind, std::vector<int>& cind, int doc ) {
   for( int i=0; i<lists.size(); i++ ) {
@@ -503,131 +610,34 @@ void indri::infnet::TermOrderedEvaluator::_advanceToDocument( const std::vector<
 }
 
 //
-// ODNode
-//
-
-void indri::infnet::TermOrderedEvaluator::after( indri::lang::ODNode* odNode ) {
-  if( _listMap.find(odNode) == _listMap.end() ) {
-    const std::vector<indri::lang::RawExtentNode*>& children = odNode->getChildren();
-    int windowSize = odNode->getWindowSize();
-
-    std::vector<InvertedList*> lists;
-    for( int i=0; i<children.size(); i++ ) {
-      lists.push_back( _listMap[children[i]] );
-    }
-
-    std::vector<int> dind;
-    std::vector<int> pind;
-    dind.resize( lists.size(), 0 );
-    pind.resize( lists.size(), 0 );
-    
-    InvertedList* output = new InvertedList;
-    int doc = 0;
-    
-    while(true) {
-      // find a document that has all the words in it
-      while( !_allSameDocument( lists, dind ) ) {
-        doc = _listMaxDocument( lists, dind );
-        if( doc == MAX_INT32 )
-          break;
-        _advanceToDocument( lists, dind, pind, doc );
-      }
-      
-      if( doc == MAX_INT32 )
-        break;
-        
-      indri::utility::greedy_vector<int> currents;
-      indri::utility::greedy_vector<int> ends;
-      
-      for( int i=0; i<pind.size(); i++ ) {
-        currents.push_back(pind[i]);
-        ends.push_back(pind[i] + lists[i]->counts[dind[i]]);
-      }
-      
-      bool match ;
-      bool done = false;
-      bool firstMatch = true;
-      int bin, ein;
-      int bExt;
-      int eExt;
-    
-      for( int i=currents[0]; i<ends[0] && !done; i++ ) {
-        match = true;
-        done = false;
-      
-        bExt = lists[0]->positions[currents[0]].begin;
-        eExt = lists[0]->positions[currents[0]].end;
-
-        for( int j=1; j<currents.size() && !done; j++ ) {
-          bin = lists[i]->positions[currents[i]].begin;
-          ein = lists[i]->positions[currents[i]].end;
-          
-          while( bin < eExt ) {
-            currents[i]++;
-            if( currents[i] > ends[i] ) {
-              done = true;
-              break;
-            }
-
-            bin = lists[i]->positions[currents[i]].begin;
-            ein = lists[i]->positions[currents[i]].end;
-          }
-          
-          if(done)
-            break;
-            
-          if( bin - eExt > windowSize-1 ) {
-            match = false;
-            break;
-          }
-
-          eExt = ein;
-        }
-      }
-      
-      if( match ) {
-        if( firstMatch ) {
-          output->documents.push_back(doc);
-          output->counts.push_back(0);
-        }
-        output->counts.back()++;
-        output->positions.push_back( Extent(bExt, ein) );
-      }
-    }
-    
-    _listMap[odNode] = output;
-  }
-}
-
-//
 // UWNode
 //
 
-static void add_unordered_list( indri::infnet::TermOrderedEvaluator::InvertedList* result, 
-                                indri::infnet::TermOrderedEvaluator::InvertedList* one, 
-                                indri::infnet::TermOrderedEvaluator::InvertedList* two,
-                                int windowSize ) {
+static void add_window_list( indri::infnet::TermOrderedEvaluator::InvertedList* result, 
+                             indri::infnet::TermOrderedEvaluator::InvertedList* one, 
+                             indri::infnet::TermOrderedEvaluator::InvertedList* two,
+                             int windowSize,
+                             bool ordered ) {
   int i=0;
   int j=0;
   int onePos = 0;
   int twoPos = 0;
 
-  while(true) {
+  while( i < one->documents.size() && j < two->documents.size() ) {
     // find the same document
-    while( i < one->documents.size() &&
-           j < two->documents.size() &&
-           one->documents[i] != two->documents[j] ) {
+    if( one->documents[i] != two->documents[j] ) {
       int oneDoc = one->documents[i];
       int twoDoc = two->documents[j];
 
       if( oneDoc < twoDoc ) {
         onePos += one->counts[i];
         i++;
-      }
-      else {
+      } else {
         twoPos += two->counts[j];
         j++;
       }
+
+      continue;
     }
 
     // check to make sure we're not finished
@@ -656,28 +666,50 @@ static void add_unordered_list( indri::infnet::TermOrderedEvaluator::InvertedLis
         int innerBegin = two->positions[l].begin;
         int innerEnd = two->positions[l].end;
 
-        if( innerBegin + windowSize <= begin )
-          lastStart = l;
+        if( !ordered ) {
+          if( innerBegin + windowSize < begin )
+            lastStart = l + 1;
 
-        if( innerBegin - windowSize > begin )
+          if( innerBegin - windowSize > begin )
+              break;
+        } else {
+          // the next word has to occur after the last one
+          if( innerBegin < end ) {
+            lastStart = l + 1;
+            continue;
+          }
+
+          // the gap can't be larger than windowSize
+          if( innerBegin - end > windowSize )
             break;
+        }
 
         int totalBegin = std::min( innerBegin, begin );
         int totalEnd = std::max( innerEnd, end );
 
-        if( totalEnd - totalBegin > windowSize )
+        if( !ordered && totalEnd - totalBegin > windowSize )
           continue;
 
         extents.push_back( indri::infnet::TermOrderedEvaluator::Extent(totalBegin, totalEnd) );
-      }   
+      }  
+
+      if( lastStart == twoPosEnd )
+        break;
     }
 
     std::sort( extents.begin(), extents.end() );
-    result->counts.push_back( extents.size() );
-    result->documents.push_back( document );
-    for( int k=0; k<extents.size(); k++ ) {
-      result->positions.push_back( extents[i] );
+
+    if( extents.size() ) {
+      result->counts.push_back( extents.size() );
+      result->documents.push_back( document );
+      for( int k=0; k<extents.size(); k++ ) {
+        result->positions.push_back( extents[k] );
+      }
     }
+
+    // advance documents
+    i++;
+    j++;
   }
 }
 
@@ -699,18 +731,53 @@ void indri::infnet::TermOrderedEvaluator::after( indri::lang::UWNode* uwNode ) {
     
     // copy the first list into a window list
     InvertedList* result = new InvertedList;
-    add_unordered_list( result, lists[0].second, lists[1].second, windowSize );
+    add_window_list( result, lists[0].second, lists[1].second, windowSize, false );
     lists.erase( lists.begin() );
     lists.erase( lists.begin() );
 
     while( lists.size() > 0 ) {
       InvertedList* previous = result;
       result = new InvertedList;
-      add_unordered_list( result, lists[0].second, previous, windowSize );
+      add_window_list( result, lists[0].second, previous, windowSize, false );
+      lists.erase( lists.begin() );
       delete previous;
     }
 
     _listMap[uwNode] = result;
+  }
+}
+
+//
+// ODNode
+//
+
+void indri::infnet::TermOrderedEvaluator::after( indri::lang::ODNode* odNode ) {
+  if( _listMap.find(odNode) == _listMap.end() ) {
+    const std::vector<indri::lang::RawExtentNode*>& children = odNode->getChildren();
+    std::vector< InvertedList* > lists;
+    int windowSize = odNode->getWindowSize();
+
+    // fetch the lists
+    for( int i=0; i<children.size(); i++ ) {
+      InvertedList* list = _listMap[children[i]];
+      lists.push_back( list );
+    }
+
+    // copy the first list into a window list
+    InvertedList* result = new InvertedList;
+    add_window_list( result, lists[0], lists[1], windowSize, true );
+    lists.erase( lists.begin() );
+    lists.erase( lists.begin() );
+
+    while( lists.size() > 0 ) {
+      InvertedList* previous = result;
+      result = new InvertedList;
+      add_window_list( result, previous, lists[0], windowSize, true );
+      delete previous;
+      lists.erase( lists.begin() );
+    }
+
+    _listMap[odNode] = result;
   }
 }
 
