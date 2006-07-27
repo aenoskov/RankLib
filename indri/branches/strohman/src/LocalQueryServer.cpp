@@ -37,7 +37,9 @@
 #include "indri/Appliers.hpp"
 #include "indri/ScopedLock.hpp"
 
+#include "indri/IndriTimer.hpp"
 #include "indri/TreePrinterWalker.hpp"
+#include "indri/TermOrderedEvaluator.hpp"
 
 //
 // Response objects
@@ -350,7 +352,11 @@ INT64 indri::server::LocalQueryServer::documentCount( const std::string& term ) 
   return total;
 }
 
+#define INIT_TIMER      indri::utility::IndriTimer t; t.start();
+#define PRINT_TIMER(s)  { t.printElapsedMicroseconds( std::cout ); std::cout << ": " << s << std::endl; }
+
 indri::server::QueryServerResponse* indri::server::LocalQueryServer::runQuery( std::vector<indri::lang::Node*>& roots, int resultsRequested, bool optimize ) {
+  INIT_TIMER
   // use UnnecessaryNodeRemover to get rid of window nodes, ExtentAnd nodes and ExtentOr nodes
   // that only have one child
   indri::lang::ApplyCopiers<indri::lang::UnnecessaryNodeRemoverCopier> unnecessary( roots );
@@ -359,13 +365,16 @@ indri::server::QueryServerResponse* indri::server::LocalQueryServer::runQuery( s
   indri::lang::ApplyCopiers<indri::lang::ContextSimpleCountCollectorCopier> contexts( unnecessary.roots(), _repository );
 
   // use frequency-only nodes where appropriate
-  indri::lang::ApplyCopiers<indri::lang::FrequencyListCopier> frequency( contexts.roots(), _cache );
+  // DEBUG: indri::lang::ApplyCopiers<indri::lang::FrequencyListCopier> frequency( contexts.roots(), _cache );
 
   // fold together any nested weight nodes
-  indri::lang::ApplyCopiers<indri::lang::WeightFoldingCopier> weight( frequency.roots() );
-
+  indri::lang::ApplyCopiers<indri::lang::WeightFoldingCopier> weight( contexts.roots() );
+  
   // make all this into a dag
   indri::lang::ApplySingleCopier<indri::lang::DagCopier> dag( weight.roots(), _repository );
+  
+    PRINT_TIMER("dag creation complete")
+
 
   std::vector<indri::lang::Node*>& networkRoots = dag.roots();
   // turn off optimization if called with optimize == false
@@ -381,13 +390,24 @@ indri::server::QueryServerResponse* indri::server::LocalQueryServer::runQuery( s
   indri::lang::ApplyWalker<indri::lang::TreePrinterWalker> printTree(networkRoots, &printer);
   */
   // build an inference network
-  indri::infnet::InferenceNetworkBuilder builder( _repository, _cache, resultsRequested );
-  indri::lang::ApplyWalker<indri::infnet::InferenceNetworkBuilder> buildWalker( networkRoots, &builder );
-
-  indri::infnet::InferenceNetwork* network = builder.getNetwork();
+  bool docAtATime = false;
   indri::infnet::InferenceNetwork::MAllResults result;
-  result = network->evaluate();
+  
+  if( docAtATime || !optimize ) {
+    indri::infnet::InferenceNetworkBuilder builder( _repository, _cache, resultsRequested );
+    indri::lang::ApplyWalker<indri::infnet::InferenceNetworkBuilder> buildWalker( networkRoots, &builder );
 
+    PRINT_TIMER("inf net built")
+
+    indri::infnet::InferenceNetwork* network = builder.getNetwork();
+    result = network->evaluate();
+  } else {
+    indri::infnet::TermOrderedEvaluator evaluator( _repository );
+    indri::lang::ApplyWalker<indri::infnet::TermOrderedEvaluator> buildWalker( networkRoots, &evaluator );
+    result = evaluator.getResults();
+  }
+   
+  PRINT_TIMER("eval complete")
   return new indri::server::LocalQueryServerResponse( result );
 }
 
