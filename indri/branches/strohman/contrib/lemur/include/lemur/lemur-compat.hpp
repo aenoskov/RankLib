@@ -167,7 +167,7 @@ inline int strncasecmp( const char* one, const char* two, int length ) {
 
 #ifdef WIN32
 inline const char* strcasestr( const char* one, const char* two ) {
-  const char* t;
+  const char* t = two;
   char oneLower = tolower(*one);
 
   for( ; *t; t++ ) {
