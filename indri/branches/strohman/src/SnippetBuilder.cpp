@@ -11,13 +11,14 @@
 
 #include "indri/SnippetBuilder.hpp"
 #include <algorithm>
+#include <set>
 
 //
 // _getRawNodes
 //
 
 void indri::api::SnippetBuilder::_getRawNodes( std::vector<std::string>& nodeNames, const indri::api::QueryAnnotationNode* node ) {
-  if( node->type == "RawScorerNode" ) {
+  if( node->type == "IndexTerm" || node->type == "OrderedWindowNode" ) {
     nodeNames.push_back( node->name );
   } else {
     for( int i=0; i<node->children.size(); i++ ) {
@@ -27,15 +28,33 @@ void indri::api::SnippetBuilder::_getRawNodes( std::vector<std::string>& nodeNam
 }
 
 //
+// sort_extent_pairs
+//
+
+bool sort_extent_pairs( const std::pair< indri::index::Extent, int >& one,
+                        const std::pair< indri::index::Extent, int >& two ) {
+  return one.first.beginsBefore( two.first );
+}
+
+//
+// sort_regions
+//
+
+bool sort_regions( const indri::api::SnippetBuilder::Region& one,
+                   const indri::api::SnippetBuilder::Region& two )
+{
+  return one.begin < two.begin;
+}
+
+//
 // _documentMatches
 //
 
-std::vector<indri::index::Extent> indri::api::SnippetBuilder::_documentMatches( int document, 
-                                                            const std::map< std::string, std::vector<indri::api::ScoredExtentResult> >& annotations,
+std::vector< std::pair<indri::index::Extent, int> > indri::api::SnippetBuilder::_documentMatches( int document, 
+                                                            const std::map< std::string,
+                                                            std::vector<indri::api::ScoredExtentResult> >& annotations,
                                                             const std::vector<std::string>& nodeNames ) {
-  std::vector<indri::index::Extent> extents;
-  
-  
+  std::vector< std::pair<indri::index::Extent, int> > extents;
   
   for( int i=0; i<nodeNames.size(); i++ ) {
     std::map< std::string, std::vector<indri::api::ScoredExtentResult> >::const_iterator iter;
@@ -50,80 +69,131 @@ std::vector<indri::index::Extent> indri::api::SnippetBuilder::_documentMatches( 
     // there are annotations, so get just the ones for this document
     const std::vector<indri::api::ScoredExtentResult>& matches = iter->second;
     for( int j=0; j<matches.size(); j++ ) {
-      if( matches[j].document == document )
-        extents.push_back( indri::index::Extent( matches[j].begin, matches[j].end ) );
+      if( matches[j].document == document ) {
+        indri::index::Extent e;
+        e.begin = matches[j].begin;
+        e.end = matches[j].end;
+        
+        extents.push_back( std::make_pair( e, i ) );
+      }
     }
   }
   
   // now we have some extents; we'll sort them by start position
-  std::sort( extents.begin(), extents.end(), indri::index::Extent::begins_before_less() );
-  std::vector<indri::index::Extent> coalesced;
-  
-  // remove and coalesce duplicates
-  if( extents.size() ) {
-    int begin = extents[0].begin;
-    int end = extents[0].end;
-    
-    for( int i=1; i<extents.size(); i++ ) {
-      if( extents[i].begin > end ) {
-        coalesced.push_back( indri::index::Extent( begin, end ) );
-        begin = extents[i].begin;
-        end = extents[i].end;
-      } else if( end < extents[i].end ) {
-        end = extents[i].end;
-      }
-    } 
-    
-    // add that final match
-    coalesced.push_back( indri::index::Extent( begin, end ) );
+  std::sort( extents.begin(), extents.end(), sort_extent_pairs );
+  return extents;
+}
+
+bool should_skip( const std::vector< indri::api::SnippetBuilder::Region >& skips, int begin, int end ) {
+  for( int i=0; i<skips.size(); i++ ) {
+    if( skips[i].begin <= begin && skips[i].end >= end )
+      return true;
   }
-  
-  return coalesced;
+
+  return false;
+}
+
+//
+// _bestRegion
+//
+
+indri::api::SnippetBuilder::Region indri::api::SnippetBuilder::_bestRegion(
+  const std::vector< std::pair<indri::index::Extent, int> >& extents,
+  const std::vector< indri::api::SnippetBuilder::Region >& skipRegions,
+  int positionCount, int windowWidth ) {
+  // try to find as many unique occurrences as possible
+  Region best;
+  int bestUnique = 0;
+  std::set<int> bestSet;
+  best.begin = 0;
+  best.end = 0;
+
+  std::vector< Region >::const_iterator skipIter = skipRegions.begin();
+
+  for( int i=0; i<extents.size(); i++ ) {
+    if( should_skip( skipRegions, extents[i].first.begin, extents[i].first.end ) )
+      continue;
+
+    // if this extent is past the end, it doesn't count
+    if( extents[i].first.begin >= positionCount )
+      break;
+
+    // okay, now let's really look for a nice extent
+    Region region;
+    region.begin = extents[i].first.begin;
+    region.end = extents[i].first.end;
+    region.extents.push_back( extents[i].first );
+
+    std::set<int> nodes;
+    nodes.insert( extents[i].second );
+    int j;
+
+    for( j=i; j<extents.size(); j++ ) {
+      int newEnd = std::max( extents[j].first.end, region.end );
+
+      if( newEnd - region.begin > windowWidth || should_skip( skipRegions, extents[j].first.begin, extents[j].first.end ) )
+        break;
+
+      // remove duplicate and/or overlapping extents
+      if( region.extents.back().end < extents[j].first.begin ) {
+        region.extents.push_back( extents[j].first );
+      } else {
+        region.extents.back().end = extents[j].first.end;
+      }
+
+      nodes.insert( extents[j].second );
+      region.end = newEnd;
+    }
+
+    if( bestUnique < nodes.size() ) {
+      best = region;
+      bestUnique = nodes.size();
+      bestSet = nodes;
+    }
+  }
+
+  return best;
 }
 
 //
 // _buildRegions
 //
 
-std::vector<indri::api::SnippetBuilder::Region> indri::api::SnippetBuilder::_buildRegions( const std::vector<indri::index::Extent>& extents,
-                                                                   int positionCount, int matchWidth, int windowWidth ) {
+
+std::vector<indri::api::SnippetBuilder::Region> indri::api::SnippetBuilder::_buildRegions(
+  std::vector< std::pair<indri::index::Extent, int> >& extents,
+  int positionCount, int matchWidth, int windowWidth )
+{
   std::vector<indri::api::SnippetBuilder::Region> regions;
   int wordCount = 0;
   
   if( extents.size() == 0 ) 
     return regions;
-  
-  Region region;
-  
-  region.extents.push_back( extents[0] );
-  region.begin = extents[0].begin - matchWidth / 2;
-  region.end = extents[0].end + matchWidth / 2;
-  
-  region.begin = std::max( region.begin, 0 );
-  region.end = std::min( positionCount, region.end );
-  
-  for( int i=1; i<extents.size() && wordCount < windowWidth; i++ ) {
-    if( extents[i].begin - region.end <= matchWidth/2 ) {
-      int oldEnd = region.end;
-      region.end = std::max( extents[i].end + matchWidth / 2, region.end );
-      region.extents.push_back( extents[i] );
-      wordCount += region.end - oldEnd;
-    } else {
-      regions.push_back( region );
-      region.extents.clear();
-      region.extents.push_back( extents[i] );
-      
-      region.begin = extents[i].begin - matchWidth / 2;
-      region.end = extents[i].end + matchWidth / 2;
-      
-      region.begin = std::max( region.begin, 0 );
-      region.end = std::min( positionCount, region.end );
-      wordCount += region.end - region.begin;
-    }
+
+  std::vector<Region> matchRegions;
+  int wordsUsed = 0;
+
+  // find the best possible extents (in terms of coverage) that we possibly can
+  // bias toward the document beginning
+  while( wordsUsed < windowWidth ) {
+    Region matchRegion = _bestRegion( extents, matchRegions, positionCount, windowWidth - wordsUsed );
+    wordsUsed += matchRegion.end - matchRegion.begin;
+
+    if( matchRegion.end - matchRegion.begin == 0 )
+      break;
+
+    matchRegions.push_back( matchRegion );
+    std::sort( matchRegions.begin(), matchRegions.end(), sort_regions );
   }
-  
-  regions.push_back( region );
-  return regions;
+
+  // now we have some match regions, so put together some reasonable context for them
+  // BUGBUG: need additional logic here to ensure we don't get overlap between the regions.
+  for( int i=0; i<matchRegions.size(); i++ ) {
+    matchRegions[i].begin = std::max( 0, matchRegions[i].begin - matchWidth / 2 );
+    matchRegions[i].end = std::min( positionCount, matchRegions[i].end + matchWidth / 2 );
+  }
+
+  return matchRegions;
 }
 
 //
@@ -269,7 +339,7 @@ std::string indri::api::SnippetBuilder::build( int documentID, const indri::api:
   const char* text = document->text;
   std::vector<std::string> nodeNames;
   _getRawNodes( nodeNames, annotation->getQueryTree() );
-  std::vector<indri::index::Extent> extents = _documentMatches( documentID, annotation->getAnnotations(), nodeNames );
+  std::vector< std::pair<indri::index::Extent, int> > extents = _documentMatches( documentID, annotation->getAnnotations(), nodeNames );
   
   if( extents.size() == 0 )
     return std::string();
@@ -293,8 +363,8 @@ std::string indri::api::SnippetBuilder::build( int documentID, const indri::api:
       _addEllipsis( snippet );
     }
 	
-	if( region.end > document->positions.size() )
-	  continue;
+	  if( region.end > document->positions.size() )
+	    continue;
     
     int beginByte = document->positions[region.begin].begin;
     int endByte = document->positions[region.end-1].end;
