@@ -23,21 +23,28 @@ namespace indri {
     private:
       bool _HTMLOutput;
       
+    public:
       struct Region {
         int begin;
         int end;
         
         std::vector<indri::index::Extent> extents;
       };
-      
+
+    private:  
       void _getRawNodes( std::vector<std::string>& nodeNames, const indri::api::QueryAnnotationNode* node );
      
-      std::vector<indri::index::Extent> _documentMatches( int document, 
+      std::vector< std::pair<indri::index::Extent, int> > _documentMatches( int document, 
                                                           const std::map< std::string, std::vector<indri::api::ScoredExtentResult> >& annotations,
                                                           const std::vector<std::string>& nodeNames );
       
-      std::vector<Region> _buildRegions( const std::vector<indri::index::Extent>& extents,
-                                         int positionCount, int matchWidth, int windowWidth );
+      std::vector<Region> indri::api::SnippetBuilder::_buildRegions(
+        std::vector< std::pair<indri::index::Extent, int> >& extents,
+        int positionCount, int matchWidth, int windowWidth );
+
+      Region _bestRegion( const std::vector< std::pair<indri::index::Extent, int> >& extents,
+                          const std::vector< indri::api::SnippetBuilder::Region >& skipRegions,
+                          int positionCount, int windowWidth );
 
       char* _sanitizeText( const char* text, int begin, int length );
 
