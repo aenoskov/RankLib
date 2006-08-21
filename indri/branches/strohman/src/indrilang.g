@@ -511,7 +511,15 @@ extentRestriction [ indri::lang::ScoredExtentNode* sn ] returns [ indri::lang::S
     int increment = atoi(inc->getText().c_str());
     int windowSize = atoi(passageWindowSize->getText().c_str() + startWindow );
     
-    er = new indri::lang::FixedPassage(sn, windowSize, increment);
+    std::string fieldName = passageWindowSize->getText().c_str();
+    fieldName = fieldName.substr( 0, startWindow );
+    
+    if( passageName == "passage" ) {
+      er = new indri::lang::FixedPassage(sn, windowSize, increment);
+	} else {
+	  indri::lang::Field* field = new indri::lang::Field(fieldName);
+	  er = new indri::lang::OverlappingExtentPassage(sn, field, windowSize, increment);
+	}
   } |
   O_SQUARE field:TERM C_SQUARE
   {

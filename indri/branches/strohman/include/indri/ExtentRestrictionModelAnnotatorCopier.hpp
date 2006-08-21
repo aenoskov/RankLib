@@ -37,7 +37,7 @@ namespace indri
     class ExtentRestrictionModelAnnotatorCopier : public indri::lang::Copier {
     private:
       std::vector<indri::lang::Node*> _nodes;
-      std::stack< indri::lang::ExtentRestriction* > _restrictions;
+      std::stack< indri::lang::Field* > _restrictions;
 
     public:
       ~ExtentRestrictionModelAnnotatorCopier() {
@@ -50,7 +50,17 @@ namespace indri
       }
 
       void before( indri::lang::ExtentRestriction* old ) {
-        _restrictions.push( old );
+        _restrictions.push( old->getField() );
+      }
+
+      void before( indri::lang::OverlappingExtentPassage* old ) {
+        _restrictions.push( old->getField() );
+      }
+
+      indri::lang::Node* after( indri::lang::OverlappingExtentPassage* oldNode, indri::lang::OverlappingExtentPassage* newNode ) {
+        _restrictions.pop();
+        _nodes.push_back( newNode );
+        return newNode;
       }
 
       indri::lang::Node* after( indri::lang::ExtentRestriction* oldNode, indri::lang::ExtentRestriction* newNode ) {
@@ -63,7 +73,7 @@ namespace indri
         if( newNode->getContext() == 0 && _restrictions.size() ) {
           newNode->setContext( _restrictions.top()->getField() );
         }
-        _nodes.push_back( newNode ); // should track for free.
+        _nodes.push_back( newNode );
         return newNode;
       }
     };

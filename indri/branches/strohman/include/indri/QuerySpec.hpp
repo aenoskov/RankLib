@@ -2266,6 +2266,132 @@ namespace indri {
       }
     };
 
+    class OverlappingExtentPassage : public ScoredExtentNode {
+    private:
+      ScoredExtentNode* _child;
+      Field* _field;
+      int _windowSize;
+      int _increment;
+
+    public:
+      OverlappingExtentPassage( Unpacker& unpacker ) {
+        _child = unpacker.getScoredExtentNode("child");
+        _field = dynamic_cast<indri::lang::Field*>(unpacker.getRawExtentNode("field"));
+        _windowSize = unpacker.getInteger("windowSize");
+        _increment = unpacker.getInteger("increment");
+      }
+
+      OverlappingExtentPassage( ScoredExtentNode* child, Field* field, int windowSize, int increment ) :
+        _child(child),
+        _field(field),
+        _windowSize(windowSize),
+        _increment(increment)
+      {
+      }
+
+      std::string typeName() {
+        return "OverlappingExtentPassage";
+      }
+
+      std::string queryText() const {
+        std::stringstream qtext;
+        // this extent restriction is almost certainly because of some #combine or #max operator
+        // in the _child position.  We look for the first parenthesis (e.g. #combine(dog cat)) and
+        // insert the brackets in.
+        
+        std::string childText = _child->queryText();
+        std::string::size_type pos = childText.find( '(' );
+
+        if( pos != std::string::npos ) {
+          qtext << childText.substr(0,pos) 
+                << "["
+                << _field->getFieldName()
+                << _windowSize
+                << ":"
+                << _increment
+                << "]"
+                << childText.substr(pos);
+        } else {
+          // couldn't find a parenthesis, so we'll tack the [field] on the front
+          qtext << "["
+                << _field->getFieldName()
+                << _windowSize
+                << ":"
+                << _increment
+                << "]"
+                << childText;
+        }
+
+        return qtext.str();
+      }
+
+      UINT64 hashCode() const {
+        return 85 + _child->hashCode() + 5 * _field->hashCode() + _windowSize * 3 + _increment;
+      }
+
+      ScoredExtentNode* getChild() {
+        return _child;
+      }
+
+      Field* getField() {
+        return _field;
+      }
+
+      int getWindowSize() {
+        return _windowSize;
+      }
+
+      int getIncrement() {
+        return _increment;
+      }
+
+      void setChild( ScoredExtentNode* child ) {
+        _child = child;
+      }
+
+      void setField( Field* field ) {
+        _field = field;
+      }
+
+      void setWindowSize( int windowSize ) {
+        _windowSize = windowSize;
+      }
+
+      void setIncrement( int increment ) {
+        _increment = increment;
+      }
+
+      void pack( Packer& packer ) {
+        packer.before(this);
+        packer.put("child", _child);
+        packer.put("field", _field);
+        packer.put("increment", _increment);
+        packer.put("windowSize", _windowSize);
+        packer.after(this);
+      }
+
+      void walk( Walker& walker ) {
+        walker.before(this);
+        _child->walk(walker);
+        _field->walk(walker);
+        walker.after(this);
+      }
+
+      Node* copy( Copier& copier ) {
+        copier.before(this);
+
+        ScoredExtentNode* duplicateChild = dynamic_cast<indri::lang::ScoredExtentNode*>(_child->copy(copier));
+        Field* duplicateField = dynamic_cast<indri::lang::Field*>(_child->copy(copier));
+        OverlappingExtentPassage* duplicate = new OverlappingExtentPassage( duplicateChild,
+                                                                            duplicateField,    
+                                                                            _windowSize,
+                                                                            _increment );
+        duplicate->setNodeName( nodeName() );
+        
+        return copier.after(this, duplicate);
+      }
+    };
+
     class FixedPassage : public ScoredExtentNode {
     private:
       ScoredExtentNode* _child;

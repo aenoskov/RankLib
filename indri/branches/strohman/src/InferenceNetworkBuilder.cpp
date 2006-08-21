@@ -48,6 +48,7 @@
 #include "indri/PriorNode.hpp"
 #include "indri/ExtentRestrictionNode.hpp"
 #include "indri/FixedPassageNode.hpp"
+#include "indri/OverlappingExtentPassage.hpp"
 #include "indri/FilterNode.hpp"
 #include "indri/NullListNode.hpp"
 #include "indri/TermScoreFunctionFactory.hpp"
@@ -167,6 +168,25 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::FixedPassage* f
 
     _network->addBeliefNode( fixedPassage );
     _nodeMap[fpNode] = fixedPassage;
+  }
+}
+
+//
+// OverlappingExtentPassage
+//
+
+void indri::infnet::InferenceNetworkBuilder::after( indri::lang::OverlappingExtentPassage* overlapping ) {
+  if( _nodeMap.find( overlapping ) == _nodeMap.end() ) {
+    indri::infnet::BeliefNode* childNode = dynamic_cast<indri::infnet::BeliefNode*>(_nodeMap[overlapping->getChild()]);
+    indri::infnet::FieldIteratorNode* fieldNode = dynamic_cast<indri::infnet::FieldIteratorNode*>(_nodeMap[overlapping->getField());
+    indri::infnet::OverlappingExtentPassage* overlappingNode = new indri::infnet::OverlappingExtentPassage( overlapping->nodeName(),
+                                                                                                            childNode,
+                                                                                                            overlapping->getWindowSize(),
+                                                                                                            overlapping->getIncrement() );
+    
+
+    _network->addBeliefNode( overlappingNode );
+    _nodeMap[overlapping] = overlappingNode;
   }
 }
 
