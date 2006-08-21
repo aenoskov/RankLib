@@ -54,7 +54,6 @@ namespace indri
 
       void _buildValue() {
         assert( _current != _end );
-        assert( _read != _end );
 
         if( _read == _end ) {
           _value.count = 0;
@@ -63,7 +62,7 @@ namespace indri
           _value.count = 0;
           _value.object = *_read;
                                                         
-          for( ;  _read != _end; _read++ ) {
+          for( ; _read != _end; _read++ ) {
             if( (*_read) != _value.object )
               break;
 
