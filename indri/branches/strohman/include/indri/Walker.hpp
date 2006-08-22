@@ -67,6 +67,8 @@ namespace indri {
       virtual void after( class WeightNode* n );
       virtual void before( class ExtentRestriction* n );
       virtual void after( class ExtentRestriction* n );
+      virtual void before( class OverlappingExtentPassage* n );
+      virtual void after( class OverlappingExtentPassage* n );
       virtual void before( class FixedPassage* n );
       virtual void after( class FixedPassage* n );
       virtual void before( class FilterNode* n );

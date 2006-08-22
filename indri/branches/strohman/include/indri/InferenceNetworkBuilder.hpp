@@ -79,6 +79,7 @@ namespace indri
       void after( indri::lang::RawScorerNode* rawScorerNode );
       void after( indri::lang::ExtentRestriction* erNode );
       void after( indri::lang::FixedPassage* fpNode );
+      void after( indri::lang::OverlappingExtentPassage* overlappingNode );
       void after( indri::lang::PriorNode* priorNode );
       void after( indri::lang::WeightNode* weightNode );
       void after( indri::lang::CombineNode* combineNode );
