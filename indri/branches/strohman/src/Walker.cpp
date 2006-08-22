@@ -66,6 +66,8 @@ namespace indri {
    void Walker::after( class WeightNode* n ) { defaultAfter( n ); }
    void Walker::before( class ExtentRestriction* n ) { defaultBefore( n ); }
    void Walker::after( class ExtentRestriction* n ) { defaultAfter( n ); }
+   void Walker::before( class OverlappingExtentPassage* n ) { defaultBefore( n ); }
+   void Walker::after( class OverlappingExtentPassage* n ) { defaultAfter( n ); }
    void Walker::before( class FixedPassage* n ) { defaultBefore( n ); }
    void Walker::after( class FixedPassage* n ) { defaultAfter( n ); }
    void Walker::before( class FilterNode* n ) { defaultBefore( n ); }

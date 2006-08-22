@@ -65,6 +65,8 @@ indri::lang::Node* indri::lang::Unpacker::_unpack( indri::xml::XMLNode* child ) 
     result = new WeightNode(*this);
   } else if( type == "ExtentRestriction" ) {
     result = new ExtentRestriction(*this);
+  } else if( type == "OverlappingExtentPassage" ) {
+    result = new OverlappingExtentPassage(*this);
   } else if( type == "FixedPassage" ) {
     result = new FixedPassage(*this);
   } else if( type == "FilterNode" ) {
