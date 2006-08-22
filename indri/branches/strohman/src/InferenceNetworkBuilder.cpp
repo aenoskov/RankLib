@@ -178,9 +178,10 @@ void indri::infnet::InferenceNetworkBuilder::after( indri::lang::FixedPassage* f
 void indri::infnet::InferenceNetworkBuilder::after( indri::lang::OverlappingExtentPassage* overlapping ) {
   if( _nodeMap.find( overlapping ) == _nodeMap.end() ) {
     indri::infnet::BeliefNode* childNode = dynamic_cast<indri::infnet::BeliefNode*>(_nodeMap[overlapping->getChild()]);
-    indri::infnet::FieldIteratorNode* fieldNode = dynamic_cast<indri::infnet::FieldIteratorNode*>(_nodeMap[overlapping->getField());
+    indri::infnet::FieldIteratorNode* fieldNode = dynamic_cast<indri::infnet::FieldIteratorNode*>(_nodeMap[overlapping->getField()]);
     indri::infnet::OverlappingExtentPassage* overlappingNode = new indri::infnet::OverlappingExtentPassage( overlapping->nodeName(),
                                                                                                             childNode,
+                                                                                                            fieldNode,
                                                                                                             overlapping->getWindowSize(),
                                                                                                             overlapping->getIncrement() );
     

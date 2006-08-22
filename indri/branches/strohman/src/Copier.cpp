@@ -66,6 +66,8 @@ namespace indri {
     Node* Copier::after( class WeightNode* oldNode, class WeightNode* newNode ) { return defaultAfter( oldNode, newNode ); }
     void Copier::before( class ExtentRestriction* oldNode ) { defaultBefore( oldNode ); }
     Node* Copier::after( class ExtentRestriction* oldNode, class ExtentRestriction* newNode ) { return defaultAfter( oldNode, newNode ); }
+    void Copier::before( class OverlappingExtentPassage* oldNode ) { defaultBefore( oldNode ); }
+    Node* Copier::after( class OverlappingExtentPassage* oldNode, class OverlappingExtentPassage* newNode ) { return defaultAfter( oldNode, newNode ); }
     void Copier::before( class FixedPassage* oldNode ) { defaultBefore( oldNode ); }
     Node* Copier::after( class FixedPassage* oldNode, class FixedPassage* newNode ) { return defaultAfter( oldNode, newNode ); }
     void Copier::before( class FilterNode* oldNode ) { defaultBefore( oldNode ); }
