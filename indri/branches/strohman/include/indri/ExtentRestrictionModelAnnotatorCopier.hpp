@@ -37,7 +37,7 @@ namespace indri
     class ExtentRestrictionModelAnnotatorCopier : public indri::lang::Copier {
     private:
       std::vector<indri::lang::Node*> _nodes;
-      std::stack< indri::lang::Field* > _restrictions;
+      std::stack< indri::lang::RawExtentNode* > _restrictions;
 
     public:
       ~ExtentRestrictionModelAnnotatorCopier() {
@@ -71,7 +71,7 @@ namespace indri
   
       indri::lang::Node* after( indri::lang::RawScorerNode* oldNode, indri::lang::RawScorerNode* newNode ) {
         if( newNode->getContext() == 0 && _restrictions.size() ) {
-          newNode->setContext( _restrictions.top()->getField() );
+          newNode->setContext( _restrictions.top() );
         }
         _nodes.push_back( newNode );
         return newNode;
