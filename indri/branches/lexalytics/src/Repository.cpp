@@ -1274,5 +1274,20 @@ UINT64 indri::collection::Repository::_timeSinceThrashing() {
   return indri::utility::IndriTimer::currentTime() - _lastThrashTime;
 }
 
+//
+// compact
+//
 
+void indri::collection::Repository::compact() {
+  _collection->compact( _deletedList );
+  // BUGBUG: compact the index too
+}
+
+//
+// merge
+//
+
+void indri::collection::Repository::merge( const std::string& outputIndex, const std::vector<std::string>& inputIndexes ) {
+  LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Merge failed, unimplemented" );
+}
 

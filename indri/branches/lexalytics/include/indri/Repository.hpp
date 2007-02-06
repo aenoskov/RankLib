@@ -189,6 +189,10 @@ namespace indri
       /// Close the repository
       void close();
 
+      /// Compact the repository by removing all information about
+      /// deleted documents from disk.
+      void compact();
+
       /// Indexes in this repository
       index_state indexes();
       
@@ -201,8 +205,11 @@ namespace indri
       /// Write the most recent state out to disk
       void write();
 
-      /// Merge all indexes together
+      /// Merge all internal indexes together
       void merge();
+
+      /// Merge two or more repositories together
+      static void merge( const std::string& outputIndex, const std::vector<std::string>& inputIndexes );
 
       /// List of deleted documents in this repository
       indri::index::DeletedDocumentList& deletedList();
