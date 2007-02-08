@@ -32,6 +32,7 @@
 #include "indri/DocumentDataIterator.hpp"
 #include "indri/MemoryIndex.hpp"
 #include "indri/BulkTree.hpp"
+#include "indri/DeletedDocumentList.hpp"
 
 #include "indri/IndriTimer.hpp"
 const int KEYFILE_MEMORY_SIZE = 128*1024;
@@ -120,17 +121,23 @@ void IndexWriter::_writeManifest( const std::string& path ) {
 // write
 //
 
-void IndexWriter::write( indri::index::Index& index, std::vector<indri::index::Index::FieldDescription>& fields, const std::string& path ) {
+void IndexWriter::write( indri::index::Index& index,
+                         std::vector<indri::index::Index::FieldDescription>& fields,
+                         indri::index::DeletedDocumentList& deletedList,
+                         const std::string& path ) {
   std::vector< indri::index::Index* > indexes;
   indexes.push_back( &index );
-  write( indexes, fields, path );
+  write( indexes, fields, deletedList, path );
 }
 
 //
 // write
 //
 
-void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index::Index::FieldDescription>& fields, const std::string& path ) {
+void IndexWriter::write( std::vector<Index*>& indexes,
+                         std::vector<indri::index::Index::FieldDescription>& fields,
+                         indri::index::DeletedDocumentList& deletedList,
+                         const std::string& path ) {
   indri::file::Path::create( path );
   _fields = fields;
 
@@ -175,14 +182,14 @@ void IndexWriter::write( std::vector<Index*>& indexes, std::vector<indri::index:
   LOGMESSAGE( "Starting write" );
   _buildIndexContexts( contexts, indexes );
   LOGMESSAGE( "Writing Inverted Lists" );
-  _writeInvertedLists( contexts );
+  _writeInvertedLists( contexts, deletedList );
   LOGMESSAGE( "Inverted Lists Complete" );
-  _writeFieldLists( indexes, path );
+  _writeFieldLists( indexes, path, deletedList );
   LOGMESSAGE( "Fields Complete" );
 
   _infrequentTermsReader.openRead( infrequentStringPath );
   _frequentTermsReader.openRead( frequentStringPath );
-  _writeDirectLists( contexts );
+  _writeDirectLists( contexts, deletedList );
   LOGMESSAGE( "Direct Lists Complete" );
   indri::utility::delete_vector_contents( contexts );
 
@@ -222,7 +229,7 @@ void IndexWriter::_buildIndexContexts( std::vector<WriterIndexContext*>& context
 // _writeFieldLists
 //
 
-void IndexWriter::_writeFieldLists( std::vector<indri::index::Index*>& indexes, const std::string& path ) {
+void IndexWriter::_writeFieldLists( std::vector<indri::index::Index*>& indexes, const std::string& path, indri::index::DeletedDocumentList& deletedList ) {
   if( indexes.size() == 0 )
     return;
 
@@ -236,7 +243,7 @@ void IndexWriter::_writeFieldLists( std::vector<indri::index::Index*>& indexes, 
       iterators.push_back( indexes[i]->fieldListIterator( field+1 ) ); 
 
     _fieldData.push_back( FieldStatistics( _fields[field].name, _fields[field].numeric, _fields[field].ordinal, 0, 0, fieldsOutput->tell() ) );
-    _writeFieldList( *fieldsOutput, field, iterators );
+    _writeFieldList( *fieldsOutput, field, iterators, deletedList );
   }
 
   fieldsOutput->flush();
@@ -311,14 +318,17 @@ void IndexWriter::_writeStatistics( indri::utility::greedy_vector<WriterIndexCon
 //  document / 
 //
 
-void IndexWriter::_writeFieldList( indri::file::SequentialWriteBuffer& output, int fieldIndex, std::vector<indri::index::DocExtentListIterator*> iterators ) {
+void IndexWriter::_writeFieldList( indri::file::SequentialWriteBuffer& output,
+                                   int fieldIndex,
+                                   std::vector<indri::index::DocExtentListIterator*> iterators,
+                                   indri::index::DeletedDocumentList& deletedList ) {
   bool numeric = _fields[fieldIndex].numeric;
   bool ordinal = _fields[fieldIndex].ordinal;
 
   // write a control byte -- numeric fields use 0x02 (DiskDocExtentListIterator)
   // ordinal fields use 0x04 (DiskDocExtentListIterator)
   UINT8 control = (numeric ? 0x02 : 0) |
-    (ordinal ? 0x04 : 0);
+                  (ordinal ? 0x04 : 0);
   output.write( &control, sizeof(UINT8) );
 
   indri::utility::Buffer dataBuffer;
@@ -339,6 +349,9 @@ void IndexWriter::_writeFieldList( indri::file::SequentialWriteBuffer& output, i
 
     while( !iterator->finished() ) {
       DocExtentListIterator::DocumentExtentData* entry = iterator->currentEntry();
+
+      if( deletedList.isDeleted( entry->document ) )
+        continue;
 
       if( dataBuffer.position() > minimumSkip ) {
         _writeBatch( &output, entry->document, dataBuffer.position(), dataBuffer );
@@ -405,7 +418,11 @@ void IndexWriter::_writeFieldList( indri::file::SequentialWriteBuffer& output, i
 // 
 //
 
-void IndexWriter::_addInvertedListData( indri::utility::greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, indri::utility::Buffer& listBuffer, UINT64& endOffset ) {
+void IndexWriter::_addInvertedListData( indri::utility::greedy_vector<WriterIndexContext*>& lists,
+                                        indri::index::TermData* termData,
+                                        indri::utility::Buffer& listBuffer, 
+                                        UINT64& endOffset,
+                                        indri::index::DeletedDocumentList& deletedList ) {
   indri::utility::greedy_vector<WriterIndexContext*>::iterator iter;
   const int minimumSkip = 1<<12; // 4k
   int documentsWritten = 0;
@@ -447,10 +464,18 @@ void IndexWriter::_addInvertedListData( indri::utility::greedy_vector<WriterInde
 
     int listDocs = 0;
     int listPositions = 0;
+    int deletedDocuments = 0;
 
     while( !iterator->finished() ) {
       // get the latest entry from the list
       DocListIterator::DocumentData* documentData = iterator->currentEntry();
+
+      // check for deleted documents and skip them
+      if( deletedList.isDeleted( documentData->document ) ) {
+        // BUGBUG: this is an appropriate spot to delete term stats
+        deletedDocuments++;
+        continue;
+      }
 
       // add to document counter
       docs++; listDocs++;
@@ -508,6 +533,7 @@ void IndexWriter::_addInvertedListData( indri::utility::greedy_vector<WriterInde
 
     indri::index::TermData* td = iterator->termData();
 
+    // BUGBUG: revisit these statistics
     assert( listPositions == td->corpus.totalCount );
     assert( listDocs == td->corpus.documentCount );
   }
@@ -688,7 +714,8 @@ void IndexWriter::_storeMatchInformation( indri::utility::greedy_vector<WriterIn
 // writeInvertedLists
 //
 
-void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& contexts ) {
+void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& contexts,
+                                       indri::index::DeletedDocumentList& deletedList ) {
   
   // write a combined inverted list in vocabulary order
   // in the process, create a new list of termIDs from the old list
@@ -732,7 +759,7 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
     _writeStatistics( current, termData, startOffset );
 
     // go through lists one by one, adding data to the final invlist, adding skips, etc.
-    _addInvertedListData( current, termData, invertedListBuffer, endOffset );
+    _addInvertedListData( current, termData, invertedListBuffer, endOffset, deletedList );
 
     // have to store the termData in a B-Tree (or something) for fast access later
     _storeMatchInformation( current, sequence, termData, startOffset, endOffset );
@@ -870,8 +897,8 @@ indri::index::TermTranslator* IndexWriter::_buildTermTranslator( indri::file::Bu
 void IndexWriter::_writeDirectLists( WriterIndexContext* context,
                                      indri::file::SequentialWriteBuffer* directOutput,
                                      indri::file::SequentialWriteBuffer* lengthsOutput,
-                                     indri::file::SequentialWriteBuffer* dataOutput ) {
-
+                                     indri::file::SequentialWriteBuffer* dataOutput,
+                                     indri::index::DeletedDocumentList& deletedList ) {
   VocabularyIterator* vocabulary = context->index->frequentVocabularyIterator();
   indri::index::Index* index = context->index;
   
@@ -897,10 +924,11 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
                                                      context->bitmap );
   iterator->startIteration();
   TermList writeList;
-  indri::utility::Buffer outputBuffer( 256*1024 );
+  indri::utility::Buffer outputBuffer( OUTPUT_BUFFER_SIZE );
 
   indri::index::DocumentDataIterator* dataIterator = context->index->documentDataIterator();
   dataIterator->startIteration();
+  int document = index->documentBase();
 
   while( !iterator->finished() ) {
     writeList.clear();
@@ -909,26 +937,30 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
 
     int currentTerm;
     int translated;
+    bool deleted = deletedList.isDeleted( document );
 
-    // copy and translate terms
-    for( int i=0; i<list->terms().size(); i++ ) {
-      currentTerm = list->terms()[i];
-      assert( currentTerm >= 0 );
-      assert( currentTerm <= index->uniqueTermCount() );
-      translated = (*translator)( currentTerm );
-      assert( translated > 0 || (translated == 0 && currentTerm == 0) );
+    // if the document is not deleted, copy it
+    if( !deleted ) {
+      // copy and translate terms
+      for( int i=0; i<list->terms().size(); i++ ) {
+        currentTerm = list->terms()[i];
+        assert( currentTerm >= 0 );
+        assert( currentTerm <= index->uniqueTermCount() );
+        translated = (*translator)( currentTerm );
+        assert( translated > 0 || (translated == 0 && currentTerm == 0) );
 
-      writeList.addTerm( translated );
+        writeList.addTerm( translated );
+      }
+
+      // copy field data
+      int fieldCount = list->fields().size();
+      const indri::utility::greedy_vector<indri::index::FieldExtent>& fields = list->fields();
+
+      for( int i=0; i<fieldCount; i++ ) {
+        writeList.addField( fields[i] );
+      }
     }
 
-    // copy field data
-    int fieldCount = list->fields().size();
-    const indri::utility::greedy_vector<indri::index::FieldExtent>& fields = list->fields();
-
-    for( int i=0; i<fieldCount; i++ ) {
-      writeList.addField( fields[i] );
-    }
-  
     // record the start position
     size_t writeStart = outputBuffer.position();
     UINT32 length = 0;
@@ -954,12 +986,12 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
     // store offset information
     documentData.byteLength = length;
     documentData.offset = directOutput->tell() + writeStart + sizeof(UINT32);
+
     // tell has to happen before a write or the offset will be wrong.
     if( outputBuffer.position() > 128*1024 ) {
       directOutput->write( outputBuffer.front(), outputBuffer.position() );
       outputBuffer.clear();
     }
-
 
     dataOutput->write( &documentData, sizeof(DocumentData) );
     int termLength = documentData.totalLength;
@@ -968,6 +1000,7 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
     
     iterator->nextEntry();
     dataIterator->nextEntry();
+    document++;
   }
 
   delete iterator;
@@ -983,14 +1016,14 @@ void IndexWriter::_writeDirectLists( WriterIndexContext* context,
 // _writeDirectLists
 //
 
-void IndexWriter::_writeDirectLists( std::vector<WriterIndexContext*>& contexts ) {
+void IndexWriter::_writeDirectLists( std::vector<WriterIndexContext*>& contexts, indri::index::DeletedDocumentList& deletedList ) {
   std::vector<WriterIndexContext*>::iterator iter;
   indri::file::SequentialWriteBuffer* outputBuffer = new indri::file::SequentialWriteBuffer( _directFile, 1024*1024 );
   indri::file::SequentialWriteBuffer* lengthsBuffer = new indri::file::SequentialWriteBuffer( _documentLengths, 1024*1024 );
   indri::file::SequentialWriteBuffer* dataBuffer = new indri::file::SequentialWriteBuffer( _documentStatistics, 1024*1024 );
 
   for( iter = contexts.begin(); iter != contexts.end(); iter++ ) {
-    _writeDirectLists( *iter, outputBuffer, lengthsBuffer, dataBuffer );
+    _writeDirectLists( *iter, outputBuffer, lengthsBuffer, dataBuffer, deletedList );
   }
 
   outputBuffer->flush();

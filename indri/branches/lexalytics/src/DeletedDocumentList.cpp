@@ -87,7 +87,7 @@ int indri::index::DeletedDocumentList::read_transaction::nextCandidateDocument( 
 // isDeleted
 //
 
-bool indri::index::DeletedDocumentList::read_transaction::isDeleted( int documentID ) {
+bool indri::index::DeletedDocumentList::read_transaction::isDeleted( int documentID ) const {
   if( _bitmap.position() < (documentID/8)+1 )
     return false;
 

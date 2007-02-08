@@ -36,6 +36,7 @@
 #include "indri/TermBitmap.hpp"
 #include "indri/TermRecorder.hpp"
 #include "indri/TermTranslator.hpp"
+#include "indri/DeletedDocumentList.hpp"
 #include "indri/BulkTree.hpp"
 
 namespace indri {
@@ -149,31 +150,32 @@ namespace indri {
       void _writeSkip( indri::file::SequentialWriteBuffer* buffer, int document, int length );
       void _writeBatch( indri::file::SequentialWriteBuffer* buffer, int document, int length, indri::utility::Buffer& data );
 
-      void _writeFieldLists( std::vector<indri::index::Index*>& indexes, const std::string& path );
-      void _writeFieldList( indri::file::SequentialWriteBuffer& output, int fieldIndex, std::vector<indri::index::DocExtentListIterator*> iterators );
+      void _writeFieldLists( std::vector<indri::index::Index*>& indexes, const std::string& path, indri::index::DeletedDocumentList& deletedList );
+      void _writeFieldList( indri::file::SequentialWriteBuffer& output, int fieldIndex, std::vector<indri::index::DocExtentListIterator*> iterators, indri::index::DeletedDocumentList& deletedList );
 
       void _pushInvertedLists( indri::utility::greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _fetchMatchingInvertedLists( indri::utility::greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _writeStatistics( indri::utility::greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, UINT64& startOffset );
-      void _writeInvertedLists( std::vector<WriterIndexContext*>& contexts );
+      void _writeInvertedLists( std::vector<WriterIndexContext*>& contexts, indri::index::DeletedDocumentList& deletedList );
 
       void _storeIdEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
       void _storeStringEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
 
       void _storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
       void _storeFrequentTerms();
-      void _addInvertedListData( indri::utility::greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, indri::utility::Buffer& listBuffer, UINT64& endOffset );
+      void _addInvertedListData( indri::utility::greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, indri::utility::Buffer& listBuffer, UINT64& endOffset, indri::index::DeletedDocumentList& deletedList );
       void _storeMatchInformation( indri::utility::greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
 
       int _lookupTermID( indri::file::BulkTreeReader& keyfile, const char* term );
 
       void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes );
       
-      void _writeDirectLists( std::vector<WriterIndexContext*>& contexts );
+      void _writeDirectLists( std::vector<WriterIndexContext*>& contexts, indri::index::DeletedDocumentList& deletedList );
       void _writeDirectLists( WriterIndexContext* context,
                               indri::file::SequentialWriteBuffer* directOutput,
                               indri::file::SequentialWriteBuffer* lengthsOutput,
-                              indri::file::SequentialWriteBuffer* dataOutput );
+                              indri::file::SequentialWriteBuffer* dataOutput,
+                              indri::index::DeletedDocumentList& deletedList );
 
       indri::index::TermTranslator* _buildTermTranslator( indri::file::BulkTreeReader& newInfrequentTerms,
                                                           indri::file::BulkTreeReader& newFrequentTerms,
@@ -192,9 +194,11 @@ namespace indri {
       IndexWriter();
       void write( indri::index::Index& index,
                   std::vector<indri::index::Index::FieldDescription>& fields,
+                  indri::index::DeletedDocumentList& deletedList,
                   const std::string& fileName );
       void write( std::vector<indri::index::Index*>& indexes,
                   std::vector<indri::index::Index::FieldDescription>& fields,
+                  indri::index::DeletedDocumentList& deletedList,
                   const std::string& fileName );
     };
   }

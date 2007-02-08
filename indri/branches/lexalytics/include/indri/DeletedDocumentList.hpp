@@ -53,7 +53,7 @@ namespace indri
         ~read_transaction();
 
         int nextCandidateDocument( int documentID );
-        bool isDeleted( int documentID );
+        bool isDeleted( int documentID ) const;
       };
 
       DeletedDocumentList();

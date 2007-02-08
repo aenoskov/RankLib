@@ -834,13 +834,17 @@ void indri::collection::CompressedCollection::_removeForwardLookups( indri::inde
 	
   int key;
   int actual = 0;
+  indri::utility::Buffer value;
+  value.grow();
+  actual = value.size();
 
   keyfile.setFirst();
 
-  while( keyfile.next( key, 0, actual ) ) {
+  while( keyfile.next( key, value.front(), actual ) ) {
     if( deletedList.isDeleted( key ) ) {
       keyfile.remove( key );
     }
+    actual = value.size();
   }
 
   delete transaction;
@@ -860,21 +864,36 @@ void indri::collection::CompressedCollection::_removeReverseLookups( indri::inde
   
   char key[lemur::file::Keyfile::MAX_KEY_LENGTH+1];
   indri::utility::Buffer value;
-  value.grow( 4 );
+  value.grow();
   int actualKeySize = sizeof key;
   int actualValueSize = value.size();
 
   keyfile.setFirst();
 
-  while( keyfile.next( key, actualKeySize, value.front(), actualValueSize ) ) {
-    // if the buffer is too small, expand it
-    if( actualValueSize < value.size() ) {
-      value.grow( actualValueSize );
+  while( true ) {
+    bool result;
+
+    try {
+      result = keyfile.next( key, actualKeySize, value.front(), actualValueSize );
+    } catch( lemur::api::Exception& ) {
+      int size = keyfile.getSize( key );
+      if( size < 0 )
+        break;
+
+      value.grow( size );
+      actualValueSize = value.size();
       keyfile.get( key, value.front(), actualValueSize, value.size() );
     }
 
+    if( !result )
+      break;
+
+    // null terminate the returned key
+    assert( actualKeySize < sizeof key );
+    key[actualKeySize] = 0;
+
     // now we've got the data, so start looking for deleted documents and removing them
-    int idCount = value.size() / sizeof (lemur::api::DOCID_T);
+    int idCount = actualValueSize / sizeof (lemur::api::DOCID_T);
     int startIDCount = idCount;
     for( int i = 0; i < idCount; ) {
       lemur::api::DOCID_T* position = &((lemur::api::DOCID_T*) value.front())[i];
@@ -883,8 +902,8 @@ void indri::collection::CompressedCollection::_removeReverseLookups( indri::inde
       if( deletedList.isDeleted( document ) ) {
         // remove this documentID by moving all remaining docIDs down
         ::memmove( position,
-                   position + sizeof (lemur::api::DOCID_T),
-                   sizeof (lemur::api::DOCID_T) * (idCount - i) );
+                   position + 1,
+                   sizeof (lemur::api::DOCID_T) * (idCount - i - 1) );
         idCount--;
       } else {
         // move to the next documentID
@@ -892,13 +911,15 @@ void indri::collection::CompressedCollection::_removeReverseLookups( indri::inde
       }
     }
 
-    // check to see if we deleted anything; if so, change the entry
+    // check to see if we deleted anything; if so, change the entry,
+    // using getSize to reset the iteration pointer
     if( startIDCount != idCount ) {
       if( idCount == 0 ) {
         keyfile.remove( key );
       } else {
         keyfile.put( key, value.front(), idCount * sizeof (lemur::api::DOCID_T) ); 
       }
+      keyfile.getSize( key );
     }
 
     actualKeySize = sizeof key;
@@ -1140,5 +1161,5 @@ void indri::collection::CompressedCollection::_copyReverseLookup( const std::str
   other.setFirst();
 
   // BUGBUG: do the rest
-
+  LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Not implemented." );
 }
