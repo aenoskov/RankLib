@@ -577,6 +577,9 @@ void indri::collection::CompressedCollection::addDocument( int documentID, indri
 
     // silently discard any value that is too long to be a key.
     if( metalookup && document->metadata[i].valueLength < lemur::file::Keyfile::MAX_KEY_LENGTH ) {
+      // the key needs to have at least some length
+      assert( document->metadata[i].valueLength > 0 );
+
       // there may be more than one reverse lookup here, so we fetch any old ones:
       indri::utility::greedy_vector<int> documentIDs;
       int dataSize = (*metalookup)->getSize( (const char*)document->metadata[i].value );
@@ -867,11 +870,13 @@ void indri::collection::CompressedCollection::_removeReverseLookups( indri::inde
   value.grow();
   int actualKeySize = sizeof key;
   int actualValueSize = value.size();
-
+  
   keyfile.setFirst();
 
   while( true ) {
     bool result;
+    // clean the key buffer, ensuring it will be null-terminated
+    memset( key, 0, sizeof key );
 
     try {
       result = keyfile.next( key, actualKeySize, value.front(), actualValueSize );
@@ -888,9 +893,7 @@ void indri::collection::CompressedCollection::_removeReverseLookups( indri::inde
     if( !result )
       break;
 
-    // null terminate the returned key
     assert( actualKeySize < sizeof key );
-    key[actualKeySize] = 0;
 
     // now we've got the data, so start looking for deleted documents and removing them
     int idCount = actualValueSize / sizeof (lemur::api::DOCID_T);

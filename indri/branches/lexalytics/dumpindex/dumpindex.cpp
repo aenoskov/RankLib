@@ -79,10 +79,6 @@ void validate( indri::collection::Repository& r ) {
     iter->nextEntry();
   }
 
-  if( (document-1) != index->documentCount() ) {
-    std::cout << "Document count (" << index->documentCount() << ") does not match term list count " << (document-1) << std::endl;
-  }
-
   delete iter;
 }
 

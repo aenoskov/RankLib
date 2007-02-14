@@ -739,6 +739,7 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
       invertedLists.push( contexts[i] );
     _corpus.totalTerms += contexts[i]->index->termCount();
     _corpus.totalDocuments += contexts[i]->index->documentCount();
+    _corpus.maximumDocument = std::max( contexts[i]->index->documentMaximum(), _corpus.maximumDocument );
   }
 
   indri::utility::greedy_vector<WriterIndexContext*> current;

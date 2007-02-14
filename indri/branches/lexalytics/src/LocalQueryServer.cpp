@@ -150,7 +150,7 @@ indri::index::Index* indri::server::LocalQueryServer::_indexWithDocument( indri:
   for( int i=0; i<indexes->size(); i++ ) {
     indri::thread::ScopedLock lock( (*indexes)[i]->statisticsLock() );
     int lowerBound = (*indexes)[i]->documentBase();
-    int upperBound = (*indexes)[i]->documentBase() + (*indexes)[i]->documentCount();
+    int upperBound = (*indexes)[i]->documentMaximum();
     
     if( lowerBound <= documentID && upperBound > documentID ) {
       return (*indexes)[i];
