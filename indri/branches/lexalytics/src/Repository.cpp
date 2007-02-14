@@ -564,7 +564,7 @@ void indri::collection::Repository::_addMemoryIndex() {
 
   if( _active->size() > 0 ) {
     indri::index::Index* activeIndex = _active->back();
-    documentBase = activeIndex->documentBase() + activeIndex->documentCount();
+    documentBase = activeIndex->documentMaximum();
   }
 
   indri::index::MemoryIndex* newMemoryIndex = new indri::index::MemoryIndex( documentBase, _indexFields );
@@ -884,7 +884,7 @@ indri::index::Index* indri::collection::Repository::_mergeStage( index_state& st
   std::string indexPath = indri::file::Path::combine( _path, "index" );
   std::string newIndexPath = indri::file::Path::combine( indexPath, indexNumber.str() );
   indri::index::IndexWriter writer;
-  writer.write( indexes, _indexFields, newIndexPath );
+  writer.write( indexes, _indexFields, _deletedList, newIndexPath );
 
   // open the index we just wrote
   indri::index::DiskIndex* diskIndex = new indri::index::DiskIndex();
@@ -1279,8 +1279,8 @@ UINT64 indri::collection::Repository::_timeSinceThrashing() {
 //
 
 void indri::collection::Repository::compact() {
+  merge();
   _collection->compact( _deletedList );
-  // BUGBUG: compact the index too
 }
 
 //
