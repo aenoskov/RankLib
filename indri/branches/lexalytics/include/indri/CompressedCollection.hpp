@@ -112,6 +112,9 @@ namespace indri
       void addDocument( int documentID, indri::api::ParsedDocument* document );
       void compact( indri::index::DeletedDocumentList& deletedList );
       void append( indri::collection::CompressedCollection& other, indri::index::DeletedDocumentList& deletedList, lemur::api::DOCID_T documentOffset );
+
+      std::vector<std::string> forwardFields();
+      std::vector<std::string> reverseFields();
     };
   }
 }

@@ -95,6 +95,17 @@ namespace indri
       indri::atomic::value_type _queryLoad[ LOAD_MINUTES * LOAD_MINUTE_FRACTION ];
       indri::atomic::value_type _documentLoad[ LOAD_MINUTES * LOAD_MINUTE_FRACTION ];
 
+      static std::vector<std::string> _fieldNames( indri::api::Parameters& parameters );
+      static std::string _stemmerName( indri::api::Parameters& parameters );
+
+      static void _mergeClosedIndexes( const std::string& outputPath, const std::vector<std::string>& repositories, const std::vector<indri::collection::Repository::Field>& indexFields );
+      static void _writeMergedManifest( const std::string& path, indri::api::Parameters& firstManifest );
+      static void _mergeBitmaps( const std::string& outputPath, const std::vector<std::string>& repositories, const std::vector<lemur::api::DOCID_T>& documentCounts );
+      static void _mergeCompressedCollections( const std::string& outputPath,
+                                                                 const std::vector<std::string>& repositories,
+                                                                 const std::vector<lemur::api::DOCID_T>& documentMaximums );
+      static void _cleanAndCreateDirectory( const std::string& path );
+
       void _writeParameters( const std::string& path );
 
       void _incrementLoad();
@@ -118,7 +129,7 @@ namespace indri
       bool _stateContains( index_state& state, std::vector<indri::index::Index*>& indexes );
       void _swapState( std::vector<indri::index::Index*>& oldIndexes, indri::index::Index* newIndex );
       void _closeIndexes();
-      std::vector<indri::index::Index::FieldDescription> _fieldsForIndex( std::vector<Repository::Field>& _fields );
+      static std::vector<indri::index::Index::FieldDescription> _fieldsForIndex( std::vector<Repository::Field>& _fields );
       void _merge( index_state& state );
       indri::index::Index* _mergeStage( index_state& state );
       UINT64 _mergeMemory( const std::vector<indri::index::Index*>& indexes );

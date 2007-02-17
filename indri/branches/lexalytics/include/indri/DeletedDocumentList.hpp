@@ -27,6 +27,8 @@
 #include "indri/ReaderLockable.hpp"
 #include "indri/WriterLockable.hpp"
 #include "indri/Buffer.hpp"
+#include "lemur/IndexTypes.hpp"
+
 namespace indri
 {
   namespace index
@@ -58,6 +60,7 @@ namespace indri
 
       DeletedDocumentList();
 
+      void append( DeletedDocumentList& other, lemur::api::DOCID_T documentCount );
       void markDeleted( int documentID );
       bool isDeleted( int documentID );
       read_transaction* getReadTransaction();

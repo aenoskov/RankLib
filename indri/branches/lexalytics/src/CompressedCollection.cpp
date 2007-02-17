@@ -536,6 +536,37 @@ void indri::collection::CompressedCollection::close() {
 }
 
 //
+// keys_to_vector
+//
+
+static std::vector<std::string> keys_to_vector( indri::utility::HashTable<const char*, lemur::file::Keyfile*>& table ) {
+  std::vector<std::string> result;
+  indri::utility::HashTable<const char*, lemur::file::Keyfile*>::iterator iter;
+
+  for( iter = table.begin(); iter != table.end(); iter++ ) {
+    result.push_back( *(iter->first) );
+  }
+
+  return result;
+}
+
+//
+// forwardFields
+//
+
+std::vector<std::string> indri::collection::CompressedCollection::forwardFields() {
+  return keys_to_vector( _forwardLookups );
+}
+
+//
+// reverseFields
+//
+
+std::vector<std::string> indri::collection::CompressedCollection::reverseFields() {
+  return keys_to_vector( _reverseLookups );
+}
+
+//
 // File format is:
 //    key, value
 //    key, value
