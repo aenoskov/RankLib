@@ -53,7 +53,10 @@ namespace indri {
         }
       };
 
-      WriterIndexContext( indri::index::Index* _index ) {
+      WriterIndexContext( indri::index::Index* _index, indri::index::DeletedDocumentList* _deletedList, lemur::api::DOCID_T _documentOffset ) {
+        deletedList = _deletedList;
+        documentOffset = _documentOffset;
+
         bitmap = new indri::index::TermBitmap;
         index = _index;
         wasInfrequentCount = 0;
@@ -95,6 +98,9 @@ namespace indri {
       indri::index::TermRecorder* newlyFrequent;
       indri::index::TermRecorder* oldFrequent;
       indri::utility::HashTable<int, int>* oldInfrequent;
+
+      indri::index::DeletedDocumentList* deletedList;
+      lemur::api::DOCID_T documentOffset;
     };
 
     typedef std::priority_queue<WriterIndexContext*,
@@ -150,32 +156,35 @@ namespace indri {
       void _writeSkip( indri::file::SequentialWriteBuffer* buffer, int document, int length );
       void _writeBatch( indri::file::SequentialWriteBuffer* buffer, int document, int length, indri::utility::Buffer& data );
 
-      void _writeFieldLists( std::vector<indri::index::Index*>& indexes, const std::string& path, indri::index::DeletedDocumentList& deletedList );
-      void _writeFieldList( indri::file::SequentialWriteBuffer& output, int fieldIndex, std::vector<indri::index::DocExtentListIterator*> iterators, indri::index::DeletedDocumentList& deletedList );
+      void _writeFieldLists( std::vector<WriterIndexContext*>& contexts, const std::string& path );
+      void _writeFieldList( indri::file::SequentialWriteBuffer& output, int fieldIndex, std::vector<indri::index::DocExtentListIterator*>& iterators, std::vector<WriterIndexContext*>& contexts );
 
       void _pushInvertedLists( indri::utility::greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _fetchMatchingInvertedLists( indri::utility::greedy_vector<WriterIndexContext*>& lists, invertedlist_pqueue& queue );
       void _writeStatistics( indri::utility::greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, UINT64& startOffset );
-      void _writeInvertedLists( std::vector<WriterIndexContext*>& contexts, indri::index::DeletedDocumentList& deletedList );
+      void _writeInvertedLists( std::vector<WriterIndexContext*>& contexts );
 
       void _storeIdEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
       void _storeStringEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
 
       void _storeTermEntry( IndexWriter::keyfile_pair& pair, indri::index::DiskTermData* diskTermData );
       void _storeFrequentTerms();
-      void _addInvertedListData( indri::utility::greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, indri::utility::Buffer& listBuffer, UINT64& endOffset, indri::index::DeletedDocumentList& deletedList );
+      void _addInvertedListData( indri::utility::greedy_vector<WriterIndexContext*>& lists, indri::index::TermData* termData, indri::utility::Buffer& listBuffer, UINT64& endOffset );
       void _storeMatchInformation( indri::utility::greedy_vector<WriterIndexContext*>& lists, int sequence, indri::index::TermData* termData, UINT64 startOffset, UINT64 endOffset );
 
       int _lookupTermID( indri::file::BulkTreeReader& keyfile, const char* term );
 
-      void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes );
+      void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes, indri::index::DeletedDocumentList& deletedList );
+      void _buildIndexContexts( std::vector<WriterIndexContext*>& contexts, std::vector<indri::index::Index*>& indexes, std::vector<indri::index::DeletedDocumentList*>& deletedLists, const std::vector<lemur::api::DOCID_T>& documentOffsets );
       
-      void _writeDirectLists( std::vector<WriterIndexContext*>& contexts, indri::index::DeletedDocumentList& deletedList );
+      void _writeDirectLists( std::vector<WriterIndexContext*>& contexts );
       void _writeDirectLists( WriterIndexContext* context,
                               indri::file::SequentialWriteBuffer* directOutput,
                               indri::file::SequentialWriteBuffer* lengthsOutput,
-                              indri::file::SequentialWriteBuffer* dataOutput,
-                              indri::index::DeletedDocumentList& deletedList );
+                              indri::file::SequentialWriteBuffer* dataOutput );
+
+      void _constructFiles( const std::string& path );
+      void _closeFiles( const std::string& path );
 
       indri::index::TermTranslator* _buildTermTranslator( indri::file::BulkTreeReader& newInfrequentTerms,
                                                           indri::file::BulkTreeReader& newFrequentTerms,
@@ -200,6 +209,11 @@ namespace indri {
                   std::vector<indri::index::Index::FieldDescription>& fields,
                   indri::index::DeletedDocumentList& deletedList,
                   const std::string& fileName );
+      void write( std::vector<indri::index::Index*>& indexes,
+                  std::vector<indri::index::Index::FieldDescription>& fields,
+                  std::vector<indri::index::DeletedDocumentList*>& deletedLists, 
+                  std::vector<lemur::api::DOCID_T>& documentMaximums,
+                  const std::string& path );
     };
   }
 }

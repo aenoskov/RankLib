@@ -319,13 +319,7 @@ void indri::collection::Repository::create( const std::string& path, indri::api:
   _readOnly = false;
 
   try {
-    if( !indri::file::Path::exists( path ) ) {
-      indri::file::Path::create( path );
-    } else {
-      // remove any existing cruft
-      indri::file::Path::remove( path );
-      indri::file::Path::create( path );
-    }
+    _cleanAndCreateDirectory( path );
     
     _memory = defaultMemory;
     if( options )
@@ -1284,10 +1278,242 @@ void indri::collection::Repository::compact() {
 }
 
 //
+// _stemmerName
+//
+
+std::string indri::collection::Repository::_stemmerName( indri::api::Parameters& parameters ) {
+  return parameters.get( "stemmer.name", "" );
+}
+
+//
+// _fieldNames
+//
+
+std::vector<std::string> indri::collection::Repository::_fieldNames( indri::api::Parameters& parameters ) {
+  std::vector<std::string> fields;
+
+  if( parameters.exists( "field" ) ) {
+    for( int i=0; i<parameters["field"].size(); i++ ) {
+      std::string fieldName = parameters["field"][i];
+      fields.push_back( fieldName );
+    }
+  }
+
+  return fields;
+}
+
+//
 // merge
 //
 
-void indri::collection::Repository::merge( const std::string& outputIndex, const std::vector<std::string>& inputIndexes ) {
+void indri::collection::Repository::merge( const std::string& path, const std::vector<std::string>& inputIndexes ) {
   LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Merge failed, unimplemented" );
+
+  // Create the directory for the output index
+  _cleanAndCreateDirectory( path );
+
+  std::string indexPath = indri::file::Path::combine( path, "index" );
+  std::string collectionPath = indri::file::Path::combine( path, "collection" );
+
+  // First, we're going to harvest information from the individual indexes.  We want to 
+  // check a few things:
+  //    1. do they all use the same stemmer?
+  //    2. do they all have the same indexed fields?
+  //    3. are they all merged (only have one disk index?)
+  //    4. how many documents are in each one?
+
+  // If no indexes are given, make an empty repository and return
+  if( inputIndexes.size() == 0 ) {
+    Repository empty;
+    empty.create( path );
+    empty.close();
+    return;
+  }
+
+  std::vector<lemur::api::DOCID_T> documentMaximums;
+
+  // Open up the first repository and extract field information
+  Repository firstRepository;
+  try {
+    firstRepository.openRead( inputIndexes[0] );
+  } catch( lemur::api::Exception& e ) {
+    LEMUR_RETHROW( e, "Merge failed, couldn't find repository: " + inputIndexes[0] );
+  }
+  std::vector<Field> indexFields = firstRepository.fields();
+  firstRepository.close();
+
+  // Open up the first manifest and check on stemming and fields
+  indri::api::Parameters firstManifest;
+  std::string firstManifestPath = indri::file::Path::combine( inputIndexes[0], "manifest" );
+  try {
+    firstManifest.loadFile( firstManifestPath );
+  } catch( lemur::api::Exception& e ) {
+    LEMUR_RETHROW( e, "Merge failed, couldn't find repository: " + inputIndexes[0] );
+  }
+
+  std::string stemmerName = _stemmerName( firstManifest );
+  std::vector<std::string> fieldNames = _fieldNames( firstManifest );
+
+  // Now, gather information about the indexes
+  for( int i=0; i<inputIndexes.size(); i++ ) {
+    indri::api::Parameters repositoryManifest;
+    std::string manifestPath = indri::file::Path::combine( inputIndexes[i], "manifest" );
+
+    try {
+      repositoryManifest.loadFile( manifestPath );
+    } catch( lemur::api::Exception& e ) {
+      LEMUR_RETHROW( e, "Couldn't find repository: " + inputIndexes[i] );
+    }
+
+    if( !repositoryManifest.exists( "indexes.index" ) ) {
+      documentMaximums.push_back( 0 );
+      continue;
+    }
+
+    // Check to make sure there's only one index in there
+    int indexCount = repositoryManifest["indexes.index"].size();
+
+    if( indexCount > 1 ) {
+      LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Cannot merge repositories that have unmerged internal indexes: " + inputIndexes[i] );
+    }
+
+    // How many documents are in this one?
+    indri::index::DiskIndex diskIndex;
+    std::string basePath = indri::file::Path::combine( inputIndexes[i], "index" );
+    std::string relativePath = i64_to_string( (INT64)repositoryManifest["indexes.index"] );
+    diskIndex.open( basePath, relativePath );
+
+    documentMaximums.push_back( diskIndex.documentMaximum() );
+    diskIndex.close();
+
+    // Only check successive indexes against the first one
+    if( i == 0 )
+      continue;
+
+    // Verify that the same fields and stemmers are used
+    if( stemmerName != _stemmerName( repositoryManifest ) ) {
+      LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Cannot merge repositories that use different stemmers: " + inputIndexes[i] );
+    }
+
+    if( fieldNames != _fieldNames( repositoryManifest ) ) {
+      LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Cannot merge repositories that use different fields: " + inputIndexes[i] );
+    }
+  }
+
+  // 2. merge the deleted bitmaps
+  _mergeBitmaps( path, inputIndexes, documentMaximums );
+
+  // 3. merge compressed collections
+  _mergeCompressedCollections( path, inputIndexes, documentMaximums );
+
+  // 4. merge the indexes
+  _mergeClosedIndexes( path, inputIndexes, indexFields );
+
+  // 5. write the manifest file
+  _writeMergedManifest( path, firstManifest );
 }
 
+//
+// _writeMergedManifest
+//
+
+void indri::collection::Repository::_writeMergedManifest( const std::string& path, indri::api::Parameters& firstManifest ) {
+  firstManifest.set( "indexCount", 1 );
+  firstManifest["indexes"].set( "index", 0 );
+
+  std::string manifestPath = indri::file::Path::combine( path, "manifest" );
+  firstManifest.write( manifestPath );
+}
+
+
+
+//
+// _mergeBitmaps
+//
+
+void indri::collection::Repository::_mergeBitmaps( const std::string& outputPath, const std::vector<std::string>& repositories, const std::vector<lemur::api::DOCID_T>& documentMaximums ) {
+  indri::index::DeletedDocumentList deletedList;
+  lemur::api::DOCID_T totalDocuments = 0;
+
+  for( int i=0; i<repositories.size(); i++ ) {
+    indri::index::DeletedDocumentList localList;
+    std::string deletedPath = indri::file::Path::combine( repositories[i], "deleted" );
+    localList.read( deletedPath );
+
+    deletedList.append( localList, totalDocuments );
+    totalDocuments += documentMaximums[i];
+  }
+}
+
+//
+// _mergeIndexes
+//
+
+void indri::collection::Repository::_mergeClosedIndexes( const std::string& outputPath, const std::vector<std::string>& repositories, const std::vector<indri::collection::Repository::Field>& indexFields ) {
+  indri::index::IndexWriter writer;
+  std::string outputIndexPath = indri::file::Path::combine( outputPath, "index" );
+
+  for( int i=0; i<repositories.size(); i++ ) {
+    // open index, add to indexes vector
+    // read deleted list, add to deleted lists vector
+  }
+
+  // need to pass in lots of different deleted lists, one for each index,
+  // and we need document number offsets for each one.
+  writer.write( indexes, indexFields, deletedLists, outputIndexPath );
+}
+
+//
+// _mergeCompressedCollections
+//
+
+void indri::collection::Repository::_mergeCompressedCollections( const std::string& outputPath,
+                                                                 const std::vector<std::string>& repositories,
+                                                                 const std::vector<lemur::api::DOCID_T>& documentMaximums ) {
+  assert( repositories.size() );
+
+  CompressedCollection collection;
+  std::string collectionPath = indri::file::Path::combine( outputPath, "collection" );
+  std::string firstCollectionPath = indri::file::Path::combine( repositories[0], "collection" );
+
+  // Open first collection just to extract forward/reverse information
+  CompressedCollection first;
+  first.openRead( firstCollectionPath );
+
+  std::vector<std::string> forwardFields = first.forwardFields();
+  std::vector<std::string> reverseFields = first.reverseFields();
+
+  collection.create( collectionPath, forwardFields, reverseFields );
+  lemur::api::DOCID_T documentOffset = 0;
+
+  for( int i=0; i<repositories.size(); i++ ) {
+    CompressedCollection other;
+
+    std::string otherCollectionPath = indri::file::Path::combine( repositories[i], "collection" );
+    std::string deletedPath = indri::file::Path::combine( repositories[i], "deleted" );
+    indri::index::DeletedDocumentList deletedList;
+
+    deletedList.read( deletedPath );
+    other.openRead( otherCollectionPath );
+
+    collection.append( other, deletedList, documentOffset );
+    documentOffset += documentMaximums[i];
+    other.close();
+  }
+
+  collection.close();
+}
+
+//
+// _cleanAndCreateDirectory
+//
+
+void indri::collection::Repository::_cleanAndCreateDirectory( const std::string& path ) {
+  if( !indri::file::Path::exists( path ) ) {
+    indri::file::Path::create( path );
+  } else {
+    // remove any existing cruft
+    indri::file::Path::remove( path );
+    indri::file::Path::create( path );
+  }
+}

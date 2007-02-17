@@ -20,6 +20,7 @@
 #include "lemur/Exception.hpp"
 #include "indri/ScopedLock.hpp"
 #include "indri/Path.hpp"
+#include "lemur/IndexTypes.hpp"
 
 //
 // DeletedDocumentList constructor
@@ -61,6 +62,64 @@ void indri::index::DeletedDocumentList::_grow( int documentID ) {
   memset( _bitmap.write( growBytes ), 0, growBytes );
 
   assert( _bitmap.position() > (documentID/8) );
+}
+
+//
+// append
+//
+// Takes another DeletedDocumentList and appends it to this one.
+// documentCount refers to the number of documents handled by this
+// deleted list _before_ the new list is appended.
+//
+
+void indri::index::DeletedDocumentList::append( DeletedDocumentList& other, lemur::api::DOCID_T documentCount ) {
+  indri::thread::ScopedLock l( _writeLock );
+
+  if( other._bitmap.size() == 0 )
+    return;
+
+  // We handle the first byte as a special case, then copy the rest in the loop
+  UINT8 otherFirstByte = *(UINT8*)other._bitmap.front();
+
+  size_t otherBytes = other._bitmap.size();
+  _grow( documentCount + otherBytes/8 );
+  assert( _bitmap.size() > 0 );
+
+  int shift = documentCount % 8;
+
+  if( shift == 0 ) {
+    // Data is aligned on byte boundaries, so it's easy to copy it
+    ::memcpy( _bitmap.front() + documentCount/8, other._bitmap.front(), other._bitmap.position() );
+  } else {
+    // Unaligned case
+    size_t myPosition = documentCount / 8;
+    size_t otherPosition = 0;
+
+    // copy the first byte as a special case (since it contains both new and old bits)
+    UINT8* lastLocalByteLocation = (UINT8*) (_bitmap.front() + myPosition);
+    UINT8 lastLocalByte = *lastLocalByteLocation;
+
+    assert( shift != 0 );
+    *lastLocalByteLocation = lastLocalByte | (otherFirstByte << shift);
+    myPosition += 1;
+
+    UINT32 accumulator = 0;
+
+    while( otherPosition < otherBytes ) {
+      // add the next byte to the accumulator
+      UINT8 nextByte = *(other._bitmap.front() + otherPosition);
+      accumulator |= (nextByte << shift);
+
+      // copy the low bits of the accumulator
+      *(UINT8*) (_bitmap.front() + myPosition) = (UINT8) (accumulator & 0xFF);
+
+      myPosition += 1;
+      otherPosition += 1;
+    }
+
+    // copy the remaining bits
+    *(UINT8*) (_bitmap.front() + myPosition) = (UINT8) (accumulator & 0xFF);
+  }
 }
 
 //
