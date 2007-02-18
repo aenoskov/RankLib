@@ -212,7 +212,7 @@ namespace indri {
       void write( std::vector<indri::index::Index*>& indexes,
                   std::vector<indri::index::Index::FieldDescription>& fields,
                   std::vector<indri::index::DeletedDocumentList*>& deletedLists, 
-                  std::vector<lemur::api::DOCID_T>& documentMaximums,
+                  const std::vector<lemur::api::DOCID_T>& documentMaximums,
                   const std::string& path );
     };
   }
