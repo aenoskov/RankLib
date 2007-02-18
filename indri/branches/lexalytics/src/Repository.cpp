@@ -89,7 +89,7 @@ void indri::collection::Repository::_closePriors() {
 // _fieldsForIndex
 //
 
-std::vector<indri::index::Index::FieldDescription> indri::collection::Repository::_fieldsForIndex( std::vector<indri::collection::Repository::Field>& _fields ) {
+std::vector<indri::index::Index::FieldDescription> indri::collection::Repository::_fieldsForIndex( const std::vector<indri::collection::Repository::Field>& _fields ) {
   std::vector<indri::index::Index::FieldDescription> result;
 
   for( size_t i=0; i<_fields.size(); i++ ) {
@@ -1407,7 +1407,7 @@ void indri::collection::Repository::merge( const std::string& path, const std::v
   _mergeCompressedCollections( path, inputIndexes, documentMaximums );
 
   // 4. merge the indexes
-  _mergeClosedIndexes( path, inputIndexes, indexFields );
+  _mergeClosedIndexes( path, inputIndexes, indexFields, documentMaximums );
 
   // 5. write the manifest file
   _writeMergedManifest( path, firstManifest );
@@ -1449,18 +1449,38 @@ void indri::collection::Repository::_mergeBitmaps( const std::string& outputPath
 // _mergeIndexes
 //
 
-void indri::collection::Repository::_mergeClosedIndexes( const std::string& outputPath, const std::vector<std::string>& repositories, const std::vector<indri::collection::Repository::Field>& indexFields ) {
+void indri::collection::Repository::_mergeClosedIndexes( const std::string& outputPath,
+                                                         const std::vector<std::string>& repositoryPaths,
+                                                         const std::vector<indri::collection::Repository::Field>& indexFields,
+                                                         const std::vector<lemur::api::DOCID_T>& documentMaximums ) {
   indri::index::IndexWriter writer;
   std::string outputIndexPath = indri::file::Path::combine( outputPath, "index" );
 
-  for( int i=0; i<repositories.size(); i++ ) {
-    // open index, add to indexes vector
-    // read deleted list, add to deleted lists vector
+  std::vector<Repository*> repositories;
+  std::vector<indri::index::Index*> indexes;
+  std::vector<indri::index::DeletedDocumentList*> deletedLists;
+
+  for( int i=0; i<repositoryPaths.size(); i++ ) {
+    // open the repository
+    Repository* repository = new Repository();
+    repository->openRead( repositoryPaths[i] );
+    repositories.push_back( repository );
+
+    assert( repository->indexes()->size() == 1 );
+    indexes.push_back( repository->indexes()->front() );
+    deletedLists.push_back( &repository->_deletedList );
   }
 
-  // need to pass in lots of different deleted lists, one for each index,
-  // and we need document number offsets for each one.
-  writer.write( indexes, indexFields, deletedLists, outputIndexPath );
+  std::vector<indri::index::Index::FieldDescription> fields = _fieldsForIndex( indexFields );
+  writer.write( indexes, fields, deletedLists, documentMaximums, outputIndexPath );
+
+  deletedLists.clear();
+  indexes.clear();
+
+  for( int i=0; i<repositories.size(); i++ ) {
+    repositories[i]->close();
+    delete repositories[i];
+  }
 }
 
 //
