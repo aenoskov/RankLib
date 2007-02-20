@@ -40,7 +40,6 @@ const int OUTPUT_BUFFER_SIZE = 512*1024;
 
 using namespace indri::index;
 
-#define LOGGING
 #ifdef LOGGING
 indri::utility::IndriTimer g_t;
 #define LOGSTART  { g_t.start(); }
