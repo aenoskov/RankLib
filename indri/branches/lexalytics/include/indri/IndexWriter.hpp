@@ -43,13 +43,39 @@ namespace indri {
   namespace index {
 
     struct WriterIndexContext {
-      struct less {
+      struct greater {
       private:
         indri::index::DocListFileIterator::iterator_greater _iterator_greater;
-  
+
+        int _compareTerms( const WriterIndexContext* const&  one, const WriterIndexContext* const& two ) const {
+          const char* oneTerm = one->iterator->currentEntry()->termData->term;
+          const char* twoTerm = two->iterator->currentEntry()->termData->term;
+
+          return strcmp( oneTerm, twoTerm );
+        }
+
+        int _compareDocuments( const WriterIndexContext* const&  one, const WriterIndexContext* const& two ) const {
+          const indri::index::DocListIterator::DocumentData* oneData = one->iterator->currentEntry()->iterator->currentEntry();
+          const indri::index::DocListIterator::DocumentData* twoData = two->iterator->currentEntry()->iterator->currentEntry();
+
+          int oneDocument = oneData ? oneData->document + one->documentOffset : 0;
+          int twoDocument = twoData ? twoData->document + two->documentOffset : 0;
+
+          return oneDocument > twoDocument;
+        }
+
       public:
-        bool operator () ( const WriterIndexContext* const&  one, const WriterIndexContext* const& two ) const {
-          return _iterator_greater( one->iterator, two->iterator );
+        bool operator () ( const WriterIndexContext* const& one, const WriterIndexContext* const& two ) const {
+          assert( !one->iterator->finished() && !two->iterator->finished() );
+
+          int result = _compareTerms( one, two );
+
+          // if terms don't match, we're done
+          if( result != 0 )
+            return result > 0;
+
+          // terms match, so go by document
+          return _compareDocuments( one, two ) > 0;
         }
       };
 
@@ -105,7 +131,7 @@ namespace indri {
 
     typedef std::priority_queue<WriterIndexContext*,
                                 std::vector<WriterIndexContext*>,
-                                WriterIndexContext::less> invertedlist_pqueue;
+                                WriterIndexContext::greater> invertedlist_pqueue;
 
     class IndexWriter {
     private:
@@ -185,6 +211,7 @@ namespace indri {
 
       void _constructFiles( const std::string& path );
       void _closeFiles( const std::string& path );
+      void _openTermsReaders( const std::string& path );
 
       indri::index::TermTranslator* _buildTermTranslator( indri::file::BulkTreeReader& newInfrequentTerms,
                                                           indri::file::BulkTreeReader& newFrequentTerms,
