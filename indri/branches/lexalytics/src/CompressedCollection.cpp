@@ -889,7 +889,7 @@ void indri::collection::CompressedCollection::_removeForwardLookups( indri::inde
 //
 
 static bool keyfile_next( lemur::file::Keyfile& keyfile, char* key, int keyLength, indri::utility::Buffer& value ) {
-  bool result;
+  bool result = false;
   // clean the key buffer, ensuring it will be null-terminated
   memset( key, 0, keyLength );
   int actualValueSize = value.size();
@@ -899,12 +899,12 @@ static bool keyfile_next( lemur::file::Keyfile& keyfile, char* key, int keyLengt
     result = keyfile.next( key, keyLength, value.front(), actualValueSize );
   } catch( lemur::api::Exception& ) {
     int size = keyfile.getSize( key );
-    if( size < 0 )
-      return false;
-
-    value.grow( size );
-    actualValueSize = value.size();
-    keyfile.get( key, value.front(), actualValueSize, value.size() );
+    if( size >= 0 ) {
+      value.grow( size );
+      actualValueSize = value.size();
+      keyfile.get( key, value.front(), actualValueSize, value.size() );
+      result = true;
+    }
   }
 
   if( result )
@@ -917,7 +917,7 @@ static bool keyfile_next( lemur::file::Keyfile& keyfile, char* key, int keyLengt
 //
 
 static bool keyfile_next( lemur::file::Keyfile& keyfile, int key, indri::utility::Buffer& value ) {
-  bool result;
+  bool result = false;
   int actualValueSize = value.size();
   value.clear();
 
@@ -925,12 +925,12 @@ static bool keyfile_next( lemur::file::Keyfile& keyfile, int key, indri::utility
     result = keyfile.next( key, value.front(), actualValueSize );
   } catch( lemur::api::Exception& ) {
     int size = keyfile.getSize( key );
-    if( size < 0 )
-      return false;
-
-    value.grow( size );
-    actualValueSize = value.size();
-    keyfile.get( key, value.front(), actualValueSize, value.size() );
+    if( size >= 0 ) {
+      value.grow( size );
+      actualValueSize = value.size();
+      keyfile.get( key, value.front(), actualValueSize, value.size() );
+      result = true;
+    }
   }
 
   if( result )
@@ -1044,7 +1044,7 @@ void indri::collection::CompressedCollection::_copyStorageData( indri::file::Seq
   if( sourceLookup.next( lastKey, (char*) &lastLocation, locationLength ) ) {
     locationLength = sizeof lastLocation;
 
-    while( _lookup.next( key, (char*) &location, locationLength ) ) {
+    while( sourceLookup.next( key, (char*) &location, locationLength ) ) {
       // copy lastKey starting from lastLocation to location to the output file
       // use tell on the output to load up the lookup.
 
@@ -1145,6 +1145,7 @@ void indri::collection::CompressedCollection::append( indri::collection::Compres
   indri::thread::ScopedLock l( _lock );
   _output->flush();
 
+  // copy the forward lookups, modifying the document IDs as they are copied and deleting entries as necessary
   for( iter = other._forwardLookups.begin(); iter != other._forwardLookups.end(); iter++ ) {
     std::string lookupName = *iter->first;
     lemur::file::Keyfile& lookup = *(*iter->second);
@@ -1160,16 +1161,13 @@ void indri::collection::CompressedCollection::append( indri::collection::Compres
     _copyReverseLookup( lookupName, lookup, deletedList, documentOffset );
   }
 
-  // copy the forward lookups, modifying the document IDs as they are copied and deleting entries as necessary
-
-
   // iterate through the other collection's lookup file, just as in the compact method, but use the document offset
   // in the new lookup.
   UINT64 storageLength = other._storage.size();
   indri::file::SequentialReadBuffer* input = new indri::file::SequentialReadBuffer( other._storage, 1024*1024 );
 
   // copy the only the documents that aren't deleted to the new lookup and storage files
-  _copyStorageData( input, _output, deletedList, 0, other._lookup, _lookup, storageLength );
+  _copyStorageData( input, _output, deletedList, documentOffset, other._lookup, _lookup, storageLength );
 
   delete input;
   _output->flush();

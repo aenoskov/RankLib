@@ -82,7 +82,7 @@ void indri::index::DeletedDocumentList::append( DeletedDocumentList& other, lemu
   UINT8 otherFirstByte = *(UINT8*)other._bitmap.front();
 
   size_t otherBytes = other._bitmap.size();
-  _grow( documentCount + otherBytes/8 );
+  _grow( documentCount + otherBytes*8 );
   assert( _bitmap.size() > 0 );
 
   int shift = documentCount % 8;
@@ -103,21 +103,25 @@ void indri::index::DeletedDocumentList::append( DeletedDocumentList& other, lemu
     *lastLocalByteLocation = lastLocalByte | (otherFirstByte << shift);
     myPosition += 1;
 
-    UINT32 accumulator = 0;
+    UINT32 accumulator = (otherFirstByte >> (8-shift));
 
     while( otherPosition < otherBytes ) {
       // add the next byte to the accumulator
+      assert( otherPosition < other._bitmap.size() );
       UINT8 nextByte = *(other._bitmap.front() + otherPosition);
       accumulator |= (nextByte << shift);
 
       // copy the low bits of the accumulator
+      assert( myPosition < _bitmap.size() );
       *(UINT8*) (_bitmap.front() + myPosition) = (UINT8) (accumulator & 0xFF);
 
       myPosition += 1;
       otherPosition += 1;
+      accumulator >>= 8;
     }
 
     // copy the remaining bits
+    assert( myPosition < _bitmap.size() );
     *(UINT8*) (_bitmap.front() + myPosition) = (UINT8) (accumulator & 0xFF);
   }
 }

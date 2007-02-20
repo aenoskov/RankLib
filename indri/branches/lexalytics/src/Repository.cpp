@@ -1307,8 +1307,6 @@ std::vector<std::string> indri::collection::Repository::_fieldNames( indri::api:
 //
 
 void indri::collection::Repository::merge( const std::string& path, const std::vector<std::string>& inputIndexes ) {
-  LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Merge failed, unimplemented" );
-
   // Create the directory for the output index
   _cleanAndCreateDirectory( path );
 
@@ -1422,7 +1420,7 @@ void indri::collection::Repository::_writeMergedManifest( const std::string& pat
   firstManifest["indexes"].set( "index", 0 );
 
   std::string manifestPath = indri::file::Path::combine( path, "manifest" );
-  firstManifest.write( manifestPath );
+  firstManifest.writeFile( manifestPath );
 }
 
 
@@ -1441,8 +1439,11 @@ void indri::collection::Repository::_mergeBitmaps( const std::string& outputPath
     localList.read( deletedPath );
 
     deletedList.append( localList, totalDocuments );
-    totalDocuments += documentMaximums[i];
+    totalDocuments += (documentMaximums[i] - 1);
   }
+
+  std::string deletedOutputPath = indri::file::Path::combine( outputPath, "deleted" );
+  deletedList.write( deletedOutputPath );
 }
 
 //
@@ -1454,7 +1455,9 @@ void indri::collection::Repository::_mergeClosedIndexes( const std::string& outp
                                                          const std::vector<indri::collection::Repository::Field>& indexFields,
                                                          const std::vector<lemur::api::DOCID_T>& documentMaximums ) {
   indri::index::IndexWriter writer;
-  std::string outputIndexPath = indri::file::Path::combine( outputPath, "index" );
+  std::string rootIndexPath = indri::file::Path::combine( outputPath, "index" );
+  std::string outputIndexPath = indri::file::Path::combine( rootIndexPath, "0" );
+  indri::file::Path::create( rootIndexPath );
 
   std::vector<Repository*> repositories;
   std::vector<indri::index::Index*> indexes;
@@ -1495,6 +1498,7 @@ void indri::collection::Repository::_mergeCompressedCollections( const std::stri
   CompressedCollection collection;
   std::string collectionPath = indri::file::Path::combine( outputPath, "collection" );
   std::string firstCollectionPath = indri::file::Path::combine( repositories[0], "collection" );
+  indri::file::Path::create( collectionPath );
 
   // Open first collection just to extract forward/reverse information
   CompressedCollection first;
@@ -1517,7 +1521,7 @@ void indri::collection::Repository::_mergeCompressedCollections( const std::stri
     other.openRead( otherCollectionPath );
 
     collection.append( other, deletedList, documentOffset );
-    documentOffset += documentMaximums[i];
+    documentOffset += (documentMaximums[i] - 1);
     other.close();
   }
 
