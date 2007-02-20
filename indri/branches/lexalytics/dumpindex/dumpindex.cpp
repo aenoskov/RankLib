@@ -413,7 +413,7 @@ void print_repository_stats( indri::collection::Repository& r ) {
 void merge_repositories( const std::string& outputPath, int argc, char** argv ) {
   std::vector<std::string> inputs;
 
-  for( int i=2; i<argc; i++ ) {
+  for( int i=3; i<argc; i++ ) {
     inputs.push_back( argv[i] );
   }
 
@@ -450,6 +450,7 @@ int main( int argc, char** argv ) {
     std::string command = argv[2];
 
     if( command == "m" || command == "merge" ) {
+      REQUIRE_ARGS(4);
       merge_repositories( repName, argc, argv );
       return 0;
     }
