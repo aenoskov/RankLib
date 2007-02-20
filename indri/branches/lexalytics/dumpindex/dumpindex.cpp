@@ -410,6 +410,16 @@ void print_repository_stats( indri::collection::Repository& r ) {
   std::cout << std::endl;
 }
 
+void merge_repositories( const std::string& outputPath, int argc, char** argv ) {
+  std::vector<std::string> inputs;
+
+  for( int i=2; i<argc; i++ ) {
+    inputs.push_back( argv[i] );
+  }
+
+  indri::collection::Repository::merge( outputPath, inputs );
+}
+
 void usage() {
   std::cout << "dumpindex <repository> <command> [ <argument> ]*" << std::endl;
   std::cout << "Valid commands are: " << std::endl;
@@ -424,6 +434,7 @@ void usage() {
   std::cout << "    documenttext (dd)    Document ID    Print the full representation of a document" << std::endl;
   std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
   std::cout << "    invlist (il)         None           Print the contents of all inverted lists" << std::endl;
+  std::cout << "    merge (m)            Input indexes  Merges a list of Indri repositories together into one repository." << std::endl;
   std::cout << "    vocabulary (v)       None           Print the vocabulary of the index" << std::endl;
   std::cout << "    stats (s)                           Print statistics for the Repository" << std::endl;
 }
@@ -435,10 +446,15 @@ int main( int argc, char** argv ) {
     REQUIRE_ARGS(3);
 
     indri::collection::Repository r;
-    char* repName = argv[1];
-    r.openRead( repName );
-
+    std::string repName = argv[1];
     std::string command = argv[2];
+
+    if( command == "m" || command == "merge" ) {
+      merge_repositories( repName, argc, argv );
+      return 0;
+    }
+
+    r.openRead( repName );
 
     if( command == "t" || command == "term" ) {
       REQUIRE_ARGS(4);
