@@ -82,7 +82,7 @@ void indri::index::DeletedDocumentList::append( DeletedDocumentList& other, lemu
   UINT8 otherFirstByte = *(UINT8*)other._bitmap.front();
 
   size_t otherBytes = other._bitmap.size();
-  _grow( documentCount + otherBytes*8 );
+  _grow( documentCount + (otherBytes+1)*8 );
   assert( _bitmap.size() > 0 );
 
   int shift = documentCount % 8;

@@ -297,7 +297,6 @@ void IndexWriter::_buildIndexContexts( std::vector<WriterIndexContext*>& context
   for( int i=0; i<indexes.size(); i++ ) {
     contexts.push_back( new WriterIndexContext( indexes[i], deletedLists[i], documentOffset ) );
     documentOffset += (documentMaximums[i] - 1);
-    std::cout << "offset: " << documentOffset << std::endl;
   }
 }
 
