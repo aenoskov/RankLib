@@ -801,13 +801,14 @@ void IndexWriter::_writeInvertedLists( std::vector<WriterIndexContext*>& context
   term[0] = 0;
 
   _documentBase = contexts[0]->index->documentBase();
+  _corpus.maximumDocument = 1;
 
   for( int i=0; i<contexts.size(); i++ ) {
     if( !contexts[i]->iterator->finished() )
       invertedLists.push( contexts[i] );
     _corpus.totalTerms += contexts[i]->index->termCount();
     _corpus.totalDocuments += contexts[i]->index->documentCount();
-    _corpus.maximumDocument = std::max( contexts[i]->index->documentMaximum(), _corpus.maximumDocument );
+    _corpus.maximumDocument += contexts[i]->index->documentMaximum() - 1;
   }
 
   indri::utility::greedy_vector<WriterIndexContext*> current;
