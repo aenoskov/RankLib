@@ -336,7 +336,8 @@ INT64 indri::server::LocalQueryServer::documentCount() {
     indri::thread::ScopedLock lock( (*indexes)[i]->statisticsLock() );
     total += (*indexes)[i]->documentCount();
   }
-  
+
+  total -= _repository.deletedList().deletedCount();
   return total;
 }
 

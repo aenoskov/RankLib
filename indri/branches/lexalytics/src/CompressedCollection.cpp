@@ -916,7 +916,7 @@ static bool keyfile_next( lemur::file::Keyfile& keyfile, char* key, int keyLengt
 // keyfile_next
 //
 
-static bool keyfile_next( lemur::file::Keyfile& keyfile, int key, indri::utility::Buffer& value ) {
+static bool keyfile_next( lemur::file::Keyfile& keyfile, int& key, indri::utility::Buffer& value ) {
   bool result = false;
   int actualValueSize = value.size();
   value.clear();
@@ -963,6 +963,59 @@ static void remove_deleted_entries( indri::utility::Buffer& value, indri::index:
 
   if( startIDCount > idCount )
     value.unwrite( (startIDCount - idCount) * sizeof (lemur::api::DOCID_T) );
+}
+
+//
+// keyfile_get
+//
+
+static bool keyfile_get( lemur::file::Keyfile& keyfile, int key, indri::utility::Buffer& value ) {
+  bool result = false;
+  int actualValueSize = value.size();
+  value.clear();
+
+  try {
+    result = keyfile.get( key, value.front(), actualValueSize, value.size() );
+  } catch( lemur::api::Exception& ) {
+    int size = keyfile.getSize( key );
+    if( size >= 0 ) {
+      value.grow( size );
+      actualValueSize = value.size();
+      keyfile.get( key, value.front(), actualValueSize, value.size() );
+      result = true;
+    }
+  }
+
+  if( result )
+    value.write( actualValueSize );
+  return result;
+}
+
+//
+// keyfile_get
+//
+
+
+static bool keyfile_get( lemur::file::Keyfile& keyfile, char* key, indri::utility::Buffer& value ) {
+  bool result = false;
+  int actualValueSize = value.size();
+  value.clear();
+
+  try {
+    result = keyfile.get( key, value.front(), actualValueSize, value.size() );
+  } catch( lemur::api::Exception& ) {
+    int size = keyfile.getSize( key );
+    if( size >= 0 ) {
+      value.grow( size );
+      actualValueSize = value.size();
+      keyfile.get( key, value.front(), actualValueSize, value.size() );
+      result = true;
+    }
+  }
+
+  if( result )
+    value.write( actualValueSize );
+  return result;
 }
 
 //
@@ -1224,7 +1277,9 @@ void indri::collection::CompressedCollection::_copyReverseLookup( const std::str
     LEMUR_THROW( LEMUR_RUNTIME_ERROR, "Forward lookup '" + name + "' not found in this CompressedCollection." );
 
   indri::utility::Buffer value;
-  value.grow( 16 );
+  indri::utility::Buffer localValue;
+  value.grow(16);
+  localValue.grow(16);
   lemur::file::Keyfile& local = **found;
   other.setFirst();
 
@@ -1241,7 +1296,9 @@ void indri::collection::CompressedCollection::_copyReverseLookup( const std::str
       entries[i] += documentOffset;
     }
 
-    // store the result
-    local.put( key, value.front(), value.position() );
+    // append the result to what we already have
+    keyfile_get( local, key, localValue );
+    memcpy( localValue.write( value.position() ), value.front(), value.position() );
+    local.put( key, localValue.front(), localValue.position() );
   }
 }

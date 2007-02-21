@@ -29,7 +29,8 @@
 indri::index::DeletedDocumentList::DeletedDocumentList() :
   _modified( false ),
   _readLock( _lock ),
-  _writeLock( _lock )
+  _writeLock( _lock ),
+  _deletedCount( 0 )
 {
 }
 
@@ -62,6 +63,14 @@ void indri::index::DeletedDocumentList::_grow( int documentID ) {
   memset( _bitmap.write( growBytes ), 0, growBytes );
 
   assert( _bitmap.position() > (documentID/8) );
+}
+
+//
+// deletedCount
+//
+
+UINT64 indri::index::DeletedDocumentList::deletedCount() const {
+  return _deletedCount;
 }
 
 //
@@ -124,6 +133,8 @@ void indri::index::DeletedDocumentList::append( DeletedDocumentList& other, lemu
     assert( myPosition < _bitmap.size() );
     *(UINT8*) (_bitmap.front() + myPosition) = (UINT8) (accumulator & 0xFF);
   }
+
+  _deletedCount += other.deletedCount();
 }
 
 //
@@ -172,7 +183,12 @@ void indri::index::DeletedDocumentList::markDeleted( int documentID ) {
     _grow( documentID );
   }
 
-  _bitmap.front()[documentID/8] |= 1<<(documentID%8);
+  UINT8 bit = 1<<(documentID%8);
+
+  if( (_bitmap.front()[documentID/8] & bit) ) {
+    _deletedCount++;
+    _bitmap.front()[documentID/8] |= bit;
+  }
 }
 
 //
@@ -199,6 +215,35 @@ indri::index::DeletedDocumentList::read_transaction* indri::index::DeletedDocume
 }
 
 //
+// _calculateDeletedCount
+//
+
+void indri::index::DeletedDocumentList::_calculateDeletedCount() {
+  int bitCount[256];
+  
+  // set up bit table
+  for( int i=0; i<256; i++ ) {
+    int bits = 0;
+    
+    for( int j=0; j<8; j++ ) {
+      if( i & (1<<j) )
+        bits++;
+    }
+
+    bitCount[i] = bits;
+  }
+
+  // scan the bytes, add up the bits
+  UINT64 total = 0;
+
+  for( int i=0; i<_bitmap.position(); i++ ) {
+    total += bitCount[_bitmap.front()[i]];
+  }
+
+  _deletedCount = total;
+}
+
+//
 // read
 //
 
@@ -212,6 +257,9 @@ void indri::index::DeletedDocumentList::read( const std::string& filename ) {
   _bitmap.clear();
   file.read( _bitmap.write( fileSize ), 0, fileSize );
   file.close();
+
+  // count number of bits set:
+  _calculateDeletedCount();
 }
 
 //
