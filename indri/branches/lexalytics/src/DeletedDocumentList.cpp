@@ -185,7 +185,7 @@ void indri::index::DeletedDocumentList::markDeleted( int documentID ) {
 
   UINT8 bit = 1<<(documentID%8);
 
-  if( (_bitmap.front()[documentID/8] & bit) ) {
+  if( !(_bitmap.front()[documentID/8] & bit) ) {
     _deletedCount++;
     _bitmap.front()[documentID/8] |= bit;
   }
