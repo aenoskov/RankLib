@@ -193,7 +193,7 @@ void print_vocabulary( indri::collection::Repository& r ) {
   }
 
   delete iter;
-}
+}                                                
 
 void print_field_positions( indri::collection::Repository& r, const std::string& fieldString ) {
   indri::server::LocalQueryServer local(r);
@@ -322,6 +322,105 @@ void print_term_counts( indri::collection::Repository& r, const std::string& ter
 
     delete iter;
   }
+}     
+
+double mutual_information( int totalDocumentCount, int one, int two, int intersection ) {
+    double f1 = (double)one / (double)totalDocumentCount;
+    double f2 = (double)two / (double)totalDocumentCount;
+    double fi = (double)intersection / (double)totalDocumentCount;
+    
+    return log( fi / (f1*f2) );
+}
+          
+void print_mutual_information( indri::collection::Repository& r, const std::string& word ) {
+    indri::collection::Repository::index_state state = r.indexes();
+    indri::server::LocalQueryServer local(r);
+    std::string stem = r.processTerm( word );
+    UINT64 totalDocumentCount = local.documentCount();
+    UINT64 wordDocumentCount = local.documentCount( word );
+    
+    std::map<std::string, int> associations;                                             
+    std::vector<lemur::api::DOCID_T> documentIDs; 
+    
+    std::cout << word << "\t"
+              << totalDocumentCount << "\t"
+              << wordDocumentCount << "\t"
+              << wordDocumentCount << "\t"
+              << mutual_information( totalDocumentCount, wordDocumentCount, wordDocumentCount, wordDocumentCount )
+              << std::endl;
+    
+    // for each document that contains word, fetch the document ID
+    for( size_t i=0; i<state->size(); i++ ) {
+      indri::index::Index* index = (*state)[i];
+      indri::thread::ScopedLock( index->iteratorLock() );
+
+      indri::index::DocListIterator* iter = index->docListIterator( stem );
+      if (iter == NULL) continue;
+
+      iter->startIteration();
+      indri::index::DocListIterator::DocumentData* entry;
+
+      for( iter->startIteration(); iter->finished() == false; iter->nextEntry() ) {
+        entry = iter->currentEntry();            
+        documentIDs.push_back( entry->document );
+      }
+
+      delete iter;
+    }                                                             
+    
+    // now, fetch the documents and find related terms
+    const int chunkSize = 100;
+    
+    for( int i=0; i<documentIDs.size(); i += chunkSize ) {
+        std::vector<lemur::api::DOCID_T> partial;
+        partial.assign( documentIDs.begin() + i, documentIDs.begin() + std::min<size_t>(i + chunkSize, documentIDs.size()) );
+        
+        indri::server::QueryServerVectorsResponse* response = local.documentVectors( documentIDs );
+                                                      
+        for( int j=0; j<response->getResults().size(); j++ ) {
+            indri::api::DocumentVector* docVector = response->getResults()[j];
+
+            for( int k=0; k<docVector->stems().size(); k++ ) {
+                const std::string& stem = docVector->stems()[k];
+                associations[stem] += 1;
+            }
+
+            delete docVector;
+        }
+    
+        delete response;
+    }
+     
+    // now, put those terms and counts together and compute mutual information
+    std::vector< std::pair<int, std::string> > counts;
+    std::map< std::string, int >::iterator iter;
+    
+    for( iter = associations.begin(); iter != associations.end(); iter++ ) {
+        std::string destStem = iter->first;
+        
+        // loop through indexes to compute the documentCount for this stem
+        int stemDocumentCount = 0;
+        for( size_t i=0; i<state->size(); i++ ) {
+          indri::index::Index* index = (*state)[i];
+          indri::thread::ScopedLock( index->iteratorLock() );
+
+          indri::index::DocListIterator* diter = index->docListIterator( destStem );
+          if (diter == NULL) continue;
+                 
+          for( diter->startIteration(); diter->finished() == false; diter->nextEntry() ) {
+              stemDocumentCount += 1;
+          }
+          
+          delete diter;   
+        }
+    
+        std::cout << destStem << "\t" 
+                  << totalDocumentCount << "\t"
+                  << stemDocumentCount << "\t"
+                  << iter->second << "\t"
+                  << mutual_information( totalDocumentCount, wordDocumentCount, stemDocumentCount, iter->second )
+                  << std::endl;
+    }   
 }
 
 void print_document_name( indri::collection::Repository& r, const char* number ) {
@@ -501,6 +600,7 @@ void usage() {
   std::cout << "    documenttext (dt)    Document ID    Print the text of a document" << std::endl;
   std::cout << "    documenttext (dd)    Document ID    Print the full representation of a document" << std::endl;
   std::cout << "    documentvector (dv)  Document ID    Print the document vector of a document" << std::endl;
+  std::cout << "    mutualinformation (mi) Term text    Print the mutual information of a term with all other terms" << std::endl;
   std::cout << "    invlist (il)         None           Print the contents of all inverted lists" << std::endl;
   std::cout << "    vocabulary (v)       None           Print the vocabulary of the index" << std::endl;
   std::cout << "    diskusage (du)       None           Print disk space statistics for terms in the inverted list" << std::endl;
@@ -531,6 +631,10 @@ int main( int argc, char** argv ) {
       REQUIRE_ARGS(4);
       std::string field = argv[3];
       print_field_positions( r, field );
+    } else if( command == "mi" || command == "mutualinformation" ) { 
+      REQUIRE_ARGS(4);
+      std::string term = argv[3];
+      print_mutual_information( r, term );
     } else if( command == "e" || command == "expression" ) {
       REQUIRE_ARGS(4);
       std::string expression = argv[3];
