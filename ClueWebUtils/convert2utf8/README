@@ -1,0 +1,44 @@
+-----
+Help!
+-----
+
+If you have trouble using Indri, check online at lemurproject.org for updated
+documentation.  You can also ask a question in the Lemur public
+forums, on SourceForge at https://sourceforge.net/projects/lemur/forums.
+The Lemur project developers watch the forums and can answer your questions.
+
+
+------------------------------------------
+What is ClueWebUtility:convertDataset2utf8
+------------------------------------------
+
+convertDataset2utf8 is a java tool which was written to convert each page of 
+the ClueWeb09 dataset from its' original charset to utf-8.
+
+The utility requires a source path and destination path.  There is an optional
+third argument, sample destination path.  If this third argument is given, the 
+utility will save every 100,000th page with the occurance of each charset to a 
+directory inside the sample destination path.
+
+usage:
+
+java -jar convertDataset2utf8.jar /path/to/corpus/ \
+                                  /path/to/save/converted/data \
+                                  [/path/to/save/sample/data/]
+
+
+The utility will traverse the source directory for all warc.gz files. It will 
+convert the warc record to utf8 if the charset is found and supported and save 
+the record to the destination with the same structure and filenames as the 
+source. (Note that the corpus directory and file structure is assumed to be 
+what was distributed with the original dataset)
+
+If the utility cannot find a charset or does not recorgnize/support the 
+charset given, the record is skipped.  The ClueWeb09 doccument id, url and 
+reason for being skipped is printed to standard output.  After each warc.gz 
+file is traversed, the statistics on the number of total records, number of  
+unrecoginzed charsets, the number of records that the utility could not 
+find the charset and the percentage of records skipped is printed to 
+standard output. 
+
+
