@@ -147,7 +147,7 @@ public class ConvertWarc {
 
   public static void doConvert(String In, String Out, String sample, Hashtable charsetHash) throws IOException {
 
-    /* If a non warc.gz file is passed in, return right away.  We are prepared to handle warc.gz only!
+      /* If a non warc.gz file is passed in, return right away.  We are prepared to handle warc.gz only! */
     if (!In.contains("warc.gz") )
       return;
 
