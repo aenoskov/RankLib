@@ -155,8 +155,11 @@ public class ConvertWarc {
     // cast to a data input stream
     DataInputStream in = new DataInputStream(gzipInStream);
         
-    GZIPOutputStream gzipOutStream = new GZIPOutputStream(new FileOutputStream(new File(Out)));
+    //GZIPOutputStream gzipOutStream = new GZIPOutputStream(new FileOutputStream(new File(Out)));
+    GZIPOutputStream gzipOutStream = new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(new File(Out))));
+
     PrintWriter barney = new PrintWriter(new OutputStreamWriter(gzipOutStream, "UTF-8"));
+
     String SampleDataDirectory = sample;
     boolean createSampleSet = false;
     if (SampleDataDirectory != "") {
@@ -183,15 +186,15 @@ public class ConvertWarc {
     String trimedEncoding = "";
     Boolean supported = false;
     int MAX_CNT = 20;
-
+    int whereinfile = 0;
     LoadSpecialCaseEncoding(); 
 
-   
     while ((record = WarcRecord.readNextWarcRecord(in)) != null) {
+      
       totalCnt++;
       supported = false;
       foundCharset = false;
-
+      
       String temp = new String(record.getContent(), "UTF-8");
       Matcher charsetMatch2 = charsetPattern.matcher(temp);
       if (charsetMatch2.find())  {
@@ -222,9 +225,9 @@ public class ConvertWarc {
 	  supported = true;
 	}
       }
-      /* if http header says "windows-1252 sniff to see what the html metadata says.
-	 If it is different and valid, use the metadata encoding instead. 
-      */
+      //if http header says "windows-1252 sniff to see what the html metadata says.
+      // If it is different and valid, use the metadata encoding instead. 
+      //
       if ((supportedEncoding.equalsIgnoreCase("windows-1252")) ||  (!supported)  ){
 	byte[] contentInOctets = record.getContent();
 	InputSource input = new InputSource(new ByteArrayInputStream(contentInOctets));
@@ -248,6 +251,9 @@ public class ConvertWarc {
 	  }
 	}
       }
+
+      //if (totalCnt != 2)
+      //	supported = false;
       if (supported) {
 		
 	BufferedReader buf = new BufferedReader( new InputStreamReader(new ByteArrayInputStream(record.getContent()), supportedEncoding));
@@ -317,6 +323,12 @@ public class ConvertWarc {
 	    	
       }
       else {
+	
+	barney.println(record.getHeaderString());
+	barney.flush();
+	byte[] content = record.getContent();
+	gzipOutStream.write(content,0, content.length);
+
 	if (foundCharset) {
 	  //System.out.println("encoding not recognized: " + encoding);
 	  encoding = "Unrecognized Charset: " + encoding;
@@ -333,11 +345,9 @@ public class ConvertWarc {
     double tcnt = totalCnt;
     float percent = (float) ((couldNotFind/tcnt)*100.0);
     System.out.println("Total Records:" + totalCnt + "; Unrecoginzed: " + couldNotRecognizeCnt + 
-		       "; 'charset='not found: " + couldNotFind + "; Records Skipped: " + percent + "%.");
+		       "; 'charset='not found: " + couldNotFind + "; Records Not Converted: " + percent + "%.");
 
     barney.close();
     in.close();
-    gzipInStream.close();
-    gzipOutStream.close();
   }
 }
