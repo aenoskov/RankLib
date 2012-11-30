@@ -43,7 +43,6 @@ Lemur License Agreement
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package edu.cmu.lemurproject;
 
 import java.io.DataInput;
@@ -67,8 +66,13 @@ public class WarcRecord {
 
   // public static final Log LOG = LogFactory.getLog(WarcRecord.class);
   
-  public static String WARC_VERSION = "WARC/0.18";
+  public static String WARC_VERSION = "WARC/";
   public static String WARC_VERSION_LINE = "WARC/0.18\n";
+
+  ////public static String WARC_VERSION = "WARC/1.0";
+  //public static String WARC_VERSION = "WARC/0.18";
+  ////public static String WARC_VERSION_LINE = "WARC/1.0\n";
+  //public static String WARC_VERSION_LINE = "WARC/0.18\n";
   private static String NEWLINE="\n";
   private static String CR_NEWLINE="\r\n";
   
@@ -167,8 +171,7 @@ public class WarcRecord {
     if (headerBuffer==null) { return null; }
 
     String line=null;
-    boolean foundMark=false;
-    boolean inHeader=true;
+    boolean foundMark=false;    
     byte[] retContent=null;
 
     // cannot be using a buffered reader here!!!!
@@ -176,6 +179,7 @@ public class WarcRecord {
     // first - find our WARC header
     while ((!foundMark) && ((line=readLineFromInputStream(in))!=null)) {
       if (line.startsWith(WARC_VERSION)) {
+        WARC_VERSION_LINE = line;
         foundMark=true;
       }
     }
@@ -185,27 +189,23 @@ public class WarcRecord {
     
     // LOG.info("Found WARC_VERSION");
 
-    // then read to the first newline
+    int contentLength = -1;
+    // read until we see contentLength then an empty line
+    // (to handle malformed ClueWeb09 headers that have blank lines)
     // get the content length and set our retContent
-    while (inHeader && ((line=readLineFromInputStream(in))!=null)) {
-      if (line.trim().length()==0) {
-        inHeader=false;
-      } else {
+    for (line = readLineFromInputStream(in).trim(); 
+        line.length() > 0 || contentLength < 0; 
+        line = readLineFromInputStream(in).trim()) {
+      
+      if (line.length() > 0 ) {
         headerBuffer.append(line);
         headerBuffer.append(LINE_ENDING);
-      }
-    }
-
-    // ok - we've got our header - find the content length
-    // designated by Content-Length: <length>
-    String[] headerPieces=headerBuffer.toString().split(LINE_ENDING);
-    int contentLength=-1;
-    for (int i=0; (i < headerPieces.length) && (contentLength < 0); i++) {
-      String[] thisHeaderPieceParts=headerPieces[i].split(":", 2);
-      if (thisHeaderPieceParts.length==2) {
-        if (thisHeaderPieceParts[0].equals("Content-Length")) {
+        
+        // find the content length designated by Content-Length: <length>
+        String[] parts = line.split(":", 2);
+        if (parts.length == 2 && parts[0].equals("Content-Length")) {
           try {
-            contentLength=Integer.parseInt(thisHeaderPieceParts[1].trim());
+            contentLength=Integer.parseInt(parts[1].trim());
             // LOG.info("WARC record content length: " + contentLength);
           } catch (NumberFormatException nfEx) {
             contentLength=-1;
@@ -213,13 +213,29 @@ public class WarcRecord {
         }
       }
     }
-
-    if (contentLength < 0) { return null; }
     
     // now read the bytes of the content
     retContent=new byte[contentLength];
     int totalWant=contentLength;
     int totalRead=0;
+    //
+    // LOOP TO REMOVE LEADING CR * LF 
+    // To prevent last few characters from being cut off of the content
+    // when reading
+    //
+    while ((totalRead == 0) && (totalRead < contentLength)) {
+      byte CR = in.readByte();
+      byte LF = in.readByte();
+      if ((CR != 13) && (LF != 10)) {
+        retContent[0] = CR;
+        retContent[1] = LF;
+        totalRead = 2;
+        totalWant = contentLength - totalRead;
+      }
+    }
+    //
+    //
+    //
     while (totalRead < contentLength) {
        try {
         int numRead=in.read(retContent, totalRead, totalWant);
@@ -345,13 +361,12 @@ public class WarcRecord {
     public String toString() {
       StringBuffer retBuffer=new StringBuffer();
       
-      retBuffer.append(WARC_VERSION);
+      retBuffer.append(WARC_VERSION_LINE);
       retBuffer.append(LINE_ENDING);
       
       retBuffer.append("WARC-Type: " + recordType + LINE_ENDING);
       retBuffer.append("WARC-Date: " + dateString + LINE_ENDING);
       
-      retBuffer.append("WARC-Record-ID: " + UUID + LINE_ENDING);
       Iterator<Entry<String,String>> metadataIterator=metadata.entrySet().iterator();
       while (metadataIterator.hasNext()) {
         Entry<String,String> thisEntry=metadataIterator.next();
@@ -360,6 +375,8 @@ public class WarcRecord {
         retBuffer.append(thisEntry.getValue());
         retBuffer.append(LINE_ENDING);
       }
+      // Keep this as the last WARC-...
+      retBuffer.append("WARC-Record-ID: " + UUID + LINE_ENDING);
       
       retBuffer.append("Content-Type: " + contentType + LINE_ENDING);
       retBuffer.append("Content-Length: " + contentLength + LINE_ENDING);
@@ -425,6 +442,7 @@ public class WarcRecord {
     
     warcHeader.metadata.put(key, value);
   }
+
   
   public void clearHeaderMetadata() {
     warcHeader.metadata.clear();
@@ -435,6 +453,13 @@ public class WarcRecord {
   }
   
   public String getHeaderMetadataItem(String key) {
+    
+    if (key.equals("WARC-Type")) { return warcHeader.recordType; }
+    if (key.equals("WARC-Date")) { return warcHeader.dateString; }
+    if (key.equals("WARC-Record-ID")) { return warcHeader.UUID; }
+    if (key.equals("Content-Type")) { return warcHeader.contentType; }
+    if (key.equals("Content-Length")) { return Integer.toString(warcHeader.contentLength); }
+
     return warcHeader.metadata.get(key);
   }
   
@@ -453,7 +478,10 @@ public class WarcRecord {
   public byte[] getContent() {
     return warcContent;
   }
-  
+  public byte[] getByteContent() {
+    return warcContent;
+  }
+ 
   public String getContentUTF8() {
     String retString=null;
     try {
