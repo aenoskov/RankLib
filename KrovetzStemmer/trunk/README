@@ -1,0 +1,5 @@
+This is the stand alone distribution for the Krovetz stemmer, as used by
+both indri and galago.
+
+The src folder contains both the C++ and Java implementations. C++ is
+built with make. Java is built with mvn.
