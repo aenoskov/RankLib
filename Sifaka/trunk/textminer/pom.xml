@@ -2,12 +2,13 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.lemurproject.sifaka</groupId>
   <artifactId>textminer</artifactId>
-  <version>1.0</version>
+  <version>1.1-SNAPSHOT</version>
   	<build>
 		<pluginManagement>
 			<plugins>
 				<plugin>
 					<artifactId>maven-assembly-plugin</artifactId>
+                                        <version>3.0.0</version>
 					<configuration>
 						<archive>
 							<manifest>
@@ -43,12 +44,12 @@
   		<dependency>
   			<groupId>org.lemurproject.sifaka</groupId>
   			<artifactId>buildindex</artifactId>
-  			<version>1.0</version>
+  			<version>1.1-SNAPSHOT</version>
   		</dependency>
   		<dependency>
   			<groupId>org.lemurproject.sifaka</groupId>
   			<artifactId>textanalyzer</artifactId>
-  			<version>1.0</version>
+  			<version>1.1-SNAPSHOT</version>
   		</dependency>
   	</dependencies>
 </project>

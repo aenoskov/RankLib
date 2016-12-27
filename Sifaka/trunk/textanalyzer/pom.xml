@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.lemurproject.sifaka</groupId>
   <artifactId>textanalyzer</artifactId>
-  <version>1.0</version>
+  <version>1.1-SNAPSHOT</version>
   	<dependencies>
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
@@ -52,18 +52,19 @@
 		<dependency>
 			<groupId>org.lemurproject.sifaka</groupId>
 			<artifactId>luceneanalyzer</artifactId>
-			<version>1.0</version>
+			<version>1.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.lemurproject.sifaka</groupId>
 			<artifactId>buildindex</artifactId>
-			<version>1.0</version>
+			<version>1.1-SNAPSHOT</version>
 		</dependency>
   	</dependencies>
 	<build>
 		<plugins>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
+                                <version>3.0.0</version>
 				<configuration>
 					<archive>
 						<manifest>
